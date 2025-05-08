@@ -4,7 +4,7 @@ This folder is for structure and design work. Use this README as a log of update
 
 ### Links
 
-* [Design Document](https://github.com/BradleyMatera/car-match/blob/main/designdoc.md)  
+* [Design Document](https://github.com/BradleyMatera/car-match-mvp/designdoc.md)  
 * [Live Repo](https://github.com/BradleyMatera/car-match)
 
 <br>
