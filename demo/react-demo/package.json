@@ -6,13 +6,13 @@
     "@testing-library/jest-dom": "^5.15.0",
     "@testing-library/react": "^11.2.7",
     "@testing-library/user-event": "^12.8.3",
-    "axios": "^0.24.0",
+    "axios": "^0.30.0",
     "prop-types": "^15.7.2",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-router-dom": "^6.0.1",
     "react-router-prop-types": "^1.0.5",
-    "react-scripts": "4.0.3",
+    "react-scripts": "5.0.1",
     "web-vitals": "^1.1.2"
   },
   "scripts": {
