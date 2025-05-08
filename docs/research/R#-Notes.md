@@ -1,70 +1,33 @@
-This document is a template for ongoing research. Delete this first paragraph and then update the information below where indicated. 
+# Research Notes – Week 1  
+*Author: Bradley Matera*  
+*Date: May 8, 2025*
 
+## Topic: Design System and MVP Structure
 
-<br>
+This week I started working on the MVP of my Car Match project, a dating platform for car enthusiasts. The design process is focused on creating a clean, professional UI that feels real and usable even though it’s running on mock data. The core structure and layout planning are captured in my `designdoc.md` file.
 
-# Project & Portfolio 
+I built a modal-based homepage that simulates login gating like Match.com. From there, I planned a full layout system that uses responsive grid logic and modular sections (like tiles, dashboards, and CTA buttons). The user flows have been outlined, including modal onboarding, profile view, settings, event RSVP, and dashboard logic. The frontend is structured in a way that it could later be connected to a real backend without major rewrites.
 
-* **Research Notes - Milestone #**
-* **First Last Name**
-* **Assignment Due Date**
+## Sub-Topic: UI/UX Design Reference
 
-<br>
+In the design doc, I break down each main page (Landing, Dashboard, Profile, Events, Settings, and About) with bullet points on what the UI should include. I’ve focused heavily on layout structure, form design, and component hierarchy. I also included thoughts on how controls should work on desktop vs. mobile and ensured the design stays accessible and easy to follow for users of all ages.
 
+## Sub-Topic: Infrastructure and Technical Planning
 
-## Topic - Replace with your topic
+I included a basic AWS architecture plan in the design doc. The frontend is meant to be hosted on S3 and served with CloudFront. The backend, if built later, would run on AWS Lambda or ECS. I’d use RDS (PostgreSQL) for structured data and Cognito for user auth. While this isn’t implemented yet, it shows the direction I plan to go if the app were to become live.
 
-This document contains general notes related to...
+## Sub-Topic: Style Tile and Visual Design
 
-<br>
+I documented a basic style tile in the design doc including primary colors (#d19efa and #181818), card component designs, rounded corners, padding, and text hierarchy. The design choices are meant to be soft and modern, without being overstyled. Most of the inspiration comes from mainstream dating platforms but toned down for a niche community.
 
-## Sub-Topic 1 - Replace with your sub-topic
-Brief overview of research. 
+## Next Steps
 
-* Key finding 1...
-* 2
-* 3 
+- Transfer the content from `designdoc.md` into this markdown format each week.
+- Create `R2-Notes.md` to begin logging Events page feedback flow and RSVP mock logic.
+- Set up GitHub Issues and Project board to reflect features described in the design doc.
+- Begin tagging features in commits based on layout zones (topnav, CTA, dashboard tiles, etc.)
 
-<br>
+## Repo
 
-## Sub-Topic 2 - Replace with your sub-topic
-Brief overview of research. 
-
-* Key finding 1...
-* 2
-* 3 
-
-<br>
-
-## Sub-Topic 3 - Replace with your sub-topic
-Brief overview of research. 
-
-* Key finding 1...
-* 2
-* 3 
-
-
-    
-<br>
-
-## Reference Links
-Use this section to highlight your own independent research. Replace the example references below with your own links and recommended resources. For example...
-
-**Resource 1: Title**  
-[Name of Site or Article Here](https://www.someaddress.com/full/url/): Here's what I learned about...  
-
-**Resource 2: Title**    
-[Name of Site or Article Here](https://www.someaddress.com/full/url/): This site showed me how to...
-
-**Resource 3: Title**      
-[Name of Site or Article Here](https://www.someaddress.com/full/url/): This article explains that...
-
-<br>
-
-**Note:**  
-
-* It is acceptable to provide multiple links for a single sub-topic.  
-* Be sure to explain what resource(s) you found most helpful for the current milestone. 
-
-
-
+Main repo is live and public here:  
+[https://github.com/BradleyMatera/car-match](https://github.com/BradleyMatera/car-match)
