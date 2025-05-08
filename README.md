@@ -1,41 +1,29 @@
-
 # Welcome! ...🚀 
 
-This repository will be used for upcoming Project & Portfolio activity. We will use it to keep track of research, development, and experimentation conducted in this class. Follow the instructions below to get started.
+This repository holds my Project & Portfolio IV work for May 2025. It documents my research, design planning, and weekly development progress for the Car Match MVP — a dating platform concept for car enthusiasts. This is a frontend-first build focused on clean UI, responsive layout, and mock interaction logic. It’s built to behave like a real app and structured for easy backend integration down the line.
 
 <br>
 
-## Step 1
-
-Clone down a local copy of this repository.
-
-
-
-## Step 2
-
-Review the README files and update any 'First & Last Name' text shown, to your own first and last name. 
-
-
-
-## Step 3
-
-Attend the first Live Session. If you are unable to attend, be sure to watch the meeting archive video (see The Week Ahead activity).  
-
-<br>
-
-
-### Next Steps... 
-After completing the above steps, delete all of the above text including this paragraph. As you make updates to your work each week, use the log provided to keep a record of your activity (see link below). 
-
-
-<br>
-
-# Project & Portfolio
-### First Last 
-
+# Project & Portfolio  
+### Bradley Matera  
 
 ![Degree Program](https://img.shields.io/badge/degree-web%20development-blue.svg)
 
 [Log](./docs/log.md)
 
 <br>
+
+## Overview
+
+The Car Match MVP was started from scratch on May 4th. I focused first on building a working prototype using HTML, CSS, and vanilla JavaScript. The frontend includes simulated login gating, user profile layout, events with RSVP logic, and a modular dashboard. State is managed with localStorage and mock JSON data to simulate real app behavior.
+
+All UI structure and technical planning is detailed in `designdoc.md`. The repo is structured using feature branch workflow with dev → stage → main merges, and I’m using GitHub Projects, Issues, and Milestones to organize weekly deliverables.
+
+<br>
+
+## Key Resources
+
+- [Live Repo](https://github.com/BradleyMatera/car-match)
+- [Design Doc](https://github.com/BradleyMatera/car-match/blob/main/car-match-mvp/designdoc.md)
+- [Research Notes](./docs/research)
+- [Design Log](./designs/README.md)
