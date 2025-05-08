@@ -1,0 +1,25 @@
+/**
+******* LAYOUT *******
+**/
+.body {
+  font-family: "Oswald", sans-serif;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  margin: 0;
+  background-color: var(--white);
+  justify-content: space-between;
+}
+
+.main_container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 20px;
+  flex-wrap: wrap;
+  align-items: stretch;
+  justify-content: flex-start;
+  flex-grow: 5;
+}

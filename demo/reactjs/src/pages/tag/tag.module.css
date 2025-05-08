@@ -1,0 +1,27 @@
+@value brand: '../../brand.module.css';
+@value disabled, destructive from brand;
+
+.heading {
+  composes: heading from brand;
+}
+
+.heading small {
+  margin-left: 10px;
+  color: disabled;
+  font-size: 12px;
+}
+
+.button {
+  composes: button from brand;
+  display: inline-block;
+  margin-left: 10px;
+  padding: 8px 10px;
+  font-size: 10px;
+  line-height: 10px;
+  vertical-align: middle;
+}
+
+.stopButton {
+  composes: button;
+  background-color: destructive;
+}

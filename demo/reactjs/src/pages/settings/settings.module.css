@@ -1,0 +1,37 @@
+@value brand: '../../brand.module.css';
+@value white from brand;
+
+.heading {
+  composes: heading from brand;
+}
+.input {
+  composes: input from brand;
+}
+.button {
+  composes: button from brand;
+}
+
+.label {
+  color: white;
+}
+
+.profilePic {
+  width: 50%;
+  margin-bottom: 20px;
+}
+
+.form .profilePic > div div {
+  margin: 0;
+  padding: 0;
+}
+.profilePic svg {
+  fill: white;
+}
+
+.avatar {
+  width: 160px;
+  height: 160px;
+  margin-bottom: 20px;
+  overflow: hidden;
+  border-radius: 50%;
+}

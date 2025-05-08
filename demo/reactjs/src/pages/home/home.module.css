@@ -1,0 +1,45 @@
+@value brand: '../../brand.module.css';
+@value dark, border, white, disabled, selected from brand;
+
+.heading {
+  composes: heading from brand;
+}
+
+.tabs {
+  display: inline-block;
+  width: auto;
+  margin-bottom: -7px !important;
+  background-color: dark;
+  border: 1px solid border;
+  border-bottom: 0;
+  border-radius: 10px 10px 0px 0px;
+}
+
+.tabs + div {
+  border-top-left-radius: 0;
+}
+
+.tabs ul {
+  flex-grow: 0;
+  flex-shrink: 1;
+  border: none;
+}
+
+.tabs a {
+  color: disabled;
+  border: none;
+}
+
+.tabs li a {
+  margin: 0 20px 10px;
+  padding: 5px 10px;
+}
+
+.tabs a:hover {
+  color: white;
+}
+
+.tabs :global li.is-active a {
+  color: selected;
+  border-bottom: 2px solid selected;
+}

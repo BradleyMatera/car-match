@@ -1,0 +1,93 @@
+.homepage-container {
+  font-family: Arial, sans-serif;
+  color: #333;
+  padding: 2rem;
+}
+
+.homepage-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.homepage-header h1 {
+  font-size: 2.5rem;
+  color: #1574BB;
+}
+
+.homepage-nav ul {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.homepage-nav ul li {
+  display: inline;
+}
+
+.homepage-nav ul li a {
+  text-decoration: none;
+  color: #1574BB;
+  font-weight: bold;
+}
+
+.homepage-main {
+  text-align: center;
+}
+
+.intro-section {
+  margin-bottom: 2rem;
+}
+
+.intro-section h2 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.intro-section p {
+  font-size: 1.2rem;
+  margin-bottom: 1.5rem;
+}
+
+.join-now-button {
+  background-color: #1574BB;
+  color: #fff;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.join-now-button:hover {
+  background-color: #0d5a8a;
+}
+
+.features-section {
+  margin-top: 2rem;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.feature-card {
+  background: #f9f9f9;
+  padding: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  text-align: left;
+}
+
+.feature-card h3 {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.feature-card p {
+  font-size: 1rem;
+  color: #555;
+}

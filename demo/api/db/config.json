@@ -1,0 +1,43 @@
+{
+  "development": {
+    "username": "root",
+    "password": null,
+    "database": "dev",
+    "host": "127.0.0.1",
+    "dialect": "postgres"
+  },
+  "circleci": {
+    "username": "circleci",
+    "password": null,
+    "database": "circlecidb",
+    "host": "127.0.0.1",
+    "dialect": "postgres"
+  },
+  "test": {
+    "username": "root",
+    "password": null,
+    "database": "wdd_test",
+    "host": "127.0.0.1",
+    "dialect": "mysql"
+  },
+  "staging": {
+    "use_env_variable": "DATABASE_URL",
+		"dialect": "postgres",
+		"dialectOptions": {
+			"ssl": {
+				"require": true,
+				"rejectUnauthorized": false
+			}
+		}
+  },
+	"production": {
+		"use_env_variable": "DATABASE_URL",
+		"dialect": "postgres",
+		"dialectOptions": {
+			"ssl": {
+				"require": true,
+				"rejectUnauthorized": false
+			}
+		}
+	}
+}

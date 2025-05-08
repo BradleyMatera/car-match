@@ -1,0 +1,63 @@
+@value brand: '../../brand.module.css';
+@value dark, border, white, disabled, selected, background, active from brand;
+
+.heading {
+  composes: heading from brand;
+}
+
+.subTitle {
+  composes: subTitle from brand;
+}
+
+.contentBox {
+  composes: box from brand;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px;
+}
+.post {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid border;
+}
+
+.content {
+  composes: markdown from brand;
+  width: 100%;
+  margin: 10px 0 30px 0;
+}
+
+.commentInput {
+  height: 2em;
+  margin: 10px 0;
+  color: white;
+  background-color: background;
+  border: 1px solid border;
+  border-radius: 4px;
+  outline: none;
+}
+.commentInput::placeholder {
+  color: disabled;
+}
+
+.button {
+  composes: button from brand;
+  float: right;
+}
+.comment {
+  margin: 15px 0;
+  padding-bottom: 15px;
+  color: white;
+  border-bottom: 1px solid border;
+}
+
+.comment strong {
+  color: white;
+}
+
+.commentContent {
+  margin: 10px 0;
+  padding: 0 10px;
+  border-left: 1px solid disabled;
+}

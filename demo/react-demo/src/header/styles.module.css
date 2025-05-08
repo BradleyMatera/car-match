@@ -1,0 +1,40 @@
+/**
+******* HEADER *******
+**/
+.header {
+  width: 100%;
+  color: var(--white);
+  background-color: var(--secondary-color);
+}
+
+.header__brand,
+.header__link {
+  display: inline-block;
+  text-decoration: none;
+  text-transform: uppercase;
+  color: var(--white);
+  border-color: var(--white);
+  composes: link, from "../brand.css";
+}
+
+.header__link {
+  margin-left: 20px;
+  border-bottom: 1px solid var(--white);
+}
+
+.header__brand {
+  font-size: 22px;
+  margin: 0;
+  border: none;
+}
+
+.header__container {
+  display: flex;
+  /* width: 100%; */
+  max-width: 950px;
+  margin: 0 auto;
+  padding: 20px;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}

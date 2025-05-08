@@ -1,0 +1,61 @@
+@value brand: '../../brand.module.css';
+@value white, active, background, dark from brand;
+
+.tags {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+.tag {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  max-width: 200px;
+  margin-bottom: 20px;
+  color: white;
+}
+
+.data {
+  width: 160px;
+}
+
+.data a {
+  color: active;
+}
+
+.tagTitle {
+  display: block;
+  font-weight: bold;
+}
+
+.meta {
+  display: block;
+  font-size: smaller;
+}
+
+.searchBar {
+  margin-bottom: 40px;
+  padding: 10px;
+  vertical-align: middle;
+  background-color: dark;
+}
+.searchBarIcon {
+  margin-right: 5px;
+  vertical-align: middle;
+}
+.searchBarInput {
+  width: calc(100% - 35px);
+  height: 100%;
+  color: white;
+  font-weight: normal;
+  font-size: 16px;
+  font-family: 'SF Display', sans-serif;
+  font-style: normal;
+  line-height: 19px;
+  vertical-align: middle;
+  background: none;
+  border: none;
+  outline: none;
+}
+.searchBarInput::placeholder {
+  color: disabled;
+}

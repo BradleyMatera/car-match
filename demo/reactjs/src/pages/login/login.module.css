@@ -1,0 +1,16 @@
+@value brand: '../../brand.module.css';
+@value white from brand;
+
+.heading {
+  composes: heading from brand;
+}
+.input {
+  composes: input from brand;
+}
+.button {
+  composes: button from brand;
+}
+
+.label {
+  color: white;
+}

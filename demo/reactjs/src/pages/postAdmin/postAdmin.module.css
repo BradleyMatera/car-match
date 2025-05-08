@@ -1,0 +1,33 @@
+@value brand: '../../brand.module.css';
+@value dark, border, white, disabled, selected, destructive from brand;
+
+.heading {
+  composes: heading from brand;
+}
+.title {
+  composes: title from brand;
+  flex-grow: 1;
+}
+.subTitle {
+  composes: subTitle from brand;
+}
+
+.post {
+  display: flex;
+  flex-direction: row;
+  padding: 20px 0 20px 0;
+  border-bottom: 1px solid border;
+}
+
+.button {
+  composes: button from brand;
+  margin: 0 5px;
+  padding: 5px 10px;
+  font-size: 10px;
+  line-height: 10px;
+}
+
+.buttonDelete {
+  composes: button;
+  background-color: destructive;
+}

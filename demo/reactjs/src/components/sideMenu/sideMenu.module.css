@@ -1,0 +1,31 @@
+@value brand: '../../brand.module.css';
+@value dark, border, borderRadiusLg, selected, white, disabled from brand;
+
+@value sideBarWidth: 250px;
+
+.menu {
+  width: sideBarWidth;
+  max-width: 25%;
+  height: calc(100% - 107px);
+  padding: 25px;
+  background-color: dark;
+  border-right: 1px solid border;
+  border-radius: 0 0 0 borderRadiusLg;
+}
+
+:global .menu-list a.is-active {
+  background-color: selected;
+}
+
+:global .menu-list a {
+  color: white;
+}
+
+:global .menu-list a:hover {
+  color: disabled;
+  background: none;
+}
+
+:global .menu-label {
+  color: disabled;
+}

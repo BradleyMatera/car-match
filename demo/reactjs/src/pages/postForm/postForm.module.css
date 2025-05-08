@@ -1,0 +1,186 @@
+@value brand: '../../brand.module.css';
+@value dark, border, white, disabled, selected, active as activeCol, background from brand;
+
+.heading {
+  composes: heading from brand;
+}
+
+.button {
+  composes: button from brand;
+  float: right;
+  margin-top: 20px;
+}
+.input {
+  composes: input from brand;
+}
+.createPost button,
+.createPost {
+  color: white;
+}
+
+.createPost :global .editor-toolbar button.active,
+.createPost :global .editor-toolbar button:hover {
+  background-color: selected;
+  border-color: border;
+  outline-color: selected;
+}
+
+.createPost :global .CodeMirror,
+.createPost :global .editor-toolbar.fullscreen,
+.createPost :global .editor-preview {
+  color: white;
+  background-color: dark;
+}
+
+.createPost :global .editor-toolbar.fullscreen::before,
+.createPost :global .editor-toolbar.fullscreen::after {
+  display: none;
+}
+
+.createPost :global .cm-url {
+  color: activeCol;
+}
+
+.preview {
+  composes: markdown from brand;
+}
+
+.tags {
+  position: relative;
+  padding: 10px 20px 4px;
+
+  /* shared font styles */
+  font-size: 1rem;
+  line-height: 1.2;
+  background-color: dark;
+  border: 1px solid border;
+  border-radius: 1px;
+
+  /* clicking anywhere will focus the input */
+  cursor: text;
+}
+
+.tagsSelected {
+  display: inline;
+}
+
+.tagsSelectedTag {
+  display: inline-block;
+  box-sizing: border-box;
+  margin: 0 6px 6px 0;
+  padding: 6px 8px;
+  color: white;
+
+  /* match the font styles */
+  font-size: 0.75rem;
+  line-height: inherit;
+  background-color: activeCol;
+  border: 1px solid border;
+  border-radius: 4px;
+}
+
+.tagsSelectedTag:before {
+  margin-left: 8px;
+  color: white;
+  content: '#';
+}
+
+.tagsSelectedTag:after {
+  margin-left: 8px;
+  color: white;
+  content: '\2715';
+}
+
+.tagsSelectedTag:hover,
+.tagsSelectedTag:focus {
+  border-color: #b1b1b1;
+}
+
+.tagsSearch {
+  display: inline-block;
+
+  /* prevent autoresize overflowing the container */
+  max-width: 100%;
+  margin-bottom: 6px;
+
+  /* match tag layout */
+  padding: 7px 2px;
+}
+
+@media screen and (min-width: 30em) {
+  .tagsSearch {
+    /* this will become the offsetParent for suggestions */
+    position: relative;
+  }
+}
+
+.tagsSearch input {
+  /* prevent autoresize overflowing the container */
+  max-width: 100%;
+
+  /* remove styles and layout from this element */
+  margin: 0;
+  padding: 0;
+  color: white;
+
+  /* match the font styles */
+  font-size: inherit;
+  line-height: inherit;
+  background-color: transparent;
+  border: 0;
+  outline: none;
+}
+
+.tagsSearch input::-ms-clear {
+  display: none;
+}
+
+.tagsSuggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+}
+
+@media screen and (min-width: 30em) {
+  .tagsSuggestions {
+    width: 240px;
+  }
+}
+
+.tagsSuggestions ul {
+  margin: 4px -1px;
+  padding: 0;
+  color: white;
+  list-style: none;
+  background: dark;
+  border: 1px solid border;
+  border-radius: 2px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.tagsSuggestions li {
+  padding: 6px 8px;
+  border-bottom: 1px solid border;
+}
+
+.tagsSuggestions li mark {
+  color: white;
+  font-weight: 600;
+  text-decoration: underline;
+  background: none;
+}
+
+.tagsSuggestions li:hover {
+  background-color: background;
+  cursor: pointer;
+}
+
+.tagsSuggestions li.isActive {
+  background: #b7cfe0;
+}
+
+.tagsSuggestions li.isDisabled {
+  cursor: auto;
+  opacity: 0.5;
+}

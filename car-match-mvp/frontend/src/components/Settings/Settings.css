@@ -1,0 +1,79 @@
+.settings-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.settings-section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  border: 1px solid #E6E6E6;
+  border-radius: 8px;
+}
+
+.settings-section h2 {
+  color: #1574BB;
+  margin-bottom: 1.5rem;
+}
+
+.settings-form label {
+  display: block;
+  margin-bottom: 1rem;
+  color: #444;
+}
+
+.settings-form input {
+  width: 100%;
+  padding: 0.8rem;
+  margin-top: 0.5rem;
+  border: 1px solid #E6E6E6;
+  border-radius: 4px;
+}
+
+.save-button {
+  background: #8CCA00;
+  color: white;
+  padding: 0.8rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  margin-top: 1rem;
+  cursor: pointer;
+}
+
+.password-button,
+.mfa-button {
+  background: #F6F6F6;
+  color: #333;
+  padding: 0.8rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  margin-right: 1rem;
+  cursor: pointer;
+}
+
+.danger-zone {
+  border-color: #E60000;
+  background: #FFF0F0;
+}
+
+.delete-button {
+  background: #E60000;
+  color: white;
+  padding: 0.8rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.warning {
+  color: #E60000;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+button:hover {
+  opacity: 0.9;
+}

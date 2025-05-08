@@ -1,0 +1,92 @@
+.signup-container {
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.signup-step {
+  margin-bottom: 2rem;
+}
+
+.signup-step h2 {
+  color: #1574BB;
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="file"] {
+  width: 100%;
+  padding: 0.8rem;
+  margin-bottom: 1rem;
+  border: 1px solid #E6E6E6;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+input:focus {
+  outline: 2px solid #8CCA00;
+  border-color: transparent;
+}
+
+.car-interests {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.car-interests label {
+  display: flex;
+  align-items: center;
+  padding: 0.8rem;
+  background: #F6F6F6;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.car-interests input[type="checkbox"] {
+  margin-right: 0.5rem;
+  width: 1.2rem;
+  height: 1.2rem;
+  accent-color: #8CCA00;
+}
+
+.signup-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2rem;
+}
+
+button {
+  padding: 0.8rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+
+button[type="submit"] {
+  background: #8CCA00;
+  color: white;
+}
+
+button[type="button"] {
+  background: #E6E6E6;
+  color: #333;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+input[type="file"] {
+  padding: 0.5rem;
+  border: 2px dashed #E6E6E6;
+}

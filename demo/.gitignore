@@ -1,0 +1,27 @@
+# Dependency Directory
+node_modules/
+
+# Mac OS
+.DS_Store
+
+# Local Netlify folder
+.netlify
+
+# VS Code
+.vscode/settings.json
+
+# Logs
+Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ENV Vars
+.env
+
+# Images, PDFs, ZIPs, etc. 
+# *.jpg
+# *.png
+# *.zip
+# *.pdf

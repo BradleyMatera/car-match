@@ -1,0 +1,31 @@
+@value brand: './brand.module.css';
+@value border, background, borderRadiusLg from brand;
+
+.backgroundStars {
+  display: flex;
+  justify-content: center;
+  min-width: 100vh;
+  min-height: 100vh;
+  background-color: #21252b;
+  background-image: url(endlessStars.svg);
+  background-repeat: repeat;
+}
+
+.container {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  width: 1100px;
+  max-width: 90%;
+  margin: 50px 0;
+  background-color: background;
+
+  border: 1px solid border;
+  border-radius: borderRadiusLg;
+}
+
+.content {
+  flex-grow: 1;
+  width: 75%;
+  padding: 30px 60px;
+}

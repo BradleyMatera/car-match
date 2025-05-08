@@ -1,0 +1,72 @@
+{
+  "env": {
+    "browser": true,
+    "es6": true
+  },
+  "parser": "babel-eslint",
+  "extends": [
+    "plugin:react/recommended",
+    "airbnb",
+    "plugin:prettier/recommended"
+  ],
+  "globals": {
+    "Atomics": "readonly",
+    "SharedArrayBuffer": "readonly"
+  },
+  "parserOptions": {
+    "ecmaFeatures": {
+      "jsx": true
+    },
+    "ecmaVersion": 2018,
+    "sourceType": "module"
+  },
+  "plugins": [
+    "react",
+    "simple-import-sort",
+    "sort-destructure-keys",
+    "sort-keys-fix",
+    "sort-imports-es6-autofix"
+  ],
+  "rules": {
+    "react/forbid-prop-types": 0,
+    "react/prop-types": [
+      "error",
+      { "ignore": ["match", "history", "location"] }
+    ],
+    "sort-imports-es6-autofix/sort-imports-es6": 0,
+    "sort-imports": 0,
+    "import/order": 0,
+    "sort-keys-fix/sort-keys-fix": [
+      2,
+      "asc",
+      { "caseSensitive": false, "natural": true }
+    ],
+    "sort-keys": 0,
+    "sort-vars": 2,
+    "sort-destructure-keys/sort-destructure-keys": 2,
+    "simple-import-sort/sort": [
+      "error",
+      {
+        "groups": [
+          // Style imports.
+          ["^.+\\.s?css$"],
+          // Packages. `react` related packages come first.
+          ["react$", "prop-types"],
+          // node_module packages
+          ["^@?\\w", "^\\u0000"],
+          // Side effect imports.
+          // Parent imports. Put `..` last.
+          ["^\\.\\.(?!/?$)", "^\\.\\./?$"],
+          // Other relative imports. Put same-folder imports and `.` last.
+          ["^\\./(?=.*/)(?!/?$)", "^\\.(?!/?$)", "^\\./?$"]
+        ]
+      }
+    ],
+    "react/jsx-filename-extension": [
+      1,
+      {
+        "extensions": [".js", ".jsx"]
+      }
+    ]
+  }
+}

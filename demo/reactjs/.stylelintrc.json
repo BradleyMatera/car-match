@@ -1,0 +1,19 @@
+{
+  "extends": [
+    "stylelint-config-recommended",
+    "stylelint-prettier/recommended",
+    "stylelint-config-css-modules"
+  ],
+  "plugins": ["stylelint-order", "stylelint-rational-order-plugin"],
+  "plugin/rational-order": true,
+  "rules": {
+    "order/properties-order": [],
+    "plugin/rational-order": [
+      true,
+      {
+        "border-in-box-model": true,
+        "empty-line-between-groups": true
+      }
+    ]
+  }
+}

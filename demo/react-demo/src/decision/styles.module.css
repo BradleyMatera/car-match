@@ -1,0 +1,30 @@
+/**
+******* LIST *******
+**/
+.list {
+  border: 1px solid var(--border-color);
+  border-top: none;
+  background-color: var(--gray-color);
+}
+
+.list__item {
+  display: flex;
+  flex-direction: raw;
+  padding: 20px 20px;
+  border-top: 1px solid var(--border-color);
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.list__item__title {
+  font-size: 20px;
+  flex-grow: 2;
+}
+
+.heading {
+  composes: heading from '../brand.css';
+}
+
+.button {
+  composes: button from '../brand.css';
+}

@@ -1,0 +1,33 @@
+{
+  "name": "wdv",
+  "version": "0.1.0",
+  "description": "project",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "install-reactjs": "npm i --force --prefix reactjs",
+    "install-api": "npm i --force --prefix api",
+    "build-reactjs": "npm run build --prefix reactjs",
+    "build-api": "npm run db-update --prefix api",
+    "seed-db": "npm run db-seed --prefix api",
+    "heroku-postbuild": "concurrently \"npm:install-*\"; concurrently \"npm:build-*\"; concurrently \"npm:seed-*\"",
+    "start": "npm start --prefix api",
+    "test": "cd api && npm run test",
+    "dev-web": "concurrently --raw \"npm run api\" \"npm run web\"",
+    "dev-reactjs": "concurrently --raw \"npm run api\" \"npm run react\"",
+    "dev-react-demo": "concurrently --raw \"npm run api\" \"npm run react-demo\"",
+    "web": "cd web; nodemon server.js",
+    "api": "cd api; nodemon server.js",
+    "react": "cd reactjs; nodemon server.js",
+    "react-demo": "cd react-demo && npm run start"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^6.2.1",
+    "nodemon": "^2.0.12"
+  }
+}

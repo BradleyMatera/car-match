@@ -1,0 +1,40 @@
+@value brand: '../../brand.module.css';
+@value active, selected, disabled from brand;
+
+.details {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.tags :global .tag {
+  margin-right: 5px;
+  color: white;
+  background-color: active;
+}
+
+.meta {
+  color: white;
+  vertical-align: bottom;
+}
+.meta :global .icon svg {
+  color: selected;
+}
+.meta :global .fa-comment {
+  position: relative;
+  top: 2px;
+}
+.meta :global .icon .is-active {
+  color: active;
+  cursor: pointer;
+}
+.meta :global .icon .is-selected {
+  color: selected;
+  cursor: arrow;
+  pointer-events: none;
+}
+.meta :global .icon .is-disabled {
+  color: disabled;
+  pointer-events: none;
+}

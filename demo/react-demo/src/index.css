@@ -1,0 +1,23 @@
+
+@import url("https://use.fontawesome.com/releases/v5.7.2/css/all.css");
+/** 
+******* Global *******
+**/
+@import url("https://fonts.googleapis.com/css?family=Oswald");
+
+:root {
+  --active-color: #2ab7ca;
+  --primary-color: #fe8a71;
+  --secondary-color: #fed766;
+  --white: #fdfdfd;
+  --gray-color: #f4f4f8;
+  --border-color: #e6e6ea;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}

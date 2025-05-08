@@ -1,0 +1,21 @@
+@value brand: '../../brand.module.css';
+
+.list {
+  composes: box from brand;
+}
+
+.post {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px;
+}
+
+.title {
+  composes: title from brand;
+  width: 100%;
+  height: 1em;
+  overflow-x: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

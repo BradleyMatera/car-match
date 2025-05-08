@@ -1,0 +1,7 @@
+@value brand: '../../brand.module.css';
+
+.subTitle {
+  composes: subTitle from brand;
+  width: 100%;
+  margin: 10px 0;
+}

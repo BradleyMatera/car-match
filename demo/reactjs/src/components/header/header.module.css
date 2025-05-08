@@ -1,0 +1,79 @@
+@value brand: '../../brand.module.css';
+@value dark, border, white, disabled, borderRadiusLg from brand;
+@value sideBarWidth from '../sideMenu/sideMenu.module.css';
+
+@value headerPadding: 33px;
+
+.background {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+
+  width: 100%;
+  padding: headerPadding;
+  background-color: dark;
+  border-bottom: 1px solid border;
+  border-radius: borderRadiusLg borderRadiusLg 0 0;
+}
+
+.logo {
+  width: calc(sideBarWidth - headerPadding);
+  max-width: 25%;
+  text-align: center;
+}
+.logoImage {
+  width: 28px;
+  height: 28px;
+}
+
+.logoFont {
+  color: white;
+  font-weight: normal;
+  font-size: 30px;
+  font-family: 'SF Display', sans-serif;
+  font-style: normal;
+  line-height: 36px;
+}
+.searchBar {
+  flex-grow: 0.5;
+  vertical-align: middle;
+}
+.searchBarIcon {
+  margin-right: 5px;
+  vertical-align: middle;
+}
+.searchBarInput {
+  width: calc(100% - 35px);
+  height: 100%;
+  color: white;
+  font-weight: normal;
+  font-size: 16px;
+  font-family: 'SF Display', sans-serif;
+  font-style: normal;
+  line-height: 19px;
+  vertical-align: middle;
+  background: none;
+  border: none;
+  outline: none;
+}
+.searchBarInput::placeholder {
+  color: disabled;
+}
+
+.navButton {
+  composes: button from brand;
+}
+
+.navLink {
+  composes: link from brand;
+  margin: 0 20px;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  margin: 0 10px 0 20px;
+  vertical-align: middle;
+  border: 1px solid border;
+  border-radius: 50%;
+}

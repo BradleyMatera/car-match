@@ -1,0 +1,3 @@
+.button {
+  composes: button from '../brand.css';
+}

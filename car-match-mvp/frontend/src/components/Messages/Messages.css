@@ -1,0 +1,77 @@
+.messages-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.messages-header h1 {
+  color: #1574BB;
+  margin-bottom: 2rem;
+}
+
+.conversation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.message {
+  max-width: 70%;
+  padding: 1rem;
+  border-radius: 1rem;
+}
+
+.message.received {
+  background: #F6F6F6;
+  align-self: flex-start;
+}
+
+.message.sent {
+  background: #8CCA00;
+  color: white;
+  align-self: flex-end;
+}
+
+.timestamp {
+  display: block;
+  font-size: 0.8rem;
+  color: #666;
+  margin-top: 0.5rem;
+}
+
+.message.sent .timestamp {
+  color: rgba(255,255,255,0.8);
+}
+
+.message-input {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.message-input input {
+  flex: 1;
+  padding: 0.8rem;
+  border: 1px solid #E6E6E6;
+  border-radius: 4px;
+}
+
+.message-input button {
+  background: #8CCA00;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.message-input button:hover {
+  opacity: 0.9;
+}
