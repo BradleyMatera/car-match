@@ -26,4 +26,4 @@ All UI structure and technical planning is detailed in `designdoc.md`. The repo 
 - [Live Repo](https://github.com/BradleyMatera/car-match)
 - [Design Doc](https://github.com/BradleyMatera/car-match/blob/main/car-match-mvp/designdoc.md)
 - [Research Notes](./docs/research)
-- [Design Log](./designs/README.md)
+- [Design Log](https://github.com/BradleyMatera/car-match/blob/main/docs/designs/README.md)
