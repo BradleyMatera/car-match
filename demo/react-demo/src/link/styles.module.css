@@ -1,7 +1,0 @@
-.link {
-  composes: link from '../brand.css';
-}
-
-.linkSecondary {
-  composes: linkSecondary from '../brand.css';
-}
