@@ -1,0 +1,82 @@
+/* Additional Flex-specific styles */
+.flex-gap-xs {
+  gap: var(--space-xs);
+}
+
+.flex-gap-sm {
+  gap: var(--space-sm);
+}
+
+.flex-gap-md {
+  gap: var(--space-md);
+}
+
+.flex-gap-lg {
+  gap: var(--space-lg);
+}
+
+.flex-gap-xl {
+  gap: var(--space-xl);
+}
+
+.flex-gap-2xl {
+  gap: var(--space-2xl);
+}
+
+.flex-gap-3xl {
+  gap: var(--space-3xl);
+}
+
+/* Flex item utilities */
+.flex-grow {
+  flex-grow: 1;
+}
+
+.flex-shrink {
+  flex-shrink: 1;
+}
+
+.flex-no-grow {
+  flex-grow: 0;
+}
+
+.flex-no-shrink {
+  flex-shrink: 0;
+}
+
+.flex-basis-auto {
+  flex-basis: auto;
+}
+
+.flex-basis-0 {
+  flex-basis: 0;
+}
+
+.flex-basis-full {
+  flex-basis: 100%;
+}
+
+.flex-basis-half {
+  flex-basis: 50%;
+}
+
+.flex-basis-third {
+  flex-basis: 33.333333%;
+}
+
+.flex-basis-quarter {
+  flex-basis: 25%;
+}
+
+/* Responsive flex direction */
+@media (max-width: 767px) {
+  .flex-col-mobile {
+    flex-direction: column;
+  }
+}
+
+@media (min-width: 768px) {
+  .flex-row-desktop {
+    flex-direction: row;
+  }
+}

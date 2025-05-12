@@ -1,0 +1,76 @@
+/* Section component styles */
+.section {
+  position: relative;
+  width: 100%;
+}
+
+/* Section spacing variations */
+.section-spacing-default {
+  padding-top: var(--space-2xl);
+  padding-bottom: var(--space-2xl);
+}
+
+.section-spacing-sm {
+  padding-top: var(--space-lg);
+  padding-bottom: var(--space-lg);
+}
+
+.section-spacing-lg {
+  padding-top: var(--space-3xl);
+  padding-bottom: var(--space-3xl);
+}
+
+.section-spacing-none {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* Section background variations */
+.section-bg-light {
+  background-color: var(--background-light);
+}
+
+.section-bg-primary {
+  background-color: var(--primary-color);
+  color: var(--text-light);
+}
+
+.section-bg-secondary {
+  background-color: var(--secondary-color);
+  color: var(--text-light);
+}
+
+.section-bg-dark {
+  background-color: var(--text-dark);
+  color: var(--text-light);
+}
+
+/* Responsive section spacing */
+@media (max-width: 767px) {
+  .section-spacing-default {
+    padding-top: var(--space-xl);
+    padding-bottom: var(--space-xl);
+  }
+  
+  .section-spacing-lg {
+    padding-top: var(--space-2xl);
+    padding-bottom: var(--space-2xl);
+  }
+}
+
+/* Section with dividers */
+.section-with-top-divider {
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.section-with-bottom-divider {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .section-with-top-divider,
+  .section-with-bottom-divider {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+}

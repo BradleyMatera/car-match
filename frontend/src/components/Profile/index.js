@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import './Profile.css';
 import mockApi from '../../api/mockApi';
 import Messages from '../Messages';
+import Section from '../Section';
+import Container from '../Container';
+import Grid from '../Grid';
+import Spacing from '../Spacing';
 
 const Profile = () => {
   const [user, setUser] = useState(null);
@@ -55,14 +59,21 @@ const Profile = () => {
   return (
     <div className="profile-container">
       <div className="profile-header">
-        <img
-          src="https://media.licdn.com/dms/image/v2/D5603AQE7mZivGAYS5w/profile-displayphoto-shrink_800_800/B56ZVDZEbxHoAg-/0/1740592400767?e=1752105600&v=beta&t=trY3Bv-fYbjMqgsd4bcETu03MgDWF9Jmz0M76PCFt8c"
-          alt="Profile"
-          className="profile-photo"
-        />
+        <div className="profile-photo-container">
+          <img
+            src="https://media.licdn.com/dms/image/v2/D5603AQE7mZivGAYS5w/profile-displayphoto-shrink_800_800/B56ZVDZEbxHoAg-/0/1740592400767?e=1752105600&v=beta&t=trY3Bv-fYbjMqgsd4bcETu03MgDWF9Jmz0M76PCFt8c"
+            alt="Profile"
+            className="profile-photo"
+          />
+          <div className="profile-photo-edit">
+            <span>📷</span>
+          </div>
+        </div>
         <div className="profile-info">
           <h1>{user.name}, {user.age}</h1>
-          <p className="location">{user.location}</p>
+          <p className="location">
+            <span>📍</span> {user.location}
+          </p>
           <div className="car-interests">
             {user.carInterests.map((interest) => (
               <span key={interest} className="interest-tag">{interest}</span>
@@ -71,14 +82,14 @@ const Profile = () => {
         </div>
       </div>
 
-      <section className="profile-section">
+      <div className="profile-section">
         <h2>About Me</h2>
         <p className="bio">{user.bio}</p>
-      </section>
+      </div>
 
-      <section className="profile-section">
+      <div className="profile-section">
         <h2>My Garage</h2>
-        <div className="cars-grid">
+        <Grid cols={1} mdCols={2} lgCols={3} gap="lg">
           {user.cars.map((car, index) => (
             <div key={index} className="car-card">
               <img src={car.photos[0]} alt={car.name} />
@@ -86,10 +97,10 @@ const Profile = () => {
               <p>{car.description}</p>
             </div>
           ))}
-        </div>
-      </section>
+        </Grid>
+      </div>
 
-      <section className="profile-section">
+      <div className="profile-section">
         <h2>Account Settings</h2>
         {editing ? (
           <div className="settings-form">
@@ -120,23 +131,25 @@ const Profile = () => {
                 onChange={handleInputChange}
               />
             </label>
-            <button onClick={handleSave}>Save Changes</button>
-            <button onClick={() => setEditing(false)}>Cancel</button>
+            <div className="settings-actions">
+              <button onClick={handleSave}>Save Changes</button>
+              <button onClick={() => setEditing(false)}>Cancel</button>
+            </div>
           </div>
         ) : (
           <div className="settings-view">
             <p><strong>Name:</strong> {user.name}</p>
             <p><strong>Email:</strong> {user.email}</p>
             <p><strong>Location:</strong> {user.location}</p>
-            <button onClick={() => setEditing(true)}>Edit Settings</button>
+            <button className="btn btn-primary" onClick={() => setEditing(true)}>Edit Settings</button>
           </div>
         )}
-      </section>
+      </div>
 
-      <section className="profile-section">
+      <div className="profile-section">
         <h2>Messages</h2>
         <Messages userId="user1" />
-      </section>
+      </div>
     </div>
   );
 };
