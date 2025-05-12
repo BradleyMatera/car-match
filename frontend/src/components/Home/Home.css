@@ -1,93 +1,82 @@
 .homepage-container {
-  font-family: Arial, sans-serif;
-  color: #333;
-  padding: 2rem;
+  width: 100%;
 }
 
-.homepage-header {
-  text-align: center;
-  margin-bottom: 2rem;
+/* Text utilities */
+.text-light {
+  color: var(--text-light);
 }
 
-.homepage-header h1 {
-  font-size: 2.5rem;
-  color: #1574BB;
+/* Hero section styling */
+.hero {
+  position: relative;
+  background: linear-gradient(135deg, var(--primary-color) 0%, #0d5a8a 100%);
+  overflow: hidden;
 }
 
-.homepage-nav ul {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('https://source.unsplash.com/random/1600x900?car');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.2;
+  z-index: 0;
 }
 
-.homepage-nav ul li {
-  display: inline;
+.hero-content {
+  position: relative;
+  z-index: 1;
 }
 
-.homepage-nav ul li a {
-  text-decoration: none;
-  color: #1574BB;
-  font-weight: bold;
+/* Section styling */
+.section-title {
+  position: relative;
+  display: inline-block;
+  margin-bottom: var(--space-xl);
 }
 
-.homepage-main {
-  text-align: center;
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50px;
+  height: 3px;
+  background-color: var(--secondary-color);
 }
 
-.intro-section {
-  margin-bottom: 2rem;
+/* Card animations */
+.card {
+  overflow: hidden;
 }
 
-.intro-section h2 {
-  font-size: 2rem;
-  margin-bottom: 1rem;
+.card .card-img {
+  transition: transform 0.5s ease;
 }
 
-.intro-section p {
-  font-size: 1.2rem;
-  margin-bottom: 1.5rem;
+.card:hover .card-img {
+  transform: scale(1.05);
 }
 
-.join-now-button {
-  background-color: #1574BB;
-  color: #fff;
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 4px;
-  font-size: 1rem;
-  cursor: pointer;
+/* Button styling */
+.btn {
+  font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
-.join-now-button:hover {
-  background-color: #0d5a8a;
-}
-
-.features-section {
-  margin-top: 2rem;
-}
-
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.5rem;
-}
-
-.feature-card {
-  background: #f9f9f9;
-  padding: 1rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  text-align: left;
-}
-
-.feature-card h3 {
-  font-size: 1.2rem;
-  margin-bottom: 0.5rem;
-}
-
-.feature-card p {
-  font-size: 1rem;
-  color: #555;
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .hero-content h1 {
+    font-size: 2rem;
+  }
+  
+  .hero-content p {
+    font-size: 1rem;
+  }
 }

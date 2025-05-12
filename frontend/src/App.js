@@ -6,6 +6,8 @@ import Events from './components/Events';
 import Profile from './components/Profile';
 import Settings from './components/Settings';
 import EntryModal from './components/EntryModal';
+import Layout from './components/Layout';
+import LayoutExample from './components/LayoutExample';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -38,6 +40,8 @@ function App() {
               <li><Link to="/events">Events</Link></li>
               <li><Link to="/profile">Profile</Link></li>
               <li><Link to="/settings">Settings</Link></li>
+              {/* Layout example link commented out for production */}
+              {/* <li><Link to="/layout-example">Layout Examples</Link></li> */}
               {isLoggedIn && <li><button onClick={handleLogout} className="logout-button">Logout</button></li>}
             </ul>
           </nav>
@@ -45,13 +49,16 @@ function App() {
         <main>
           {!isLoggedIn && <EntryModal onSubmit={handleModalSubmit} />}
           {isLoggedIn && (
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/events" element={<Events />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="*" element={<Navigate to="/" />} />
-            </Routes>
+            <Layout>
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/events" element={<Events />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/layout-example" element={<LayoutExample />} />
+                <Route path="*" element={<Navigate to="/" />} />
+              </Routes>
+            </Layout>
           )}
         </main>
       </div>

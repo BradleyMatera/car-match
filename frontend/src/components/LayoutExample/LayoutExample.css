@@ -1,0 +1,220 @@
+.layout-example {
+  padding-bottom: var(--space-3xl);
+}
+
+.section {
+  padding-top: var(--space-2xl);
+  padding-bottom: var(--space-2xl);
+}
+
+.section-title {
+  text-align: center;
+  margin-bottom: var(--space-xl);
+  color: var(--primary-color);
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.bg-light {
+  background-color: var(--background-light);
+}
+
+.demo-box {
+  background-color: white;
+  border: 2px solid var(--primary-color);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.demo-box:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Card styles */
+.card {
+  border: 1px solid #ddd;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  background-color: white;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.card-img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+.card-content {
+  padding: var(--space-md);
+}
+
+.card-title {
+  font-size: 1.2rem;
+  margin-bottom: var(--space-sm);
+  color: var(--primary-color);
+}
+
+.card-text {
+  color: var(--text-dark);
+  margin-bottom: var(--space-md);
+}
+
+/* Button styles */
+.btn {
+  display: inline-block;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: var(--text-light);
+  border: none;
+}
+
+.btn-primary:hover {
+  background-color: #0d5a8a;
+  transform: scale(1.05);
+}
+
+.btn-secondary {
+  background-color: var(--secondary-color);
+  color: var(--text-light);
+  border: none;
+}
+
+.btn-secondary:hover {
+  background-color: #6b9900;
+  transform: scale(1.05);
+}
+
+.btn-outline {
+  background-color: transparent;
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+}
+
+.btn-outline:hover {
+  background-color: var(--primary-color);
+  color: var(--text-light);
+}
+
+/* Carousel styles */
+.carousel-container {
+  margin: var(--space-xl) 0;
+}
+
+.carousel-slide {
+  padding: 0 var(--space-sm);
+}
+
+/* Animation examples */
+.fade-in {
+  animation: fadeIn 1s ease-in;
+}
+
+.slide-in {
+  animation: slideIn 0.5s ease-out;
+}
+
+.pulse {
+  animation: pulse 2s infinite;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-50px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Responsive styles */
+@media (max-width: 767px) {
+  .section {
+    padding-top: var(--space-xl);
+    padding-bottom: var(--space-xl);
+  }
+  
+  .section-title {
+    margin-bottom: var(--space-lg);
+  }
+}
+
+/* Dashboard layout example styles */
+.dashboard-layout {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "header"
+    "sidebar"
+    "main"
+    "footer";
+}
+
+@media (min-width: 768px) {
+  .dashboard-layout {
+    grid-template-columns: 250px 1fr;
+    grid-template-areas:
+      "header header"
+      "sidebar main"
+      "footer footer";
+    gap: var(--space-lg);
+  }
+}
+
+.dashboard-header {
+  grid-area: header;
+  background-color: var(--primary-color);
+  color: var(--text-light);
+}
+
+.dashboard-sidebar {
+  grid-area: sidebar;
+  background-color: var(--background-light);
+}
+
+.dashboard-main {
+  grid-area: main;
+  min-height: 300px;
+}
+
+.dashboard-footer {
+  grid-area: footer;
+  background-color: var(--text-dark);
+  color: var(--text-light);
+}
+
+/* Utility classes */
+.text-center {
+  text-align: center;
+}
