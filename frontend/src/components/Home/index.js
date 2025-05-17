@@ -74,6 +74,7 @@ const Home = () => {
               src="https://images.unsplash.com/photo-1584345604325-f5091269a0d1?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" 
               alt="Muscle Car" 
               className="card-img" 
+              loading="lazy"
             />
             <div className="card-content">
               <h3 className="card-title">Muscle Cars</h3>
@@ -87,6 +88,7 @@ const Home = () => {
               src="https://images.unsplash.com/photo-1627008118989-d5d640a259fc?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8SkRNJTIwaW1wb3J0fGVufDB8fDB8fHww" 
               alt="JDM Car" 
               className="card-img" 
+              loading="lazy"
             />
             <div className="card-content">
               <h3 className="card-title">JDM Imports</h3>
@@ -100,6 +102,7 @@ const Home = () => {
               src="https://images.unsplash.com/photo-1489008777659-ad1fc8e07097?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8Y2xhc3NpYyUyMGNhcnxlbnwwfHwwfHx8MA%3D%3D" 
               alt="Classic Car" 
               className="card-img" 
+              loading="lazy"
             />
             <div className="card-content">
               <h3 className="card-title">Classic Cars</h3>
