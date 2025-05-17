@@ -15,6 +15,7 @@ const Events = () => {
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [newComment, setNewComment] = useState('');
+  const [rsvpStatus, setRsvpStatus] = useState({});
 
   useEffect(() => {
     const loadEvents = async () => {
@@ -31,6 +32,34 @@ const Events = () => {
     };
     loadEvents();
   }, []);
+
+  const handleRsvpToggle = async (eventId) => {
+    try {
+      const user = await mockApi.getCurrentUser().catch(() => {
+        alert('Please login to RSVP');
+        throw new Error('Not authenticated');
+      });
+      setRsvpStatus(prevStatus => {
+        const isRsvped = prevStatus[eventId];
+        const updatedStatus = { ...prevStatus, [eventId]: !isRsvped };
+        if (selectedEvent && selectedEvent.id === eventId) {
+          setSelectedEvent({
+            ...selectedEvent,
+            rsvpCount: isRsvped ? selectedEvent.rsvpCount - 1 : selectedEvent.rsvpCount + 1
+          });
+        }
+        // Update mock API with RSVP status
+        if (!isRsvped) {
+          mockApi.rsvpToEvent(user.id, eventId);
+        } else {
+          mockApi.cancelRsvp(user.id, eventId);
+        }
+        return updatedStatus;
+      });
+    } catch (error) {
+      console.error('Error handling RSVP:', error);
+    }
+  };
 
   const handleDateClick = (date) => {
     const eventForDate = events.find(event => 
@@ -90,6 +119,15 @@ const Events = () => {
                       <span>📍 {event.location}</span>
                       <span>👥 {event.rsvpCount} attending</span>
                     </div>
+                    <button 
+                      className={`rsvp-button small ${rsvpStatus[event.id] ? 'rsvp-confirmed' : ''}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRsvpToggle(event.id);
+                      }}
+                    >
+                      {rsvpStatus[event.id] ? '✅ Going' : 'RSVP'}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -128,6 +166,17 @@ const Events = () => {
               })}</p>
               <p>📍 {selectedEvent.location}</p>
               <p>👥 {selectedEvent.rsvpCount} attendees</p>
+            </div>
+            <div className="rsvp-section">
+              <button 
+                className={`rsvp-button ${rsvpStatus[selectedEvent.id] ? 'rsvp-confirmed' : ''}`}
+                onClick={() => handleRsvpToggle(selectedEvent.id)}
+              >
+                {rsvpStatus[selectedEvent.id] ? '✅ Going' : 'RSVP to Event'}
+              </button>
+              {rsvpStatus[selectedEvent.id] && (
+                <p className="rsvp-confirmation">You are confirmed for this event!</p>
+              )}
             </div>
             
             <h3>Schedule</h3>

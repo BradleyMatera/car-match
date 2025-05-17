@@ -1814,9 +1814,17 @@ const mockApi = {
     if (event) event.rsvpCount = (event.rsvpCount || 0) + 1;
     return Promise.resolve(event);
   },
+  getUserEvents: (userId) => Promise.resolve(mockEvents.filter(e => e.organizerId === userId)),
 
   // Manages user profile operations
-  getProfile: (userId) => Promise.resolve(mockProfiles.find(p => p.id === userId)),
+  getProfile: (userId) => {
+    const profile = mockProfiles.find(p => p.id === userId);
+    if (!profile) {
+      return Promise.reject('Profile not found');
+    }
+    const userRecord = mockUsers.find(u => u.id === userId);
+    return Promise.resolve({ ...profile, email: userRecord ? userRecord.email : '' });
+  },
   updateProfile: (profile) => Promise.resolve(profile),
   uploadPhoto: (file) => Promise.resolve({
     // Generates a URL for the uploaded file

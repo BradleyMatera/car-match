@@ -34,7 +34,19 @@ This week I’ll start transferring research and design breakdowns from `designd
 
 ### Week 2
 
-My next stand up will go here...
+Week 2
+
+⚙️ Overview:
+This week I added more logic and built out the mock API to behave more like a real backend. I got RSVP working in a way that actually connects to the user profile. When a user signs up for an event, it saves and shows up under “My Events” in their profile. I also cleaned up profile editing so users can change their bio, age, and car interests. You can even add cars to your garage now (just the UI part for now).
+
+🌵 Challenges:
+I ran into a few runtime errors because I didn’t have all the mock functions ready yet. Adding initMockData fixed one of the bigger issues. I also had to stop and rethink how data should be shared across components without breaking anything. Keeping the state synced without causing bugs is always tricky.
+
+🏆 Accomplishments:
+I leveled up on mock API structure big time. I added RSVP handling (rsvpToEvent, cancelRsvp), profile updates, user message retrieval, and full event linking. I also built out a full fake dataset: 10 user profiles, 12 unique events across the US, and 20 conversations between users. All the relationships are mapped so the app feels real now, not just empty UI.
+
+🔮 Next Steps:
+Next I’m going to focus on event creation logic and user relationships. Now that users can RSVP, I want to start making it so they can create and manage their own events. After that I’ll probably start testing out message handling and build logic for the chat system.
 
 ### Week 3
 

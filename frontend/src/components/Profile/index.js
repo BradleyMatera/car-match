@@ -9,6 +9,7 @@ import Spacing from '../Spacing';
 
 const Profile = () => {
   const [user, setUser] = useState(null);
+  const [userEvents, setUserEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editing, setEditing] = useState(false);
@@ -20,6 +21,8 @@ const Profile = () => {
         const profile = await mockApi.getProfile('user1');
         setUser(profile);
         setUpdatedUser(profile);
+        const events = await mockApi.getUserEvents('user1');
+        setUserEvents(events);
       } catch (err) {
         setError('Failed to load profile data.');
       } finally {
@@ -58,36 +61,51 @@ const Profile = () => {
 
   return (
     <div className="profile-container">
-      <div className="profile-header">
-        <div className="profile-photo-container">
-          <img
-            src="https://media.licdn.com/dms/image/v2/D5603AQE7mZivGAYS5w/profile-displayphoto-shrink_800_800/B56ZVDZEbxHoAg-/0/1740592400767?e=1752105600&v=beta&t=trY3Bv-fYbjMqgsd4bcETu03MgDWF9Jmz0M76PCFt8c"
-            alt="Profile"
-            className="profile-photo"
-          />
-          <div className="profile-photo-edit">
-            <span>📷</span>
+      <Section>
+        <div className="profile-header">
+          <div className="profile-photo-container">
+            <img
+              src="https://media.licdn.com/dms/image/v2/D5603AQE7mZivGAYS5w/profile-displayphoto-shrink_800_800/B56ZVDZEbxHoAg-/0/1740592400767?e=1752105600&v=beta&t=trY3Bv-fYbjMqgsd4bcETu03MgDWF9Jmz0M76PCFt8c"
+              alt="Profile"
+              className="profile-photo"
+            />
+            <div className="profile-photo-edit">
+              <span>📷</span>
+            </div>
+          </div>
+          <div className="profile-info">
+            <h1>{user.name}, {user.age}</h1>
+            <p className="location">
+              <span>📍</span> {user.location}
+            </p>
+            <div className="car-interests">
+              {user.carInterests.map((interest) => (
+                <span key={interest} className="interest-tag">{interest}</span>
+              ))}
+            </div>
           </div>
         </div>
-        <div className="profile-info">
-          <h1>{user.name}, {user.age}</h1>
-          <p className="location">
-            <span>📍</span> {user.location}
-          </p>
-          <div className="car-interests">
-            {user.carInterests.map((interest) => (
-              <span key={interest} className="interest-tag">{interest}</span>
-            ))}
-          </div>
-        </div>
-      </div>
+      </Section>
 
-      <div className="profile-section">
+      <Section>
         <h2>About Me</h2>
         <p className="bio">{user.bio}</p>
-      </div>
+        {editing && (
+          <div className="edit-section">
+            <label>
+              Bio:
+              <textarea
+                name="bio"
+                value={updatedUser.bio}
+                onChange={handleInputChange}
+                rows="4"
+              />
+            </label>
+          </div>
+        )}
+      </Section>
 
-      <div className="profile-section">
+      <Section>
         <h2>My Garage</h2>
         <Grid cols={1} mdCols={2} lgCols={3} gap="lg">
           {user.cars.map((car, index) => (
@@ -98,9 +116,31 @@ const Profile = () => {
             </div>
           ))}
         </Grid>
-      </div>
+        {editing && (
+          <div className="edit-section">
+            <button className="btn btn-secondary">Add Car</button>
+          </div>
+        )}
+      </Section>
 
-      <div className="profile-section">
+      <Section>
+        <h2>My Events</h2>
+        {userEvents.length > 0 ? (
+          <Grid cols={1} mdCols={2} gap="md">
+            {userEvents.map(event => (
+              <div key={event.id} className="event-card">
+                <h3>{event.title}</h3>
+                <p>📅 {new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
+                <p>📍 {event.location}</p>
+              </div>
+            ))}
+          </Grid>
+        ) : (
+          <p>No events registered yet.</p>
+        )}
+      </Section>
+
+      <Section background="light">
         <h2>Account Settings</h2>
         {editing ? (
           <div className="settings-form">
@@ -131,6 +171,27 @@ const Profile = () => {
                 onChange={handleInputChange}
               />
             </label>
+            <label>
+              Age:
+              <input
+                type="number"
+                name="age"
+                value={updatedUser.age}
+                onChange={handleInputChange}
+              />
+            </label>
+            <label>
+              Car Interests (comma separated):
+              <input
+                type="text"
+                name="carInterests"
+                value={updatedUser.carInterests.join(', ')}
+                onChange={(e) => {
+                  const interests = e.target.value.split(', ').filter(Boolean);
+                  setUpdatedUser(prev => ({ ...prev, carInterests: interests }));
+                }}
+              />
+            </label>
             <div className="settings-actions">
               <button onClick={handleSave}>Save Changes</button>
               <button onClick={() => setEditing(false)}>Cancel</button>
@@ -144,12 +205,12 @@ const Profile = () => {
             <button className="btn btn-primary" onClick={() => setEditing(true)}>Edit Settings</button>
           </div>
         )}
-      </div>
+      </Section>
 
-      <div className="profile-section">
+      <Section>
         <h2>Messages</h2>
         <Messages userId="user1" />
-      </div>
+      </Section>
     </div>
   );
 };

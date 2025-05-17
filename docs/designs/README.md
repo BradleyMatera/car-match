@@ -21,3 +21,6 @@ Update: Finalized layout structure for all views. Prioritized clarity and realis
 
 Date: May 11, 2025
 Update: The application now has a consistent, professional look and feel with a maintainable code structure. The layout system provides a solid foundation for future development, making it easy to add new features while maintaining visual consistency across all pages.
+
+Date: May 17, 2025
+Update: Polished UI interactions across the Events and Profile views. RSVP actions now reflect user state with clear visual feedback. Updated Profile view includes a clean “My Events” section with structured styling and consistent layout rules. Placeholder visuals were added for garage items and future messaging features. Mock data now drives all profile and event visuals, allowing the design to simulate real user activity. Began refining visual hierarchy on smaller screens to improve mobile responsiveness.
