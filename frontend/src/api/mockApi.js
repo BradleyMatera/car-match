@@ -4,7 +4,14 @@ const mockUsers = [
     username: 'car_lover',
     email: 'alex@example.com',
     name: 'Alex Johnson',
-    role: 'user'
+    role: 'user',
+    // Ensuring user1 has all new fields for demo purposes
+    displayTag: 'AJ',
+    gender: 'male',
+    location: { city: 'Los Angeles', state: 'CA', geoCoordinates: { lat: 34.0522, lon: -118.2437 } },
+    premiumStatus: false,
+    developerOverride: false,
+    activityMetadata: { messageCountToday: 0, lastMessageDate: null },
   },
   {
     id: 'user2',
@@ -12,6 +19,7 @@ const mockUsers = [
     email: 'jane@example.com',
     name: 'Jane Smith',
     role: 'user'
+    // Add new fields for other users too for consistency if they log in
   },
   {
     id: 'user3',
@@ -104,6 +112,46 @@ const mockUsers = [
     name: 'Mia Scott',
     role: 'user'
   },
+  // Add a few more diverse users for testing messaging scenarios
+  {
+    id: 'user16',
+    username: 'premium_jane',
+    email: 'premium.jane@example.com',
+    name: 'Premium Jane Doe',
+    role: 'user',
+    displayTag: 'PJane',
+    gender: 'female',
+    location: { city: 'New York', state: 'NY', geoCoordinates: { lat: 40.7128, lon: -74.0060 } },
+    premiumStatus: true,
+    developerOverride: false,
+    activityMetadata: { messageCountToday: 0, lastMessageDate: null },
+  },
+  {
+    id: 'user17',
+    username: 'dev_dave',
+    email: 'dev.dave@example.com',
+    name: 'Developer Dave',
+    role: 'user',
+    displayTag: 'DevMode',
+    gender: 'male',
+    location: { city: 'Austin', state: 'TX', geoCoordinates: { lat: 30.2672, lon: -97.7431 } },
+    premiumStatus: false,
+    developerOverride: true, // This user can test premium features
+    activityMetadata: { messageCountToday: 0, lastMessageDate: null },
+  },
+  {
+    id: 'user18',
+    username: 'free_fred',
+    email: 'fred@example.com',
+    name: 'Free Fred',
+    role: 'user',
+    displayTag: 'FredF',
+    gender: 'male',
+    location: { city: 'Chicago', state: 'IL', geoCoordinates: { lat: 41.8781, lon: -87.6298 } },
+    premiumStatus: false,
+    developerOverride: false,
+    activityMetadata: { messageCountToday: 0, lastMessageDate: null },
+  }
 ];
 
 const mockProfiles = [
@@ -478,6 +526,7 @@ const mockEvents = [
     location: 'Malibu, CA',
     description: 'Annual coastal cruise for pre-1980 vehicles. Show off your classic ride!',
     organizerId: 'user1',
+    organizerUsername: 'car_lover', // Added for consistency
     rsvpCount: 45,
     tags: ['Classic Cars', 'Road Trip'],
     image: 'https://images.unsplash.com/photo-1474039369477-5e74ff1f0e57?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTV8fHZpbnRhZ2UlMjBjYXJ8ZW58MHx8MHx8fDA%3D',
@@ -535,6 +584,7 @@ const mockEvents = [
     location: 'Sonoma Raceway, CA',
     description: 'High-performance track day for tuners and sports cars. Bring your fastest ride!',
     organizerId: 'user2',
+    organizerUsername: 'speedster99',
     rsvpCount: 30,
     tags: ['Track Days', 'Tuner Cars'],
     image: 'https://images.unsplash.com/photo-1696182664993-880238f55be6?q=80&w=2970&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
@@ -579,6 +629,7 @@ const mockEvents = [
     location: 'Long Beach, CA',
     description: 'A celebration of Japanese car culture with car shows and swap meets.',
     organizerId: 'user9',
+    organizerUsername: 'jdm_lover',
     rsvpCount: 50,
     tags: ['JDM', 'Car Shows'],
     image: 'https://images.unsplash.com/photo-1580427331730-b38f8dc1f355?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8SkRNJTIwY2Fyc3xlbnwwfHwwfHx8MA%3D%3D',
@@ -623,6 +674,7 @@ const mockEvents = [
     location: 'Las Vegas, NV',
     description: 'A showcase of American muscle cars with drag races and awards.',
     organizerId: 'user8',
+    organizerUsername: 'muscle_car_mad',
     rsvpCount: 40,
     tags: ['Muscle Cars', 'Drag Racing'],
     image: 'https://images.unsplash.com/photo-1594136277951-b6e8e640c338?w=700&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8TXVzY2xlJTIwQ2FyJTIwU2hvd2Rvd258ZW58MHx8MHx8fDA%3D',
@@ -661,6 +713,7 @@ const mockEvents = [
     location: 'Phoenix, AZ',
     description: 'Evening cruise for hot rods and custom builds with live music.',
     organizerId: 'user15',
+    organizerUsername: 'car_crafter',
     rsvpCount: 35,
     tags: ['Hot Rods', 'Cruise Night'],
     image: 'https://images.unsplash.com/photo-1541348263662-e068662d82af',
@@ -699,6 +752,7 @@ const mockEvents = [
     location: 'Santa Barbara, CA',
     description: 'Scenic drive for convertibles along the Pacific Coast Highway.',
     organizerId: 'user5',
+    organizerUsername: 'vintage_vibes',
     rsvpCount: 25,
     tags: ['Convertibles', 'Road Trip'],
     image: 'https://images.unsplash.com/photo-1502877338535-766e1452684a',
@@ -737,6 +791,7 @@ const mockEvents = [
     location: 'Irwindale Speedway, CA',
     description: 'Drift sessions and competitions for JDM and tuner cars.',
     organizerId: 'user4',
+    organizerUsername: 'drift_king',
     rsvpCount: 28,
     tags: ['Drifting', 'JDM'],
     image: 'https://images.unsplash.com/photo-1695237590082-260aa712160e?w=700&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8SkRNJTIwRHJpZnR8ZW58MHx8MHx8fDA%3D',
@@ -775,6 +830,7 @@ const mockEvents = [
     location: 'San Francisco, CA',
     description: 'Gathering of European car enthusiasts with a focus on vintage models.',
     organizerId: 'user3',
+    organizerUsername: 'classic_enthusiast',
     rsvpCount: 32,
     tags: ['Vintage European', 'Car Shows'],
     image: 'https://images.unsplash.com/photo-1617772010721-895955e79f1e?w=700&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8RXVybyUyMENhcnxlbnwwfHwwfHx8MA%3D%3D',
@@ -813,6 +869,7 @@ const mockEvents = [
     location: 'Miami, FL',
     description: 'Midweek meetup for turbocharged car enthusiasts.',
     organizerId: 'user6',
+    organizerUsername: 'turbo_fan',
     rsvpCount: 20,
     tags: ['Turbo Cars', 'Meetup'],
     image: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70',
@@ -851,6 +908,7 @@ const mockEvents = [
     location: 'Seattle, WA',
     description: 'A rally for roadster enthusiasts with scenic drives.',
     organizerId: 'user7',
+    organizerUsername: 'roadster_queen',
     rsvpCount: 22,
     tags: ['Roadsters', 'Scenic Drives'],
     image: 'https://images.unsplash.com/photo-1514316454349-750a7fd3da3a',
@@ -889,6 +947,7 @@ const mockEvents = [
     location: 'Boston, MA',
     description: 'Showcase of 80s and 90s cars with a nostalgic vibe.',
     organizerId: 'user11',
+    organizerUsername: 'retro_rider',
     rsvpCount: 27,
     tags: ['Retro Cars', 'Car Shows'],
     image: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2',
@@ -927,6 +986,7 @@ const mockEvents = [
     location: 'Las Vegas, NV',
     description: 'High-stakes drag racing event for muscle cars and tuners.',
     organizerId: 'user12',
+    organizerUsername: 'speed_demon',
     rsvpCount: 38,
     tags: ['Drag Racing', 'Muscle Cars'],
     image: 'https://images.unsplash.com/photo-1653824508597-d55760000f65?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
@@ -965,6 +1025,7 @@ const mockEvents = [
     location: 'Charlotte, NC',
     description: 'Auction of rare classic cars with a pre-auction car show.',
     organizerId: 'user13',
+    organizerUsername: 'classic_cruiser',
     rsvpCount: 42,
     tags: ['Classic Cars', 'Auctions'],
     image: 'https://images.unsplash.com/photo-1503736334956-4c8f8e92946d',
@@ -1003,6 +1064,7 @@ const mockEvents = [
     location: 'Orlando, FL',
     description: 'Hands-on workshop for ECU tuning and performance mods.',
     organizerId: 'user14',
+    organizerUsername: 'tuner_tech',
     rsvpCount: 15,
     tags: ['Tuner Cars', 'Workshops'],
     image: 'https://images.unsplash.com/photo-1516321497487-e288fb19713f',
@@ -1041,6 +1103,7 @@ const mockEvents = [
     location: 'Portland, OR',
     description: 'Community meetup for DIY car repairs and project car builds.',
     organizerId: 'user10',
+    organizerUsername: 'gear_head',
     rsvpCount: 18,
     tags: ['DIY Repairs', 'Project Cars'],
     image: 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=700&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8N3x8Q2FyJTIwUmVwYWlyfGVufDB8fDB8fHww',
@@ -1079,6 +1142,7 @@ const mockEvents = [
     location: 'Los Angeles, CA',
     description: 'Celebration of lowrider culture with custom cars and hydraulics demos.',
     organizerId: 'user1',
+    organizerUsername: 'car_lover',
     rsvpCount: 50,
     tags: ['Lowriders', 'Car Shows'],
     image: 'https://images.unsplash.com/photo-1628565412954-ecb8eb6532d8?w=700&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8TG93cmlkZXJzfGVufDB8fDB8fHww',
@@ -1117,6 +1181,7 @@ const mockEvents = [
     location: 'Moab, UT',
     description: 'Off-road adventure for trucks and SUVs with trail rides.',
     organizerId: 'user2',
+    organizerUsername: 'speedster99',
     rsvpCount: 20,
     tags: ['Off-Roading', 'Trucks'],
     image: 'https://images.unsplash.com/photo-1714496228779-48f5fe3fe154?w=700&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTl8fE9mZiUyMFJvYWQlMjByYWxseXxlbnwwfHwwfHx8MA%3D%3D',
@@ -1155,6 +1220,7 @@ const mockEvents = [
     location: 'Miami, FL',
     description: 'Showcase of exotic supercars with a charity auction.',
     organizerId: 'user6',
+    organizerUsername: 'turbo_fan',
     rsvpCount: 35,
     tags: ['Supercars', 'Charity'],
     image: 'https://images.unsplash.com/photo-1566024164372-0281f1133aa6?w=700&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8N3x8c3VwZXJjYXJ8ZW58MHx8MHx8fDA%3D',
@@ -1193,6 +1259,7 @@ const mockEvents = [
     location: 'Austin, TX',
     description: 'Gathering of vintage motorcycles with a ride-out.',
     organizerId: 'user5',
+    organizerUsername: 'vintage_vibes',
     rsvpCount: 25,
     tags: ['Motorcycles', 'Vintage'],
     image: 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc',
@@ -1231,6 +1298,7 @@ const mockEvents = [
     location: 'Dallas, TX',
     description: 'Competition for the best car audio systems with live demos.',
     organizerId: 'user9',
+    organizerUsername: 'jdm_lover',
     rsvpCount: 30,
     tags: ['Car Audio', 'Competitions'],
     image: 'https://images.unsplash.com/photo-1519681393784-d120267933ba',
@@ -1269,6 +1337,7 @@ const mockEvents = [
     location: 'Denver, CO',
     description: 'Rallycross event with dirt and pavement racing.',
     organizerId: 'user8',
+    organizerUsername: 'muscle_car_mad',
     rsvpCount: 22,
     tags: ['Rallycross', 'Racing'],
     image: 'https://images.unsplash.com/photo-1514316454349-750a7fd3da3a',
@@ -1307,6 +1376,7 @@ const mockEvents = [
     location: 'San Francisco, CA',
     description: 'Showcase of electric vehicles with test drives.',
     organizerId: 'user2',
+    organizerUsername: 'speedster99',
     rsvpCount: 28,
     tags: ['Electric Cars', 'Meetup'],
     image: 'https://plus.unsplash.com/premium_photo-1681987448226-f8feb59a58e9?q=80&w=2064&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
@@ -1345,6 +1415,7 @@ const mockEvents = [
     location: 'Nashville, TN',
     description: 'Hands-on workshop for classic car restoration techniques.',
     organizerId: 'user15',
+    organizerUsername: 'car_crafter',
     rsvpCount: 15,
     tags: ['Restoration', 'Workshops'],
     image: 'https://images.unsplash.com/photo-1562225517-1176a7751893?w=700&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8Y2FyJTIwcmVzdG9yfGVufDB8fDB8fHww',
@@ -1383,6 +1454,7 @@ const mockEvents = [
     location: 'Phoenix, AZ',
     description: 'Gathering of trucks and SUVs with a tailgate party.',
     organizerId: 'user4',
+    organizerUsername: 'drift_king',
     rsvpCount: 30,
     tags: ['Trucks', 'Meetup'],
     image: 'https://images.unsplash.com/photo-1598248691267-4a62dfdfd8a8?w=700&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTF8fHN1dnxlbnwwfHwwfHx8MA%3D%3D',
@@ -1421,6 +1493,7 @@ const mockEvents = [
     location: 'Los Angeles, CA',
     description: 'Workshop for capturing stunning car photos.',
     organizerId: 'user1',
+    organizerUsername: 'car_lover',
     rsvpCount: 12,
     tags: ['Photography', 'Workshops'],
     image: 'https://images.unsplash.com/photo-1514316454349-750a7fd3da3a',
@@ -1459,6 +1532,7 @@ const mockEvents = [
     location: 'Charlotte, NC',
     description: 'Rally for vintage trucks with a cross-country drive.',
     organizerId: 'user13',
+    organizerUsername: 'classic_cruiser',
     rsvpCount: 20,
     tags: ['Vintage Trucks', 'Road Trip'],
     image: 'https://images.unsplash.com/photo-1578718505785-83ebf94ee1c7?q=80&w=2068&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
@@ -1497,6 +1571,7 @@ const mockEvents = [
     location: 'Miami, FL',
     description: 'Showcase of custom car wraps and vinyl designs.',
     organizerId: 'user6',
+    organizerUsername: 'turbo_fan',
     rsvpCount: 25,
     tags: ['Car Wraps', 'Car Shows'],
     image: 'https://images.unsplash.com/photo-1699078042053-ecd9166d3f26?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
@@ -1535,6 +1610,7 @@ const mockEvents = [
     location: 'Seattle, WA',
     description: 'Gathering of microcars and compact classics.',
     organizerId: 'user7',
+    organizerUsername: 'roadster_queen',
     rsvpCount: 15,
     tags: ['Microcars', 'Car Shows'],
     image: 'https://images.unsplash.com/photo-1502877338535-766e1452684a',
@@ -1573,6 +1649,7 @@ const mockEvents = [
     location: 'Orlando, FL',
     description: 'Demo of car detailing techniques with pro tips.',
     organizerId: 'user14',
+    organizerUsername: 'tuner_tech',
     rsvpCount: 18,
     tags: ['Detailing', 'Workshops'],
     image: 'https://images.unsplash.com/photo-1605437241278-c1806d14a4d9?w=700&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8Q2FyJTIwZGV0YWlsaW5nfGVufDB8fDB8fHww',
@@ -1611,6 +1688,7 @@ const mockEvents = [
     location: 'San Diego, CA',
     description: 'Festive car parade with decorated vehicles.',
     organizerId: 'user3',
+    organizerUsername: 'classic_enthusiast',
     rsvpCount: 40,
     tags: ['Parade', 'Holiday'],
     image: 'https://images.unsplash.com/photo-1541348263662-e068662d82af',
@@ -1725,6 +1803,84 @@ const mockMessages = [
     timestamp: '2025-05-09T13:10:00Z',
     status: 'read'
   },
+  // --- START: Additional Mock Messages for Demo ---
+  // Simulating messages for 'user1' (Alex Johnson, free user)
+  // Message from a premium user (user16) to user1 (free) - should be locked for user1
+  {
+    id: 11,
+    // conversationId: 6, // Assuming new conversation ID system if not using backend's yet
+    senderId: 'user16', // Premium Jane
+    senderUsername: 'premium_jane',
+    senderEffectivePremiumStatus: true,
+    recipientId: 'user1', // Alex Johnson (free)
+    recipientUsername: 'car_lover',
+    recipientEffectivePremiumStatus: false,
+    text: 'Hello Alex, this is a message from a premium user! You should see this as locked or blurred. Hope you upgrade soon to see my full message and enjoy unlimited chatting!',
+    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+    read: false, // Unread for Alex
+    status: 'delivered' // Using 'status' for old compatibility, backend uses 'read' boolean
+  },
+  // Message from user1 (free) to user16 (premium)
+  {
+    id: 12,
+    // conversationId: 6,
+    senderId: 'user1',
+    senderUsername: 'car_lover',
+    senderEffectivePremiumStatus: false,
+    recipientId: 'user16',
+    recipientUsername: 'premium_jane',
+    recipientEffectivePremiumStatus: true,
+    text: 'Hi Premium Jane, thanks for your message! I see it\'s a bit blurry. I might upgrade soon.',
+    timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), // 1 hour ago
+    read: false, // Unread for Jane
+    status: 'delivered'
+  },
+  // Another unread message for user1 from another free user (user18)
+  {
+    id: 13,
+    // conversationId: 7,
+    senderId: 'user18', // Free Fred
+    senderUsername: 'free_fred',
+    senderEffectivePremiumStatus: false,
+    recipientId: 'user1', // Alex
+    recipientUsername: 'car_lover',
+    recipientEffectivePremiumStatus: false,
+    text: 'Hey Alex, saw your Mustang at the last meet. Looked great! Are you going to the downtown cruise next week?',
+    timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 mins ago
+    read: false, // Unread for Alex
+    status: 'delivered'
+  },
+  // A message sent by user1 to user18
+  {
+    id: 14,
+    // conversationId: 7,
+    senderId: 'user1',
+    senderUsername: 'car_lover',
+    senderEffectivePremiumStatus: false,
+    recipientId: 'user18',
+    recipientUsername: 'free_fred',
+    recipientEffectivePremiumStatus: false,
+    text: 'Thanks Fred! Yeah, planning to be there. Should be fun!',
+    timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(), // 15 mins ago
+    read: true, // Assume Fred read it
+    status: 'read'
+  },
+   // System-like message (though backend doesn't explicitly support this type yet, can be simulated)
+  {
+    id: 15,
+    senderId: 'system', // Special sender ID
+    senderUsername: 'CarMatch System',
+    senderEffectivePremiumStatus: true, // System messages are not gated
+    recipientId: 'user1',
+    recipientUsername: 'car_lover',
+    recipientEffectivePremiumStatus: false,
+    text: 'Welcome to CarMatch! Complete your profile to find better matches.',
+    timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+    read: true,
+    systemMessage: true, // Add a flag for system messages
+    status: 'read'
+  }
+  // --- END: Additional Mock Messages ---
 ];
 
 const mockConversations = [
@@ -1806,7 +1962,7 @@ const mockApi = {
   },
 
   // Manages event-related operations
-  getEvents: () => Promise.resolve(mockEvents),
+  getEvents: () => Promise.resolve(mockEvents), // This will now serve the full mockEvents list
   createEvent: (event) => Promise.resolve({ ...event, id: Date.now() }),
   rsvpToEvent: (eventId) => {
     // Increments RSVP count for the specified event
@@ -1852,4 +2008,71 @@ const mockApi = {
   }
 };
 
-export default mockApi;
+// --- START: ADDITIONS FOR REAL API INTEGRATION ---
+const API_BASE_URL = 'http://localhost:3001'; // Backend server
+
+const realApi = {
+  registerUser: async (userData) => {
+    const response = await fetch(`${API_BASE_URL}/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(userData) });
+    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
+    return response.json();
+  },
+  loginUser: async (username, password) => {
+    const response = await fetch(`${API_BASE_URL}/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
+    return response.json();
+  },
+  upgradeToPremium: async (token, userId) => {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/upgrade-to-premium`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } });
+    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
+    return response.json();
+  },
+  toggleDevOverride: async (token, userId) => {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/toggle-dev-override`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } });
+    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
+    return response.json();
+  },
+  fetchMessages: async (token, category, filters = {}) => {
+    let queryString = `?category=${encodeURIComponent(category)}`;
+    if (filters.filterGender) queryString += `&filterGender=${encodeURIComponent(filters.filterGender)}`;
+    if (filters.filterRadius) queryString += `&filterRadius=${encodeURIComponent(filters.filterRadius)}`;
+    if (filters.sortBy) queryString += `&sortBy=${encodeURIComponent(filters.sortBy)}`;
+    const response = await fetch(`${API_BASE_URL}/messages/inbox${queryString}`, { method: 'GET', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } });
+    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
+    return response.json();
+  },
+  sendMessage: async (token, recipientUsername, text) => { 
+    const response = await fetch(`${API_BASE_URL}/messages`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ recipientUsername, text }) });
+    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
+    return response.json();
+  },
+  createEvent: async (token, eventData) => {
+    const response = await fetch(`${API_BASE_URL}/events`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(eventData) });
+    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
+    return response.json();
+  },
+  // getEvents: async () => { // This is the realApi.getEvents
+  //   const response = await fetch(`${API_BASE_URL}/events`);
+  //   if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
+  //   return response.json();
+  // },
+  rsvpToEvent: async (token, eventId) => {
+    const response = await fetch(`${API_BASE_URL}/events/${eventId}/rsvp`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } });
+    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
+    return response.json();
+  },
+  getMyRsvps: async (token) => {
+    const response = await fetch(`${API_BASE_URL}/my-rsvps`, { method: 'GET', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } });
+    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
+    return response.json();
+  }
+};
+
+const combinedApi = {
+  ...mockApi, // Spread original mock first
+  ...realApi, // Spread realApi second, so its functions override mock ones with the same name
+  // Explicitly ensure mockApi.getEvents is used for the demo if needed, overriding realApi.getEvents
+  getEvents: () => Promise.resolve(mockEvents), // Ensures mock events are always returned for /events page
+};
+
+export default combinedApi;

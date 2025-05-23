@@ -24,3 +24,7 @@ Update: The application now has a consistent, professional look and feel with a 
 
 Date: May 17, 2025
 Update: Polished UI interactions across the Events and Profile views. RSVP actions now reflect user state with clear visual feedback. Updated Profile view includes a clean “My Events” section with structured styling and consistent layout rules. Placeholder visuals were added for garage items and future messaging features. Mock data now drives all profile and event visuals, allowing the design to simulate real user activity. Began refining visual hierarchy on smaller screens to improve mobile responsiveness.
+
+
+Date: May 22, 2025
+Update: I got the whole advanced messaging system fully added back in and set up right. The profile page now shows all the messaging stuff directly, with tabs for Inbox, Unread, Sent, System, and Locked all working. Premium features are in too, like gender filters, radius sorting, locked messages that blur for free users, and daily message limits that trigger the upgrade modal. I didn’t remove anything from the mock API. Everything that was there before, like events, users, and messages, is still in place. I also added a bunch of fake data so the app feels full and active. The UI finally got the upgrade it needed, and now it looks clean and demo-ready. Login and signup are connected to the backend, the auth state holds across the session, and frontend and backend are talking with CORS fixed. Everything works how it’s supposed to, nothing is broken or missing, and it’s all set to show off.

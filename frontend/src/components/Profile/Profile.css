@@ -216,16 +216,21 @@
   font-weight: 500;
 }
 
-.settings-form input {
+.settings-form input,
+.settings-form select,
+.settings-form textarea {
   width: 100%;
   padding: var(--space-sm);
   margin-top: var(--space-xs);
   border: 1px solid #E6E6E6;
   border-radius: var(--radius-md);
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  box-sizing: border-box; /* Ensure padding doesn't expand width */
 }
 
-.settings-form input:focus {
+.settings-form input:focus,
+.settings-form select:focus,
+.settings-form textarea:focus {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 2px rgba(21, 116, 187, 0.2);
   outline: none;
@@ -246,53 +251,58 @@
   flex-wrap: wrap;
 }
 
-button {
+button, .btn { /* Apply to .btn as well */
   padding: var(--space-sm) var(--space-lg);
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: all 0.3s ease;
   font-weight: 600;
   border: none;
+  text-decoration: none; /* For .btn used as links */
+  display: inline-block; /* For .btn used as links */
+  text-align: center;
 }
 
-button:hover {
+button:hover, .btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
 
-button:active {
+button:active, .btn:active {
   transform: translateY(0);
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-button:first-child {
+/* Specific button styling if needed, or use utility classes like .btn-primary */
+.settings-actions button:first-child { /* Save Changes */
   background: var(--primary-color);
   color: white;
 }
-
-button:nth-child(2) {
+.settings-actions button:nth-child(2) { /* Cancel */
   background: var(--background-light);
   color: var(--text-dark);
 }
-
-.edit-button {
-  display: inline-block;
-  background: var(--secondary-color);
+.btn-primary {
+  background-color: var(--primary-color);
   color: white;
-  padding: var(--space-sm) var(--space-lg);
-  border-radius: var(--radius-md);
-  text-decoration: none;
-  margin-top: var(--space-md);
-  transition: all 0.3s ease;
-  font-weight: 600;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.btn-secondary {
+  background-color: var(--secondary-color);
+  color: white;
+}
+.btn-warning {
+    background-color: var(--warning-color, #ffc107); /* Add a warning color variable */
+    color: #212529;
+}
+.btn-success {
+    background-color: var(--success-color, #28a745); /* Add a success color variable */
+    color: white;
+}
+.btn-small {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 0.85rem;
 }
 
-.edit-button:hover {
-  background-color: #6b9900;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-}
 
 /* Animations */
 @keyframes fadeIn {
@@ -317,4 +327,305 @@ button:nth-child(2) {
   .settings-actions button {
     width: 100%;
   }
+}
+
+/* Message Section Styles */
+.message-tabs {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  border-bottom: 1px solid var(--border-color, #eee);
+  flex-wrap: wrap; /* Allow tabs to wrap on smaller screens */
+}
+
+.message-tabs button {
+  padding: var(--space-sm) var(--space-md);
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--text-muted);
+  border-bottom: 3px solid transparent;
+  transition: color 0.3s ease, border-bottom-color 0.3s ease;
+  margin-bottom: -1px; /* Align with bottom border */
+}
+
+.message-tabs button.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+  font-weight: 600;
+}
+
+.message-tabs button:hover {
+  color: var(--primary-color);
+  transform: none; 
+  box-shadow: none; 
+}
+
+.message-filters {
+  display: flex;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+  padding: var(--space-md);
+  background-color: var(--background-light);
+  border-radius: var(--radius-md);
+  flex-wrap: wrap; /* Allow filters to wrap */
+}
+
+.message-filters input,
+.message-filters select {
+  padding: var(--space-sm);
+  border: 1px solid var(--border-color, #ccc);
+  border-radius: var(--radius-sm);
+  flex-grow: 1;
+  min-width: 150px; /* Ensure inputs don't get too small */
+}
+
+.message-filters button {
+  background-color: var(--secondary-color);
+  color: white;
+  padding: var(--space-sm) var(--space-md); /* Consistent padding */
+}
+.message-filters button:hover {
+  background-color: #6b9900; 
+}
+
+
+.message-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  max-height: 500px; 
+  overflow-y: auto;
+  padding: var(--space-sm); 
+  border: 1px solid var(--border-color, #eee);
+  border-radius: var(--radius-md);
+  background-color: #fdfdfd;
+}
+
+.message-item {
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color-light, #f0f0f0);
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  position: relative; /* For premium badge positioning */
+}
+
+.message-item.sent-by-me {
+  background-color: var(--primary-light-color, #e7f3ff); 
+  border-left: 4px solid var(--primary-color);
+}
+
+.message-item.received-by-me {
+  background-color: var(--background-light, #f9f9f9);
+  border-left: 4px solid var(--secondary-color); 
+}
+
+.message-item p {
+  margin: 0 0 var(--space-xs) 0;
+  line-height: 1.5;
+}
+.message-item p strong {
+  color: var(--text-dark);
+  font-weight: 600;
+}
+
+.message-item p strong.unread-sender { /* For unread messages */
+  font-weight: 700; /* Bolder */
+  color: var(--primary-color); 
+}
+
+.message-item .message-text {
+  color: var(--text-main);
+  white-space: pre-wrap; /* Preserve line breaks in messages */
+}
+
+.message-item small {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  display: block;
+  margin-top: var(--space-xs);
+}
+
+.message-item.locked-message {
+  background-color: #f0f0f0; /* Dim background for locked messages */
+  border-left-color: var(--warning-color, #ffc107);
+}
+
+.message-item.locked-message .message-text {
+  filter: blur(4px); 
+  font-style: italic;
+  color: #aaa;
+  cursor: not-allowed;
+  -webkit-user-select: none; /* Safari */
+  user-select: none;
+}
+
+.locked-indicator {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--accent-color, #e74c3c); 
+  font-weight: 500;
+  margin-top: var(--space-sm);
+  padding: var(--space-xs);
+  background-color: rgba(231, 76, 60, 0.1);
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.premium-sender-badge {
+  font-size: 0.75rem;
+  background-color: var(--secondary-color);
+  color: white;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  margin-left: var(--space-xs);
+  font-weight: bold;
+}
+
+.message-actions {
+  margin-top: var(--space-sm);
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap; /* Allow buttons to wrap */
+}
+
+.message-actions .btn-small { 
+  padding: var(--space-xs) var(--space-sm);
+  font-size: 0.8rem;
+}
+.message-actions .reply-button-locked {
+    background-color: var(--warning-color, #ffc107);
+    color: #333;
+    font-weight: bold; /* Make it stand out more */
+    border: 1px solid #e0a800; /* Add a border */
+}
+.message-actions .reply-button-locked:hover {
+    background-color: #e0a800;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+
+.send-message-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
+  padding: var(--space-md);
+  background-color: var(--background-light);
+  border-radius: var(--radius-md);
+}
+
+.send-message-form input[type="text"],
+.send-message-form textarea {
+  width: 100%;
+  padding: var(--space-sm);
+  border: 1px solid var(--border-color, #ccc);
+  border-radius: var(--radius-sm);
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+.send-message-form textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.send-message-form button {
+  align-self: flex-start; 
+  background-color: var(--primary-color);
+  color: white;
+}
+.send-message-form button:hover {
+  background-color: #0d5a8a; 
+}
+
+.error-text {
+  color: var(--accent-color, #e74c3c);
+  font-weight: 500;
+  background-color: rgba(231, 76, 60, 0.1);
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-md);
+  text-align: center;
+  border: 1px solid var(--accent-color, #e74c3c);
+}
+
+/* Modal Styles */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; /* Ensure it's on top */
+  animation: fadeIn 0.3s ease-out;
+}
+
+.modal-content {
+  background: white;
+  padding: var(--space-xl);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  width: 90%;
+  max-width: 500px;
+  text-align: center;
+  animation: slideInUp 0.3s ease-out;
+}
+
+.modal-content h3 {
+  color: var(--primary-color);
+  margin-top: 0;
+  margin-bottom: var(--space-md);
+}
+
+.modal-content p {
+  margin-bottom: var(--space-lg);
+  color: var(--text-dark);
+}
+
+.modal-content button {
+  margin: 0 var(--space-xs);
+}
+.modal-content button.btn-success { /* Explicitly target upgrade button */
+  background-color: var(--success-color, #28a745);
+  color: white;
+}
+.modal-content button.btn { /* For close button if it's generic */
+  background-color: var(--background-light);
+  color: var(--text-dark);
+}
+
+
+.premium-status-display {
+    margin-top: var(--space-md);
+    padding: var(--space-sm);
+    background-color: var(--background-light);
+    border-radius: var(--radius-sm);
+}
+.premium-status-display p {
+    margin: 0 0 var(--space-xs) 0;
+    font-weight: 500;
+}
+.premium-status-display button {
+    margin-right: var(--space-sm);
+    margin-top: var(--space-xs);
+}
+
+.system-message-item {
+  background-color: var(--info-light-color, #f0f8ff); /* Light blue/grey for system messages */
+  border-left: 4px solid var(--info-color, #5bc0de); /* Info color for border */
+}
+
+.system-message-item p strong {
+  color: var(--info-color, #5bc0de);
+}
+
+@keyframes slideInUp {
+  from { transform: translateY(50px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
