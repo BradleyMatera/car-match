@@ -34,8 +34,6 @@ This week I’ll start transferring research and design breakdowns from `designd
 
 ### Week 2
 
-Week 2
-
 ⚙️ Overview:
 This week I added more logic and built out the mock API to behave more like a real backend. I got RSVP working in a way that actually connects to the user profile. When a user signs up for an event, it saves and shows up under “My Events” in their profile. I also cleaned up profile editing so users can change their bio, age, and car interests. You can even add cars to your garage now (just the UI part for now).
 
@@ -50,7 +48,17 @@ Next I’m going to focus on event creation logic and user relationships. Now th
 
 ### Week 3
 
-Stay tuned, this stand up is coming soon...
+⚙️ Overview:
+This week I focused on finally getting the advanced messaging system built out the way it was supposed to be. I added full tab support for Inbox, Unread, Sent, System, and Locked messages, and made sure the whole thing shows up on the profile page like we planned. I also set up the premium features—locked messages blur out if you’re a free user, and filters like gender and distance are only usable if you’re premium or dev. Daily limits are in too, and they trigger the upgrade modal when hit. I connected all of this to the backend, made sure auth stays active through the context, and confirmed the frontend and backend are syncing properly.
+
+🌵 Challenges:
+Biggest issue was that the UI didn’t match what the system needed. I had to go in and restructure the whole messaging section so it actually looked and felt like a real system, not just static data. I also had to clean up a bunch of mock data problems—stuff was missing or removed, and I had to add it all back in and make sure it felt populated enough for demo use. Just getting the messaging logic and layout to sync with real user states was a grind.
+
+🏆 Accomplishments:
+The messaging system is fully working now, and the UI actually reflects all the premium logic. The whole thing is hooked to the backend and feels like a real feature. Profile pages look alive, messages are categorized properly, and I added a ton of fake data so nothing feels empty. I also cleaned up the login/signup flow and made sure the session state stays consistent across pages. Honestly, it looks and works way better now.
+
+🔮 Next Steps:
+Next, I’m going to work on letting users create their own events. The RSVP system already works, but now that the profile and messaging side is solid, it makes sense to give users the ability to actually post and manage events too. I’ll probably also polish a few UI things and make sure the message filters behave exactly how they should across user types.
 
 ### Week 4
 
