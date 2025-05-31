@@ -32,24 +32,31 @@ function AppContent() {
     <div className={`App ${!isLoggedIn ? 'modal-active' : ''}`}>
       <header className="top-nav">
         <div className="logo">CarMatch</div>
-        {isLoggedIn && ( // Only show nav if logged in, or adjust as per design
-          <nav>
-            <ul>
-              <li><Link to="/">Discover</Link></li>
-              <li><Link to="/events">Events</Link></li>
-              <li><Link to="/profile">Profile</Link></li>
-              <li><Link to="/settings">Settings</Link></li>
-              <li><button onClick={logout} className="logout-button">Logout</button></li>
-            </ul>
-          </nav>
-        )}
+<nav>
+  <ul>
+    <li><Link to="/">Discover</Link></li>
+    <li><Link to="/events">Events</Link></li>
+    <li><Link to="/profile">Profile</Link></li>
+    <li><Link to="/settings">Settings</Link></li>
+    <li>
+      <div className="dropdown">
+        <button className="dropdown-button">Account</button>
+        <div className="dropdown-content">
+          <Link to="/signup">Sign Up</Link>
+          <Link to="/login">Login</Link>
+        </div>
+      </div>
+    </li>
+    {isLoggedIn && <li><button onClick={logout} className="logout-button">Logout</button></li>}
+  </ul>
+</nav>
       </header>
       <main>
         <Routes>
           {/* Public routes accessible to all */}
           {/* If logged in and trying to access login/signup, redirect to home */}
-          <Route path="/login" element={isLoggedIn ? <Navigate to="/" /> : <Login />} />
-          <Route path="/signup" element={isLoggedIn ? <Navigate to="/" /> : <SignUp />} />
+<Route path="/login" element={<Login />} />
+<Route path="/signup" element={<SignUp />} />
 
           {/* Protected routes - if not logged in, redirect to /login */}
           <Route path="/" element={isLoggedIn ? <Layout><Home /></Layout> : <Navigate to="/login" />} />
