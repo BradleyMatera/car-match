@@ -46,22 +46,20 @@ function AppContent() {
       </header>
       <main>
         <Routes>
-          {!isLoggedIn ? (
-            <>
-              <Route path="/login" element={<Login />} /> 
-              <Route path="/signup" element={<SignUp />} /> {/* Use SignUp component */}
-              <Route path="*" element={<Navigate to="/login" />} />
-            </>
-          ) : (
-            <>
-              <Route path="/" element={<Layout><Home /></Layout>} />
-              <Route path="/events" element={<Layout><Events /></Layout>} />
-              <Route path="/profile" element={<Layout><Profile /></Layout>} />
-              <Route path="/settings" element={<Layout><Settings /></Layout>} />
-              <Route path="/layout-example" element={<Layout><LayoutExample /></Layout>} />
-              <Route path="*" element={<Navigate to="/" />} />
-            </>
-          )}
+          {/* Public routes accessible to all */}
+          {/* If logged in and trying to access login/signup, redirect to home */}
+          <Route path="/login" element={isLoggedIn ? <Navigate to="/" /> : <Login />} />
+          <Route path="/signup" element={isLoggedIn ? <Navigate to="/" /> : <SignUp />} />
+
+          {/* Protected routes - if not logged in, redirect to /login */}
+          <Route path="/" element={isLoggedIn ? <Layout><Home /></Layout> : <Navigate to="/login" />} />
+          <Route path="/events" element={isLoggedIn ? <Layout><Events /></Layout> : <Navigate to="/login" />} />
+          <Route path="/profile" element={isLoggedIn ? <Layout><Profile /></Layout> : <Navigate to="/login" />} />
+          <Route path="/settings" element={isLoggedIn ? <Layout><Settings /></Layout> : <Navigate to="/login" />} />
+          <Route path="/layout-example" element={isLoggedIn ? <Layout><LayoutExample /></Layout> : <Navigate to="/login" />} />
+          
+          {/* Catch-all route: if logged in, go to home, otherwise go to login page */}
+          <Route path="*" element={<Navigate to={isLoggedIn ? "/" : "/login"} />} />
         </Routes>
       </main>
     </div>
