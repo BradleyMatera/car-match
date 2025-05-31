@@ -9,7 +9,7 @@ const port = 3001;
 const JWT_SECRET = 'your-secret-key'; 
 
 app.use(cors({
-  origin: 'https://bradleymatera.github.io',
+  origin: 'https://4b08-18-212-211-242.ngrok-free.app',
 })); // Enable CORS for specific origin
 app.use(express.json());
 
