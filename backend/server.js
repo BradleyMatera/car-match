@@ -208,6 +208,7 @@ app.put('/users/:userId/toggle-dev-override', authenticateToken, (req, res) => {
 });
 
 
+
 // Example protected route
 app.get('/protected', authenticateToken, (req, res) => {
   // req.user is now the full user object
@@ -328,6 +329,7 @@ app.get('/messages/inbox', authenticateToken, (req, res) => {
       }
 
 
+
       // Rule: Free users see blurred/truncated content from premium members if they are the recipient
       if (msg.recipientId === loggedInUser.id && !isUserEffectivelyPremium && otherPartyIsPremium) {
         displayMessage.text = msg.text.substring(0, 20) + "... (Upgrade to premium to read full message)";
@@ -414,7 +416,10 @@ app.get('/messages/inbox', authenticateToken, (req, res) => {
         processedMessages.sort((a, b) => {
             const senderA = users.find(u => u.id === a.senderId);
             const senderB = users.find(u => u.id === b.senderId);
-            if (senderA && senderA.location && senderA.location.geoCoordinates && senderB && senderB.location && senderB.location.geoCoordinates) {
+            
+            if (senderA && senderB && 
+                senderA.location && senderB.location && 
+                senderA.location.geoCoordinates && senderB.location.geoCoordinates) {
                 const distA = getDistanceInMiles(userLat, userLon, senderA.location.geoCoordinates.lat, senderA.location.geoCoordinates.lon);
                 const distB = getDistanceInMiles(userLat, userLon, senderB.location.geoCoordinates.lat, senderB.location.geoCoordinates.lon);
                 return distA - distB;
