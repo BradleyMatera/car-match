@@ -34,12 +34,3 @@ Car Match is a concept-first dating platform designed specifically for car lover
 This repo uses a proper feature branch workflow per class instructions. Feature branches will merge into `dev`, then into `stage`, and only into `main` with approval or final submissions.
 
 If you're reviewing this for grading or feedback, please check the `/docs/research` folder and the active design work inside `designdoc.md`.
-
-
-
-
-
-
-
-
-
