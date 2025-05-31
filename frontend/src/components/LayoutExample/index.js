@@ -155,7 +155,7 @@ const LayoutExample = () => {
         <h2 className="section-title">Section Component Example</h2>
         <p className="text-center">This section uses the Section component with primary background and large spacing</p>
         <div className="text-center" style={{ marginTop: '1rem' }}>
-          <a href="#" className="btn btn-secondary">Secondary Button</a>
+          <a href="#!" className="btn btn-secondary">Secondary Button</a>
         </div>
       </Section>
       
@@ -163,7 +163,7 @@ const LayoutExample = () => {
         <h2 className="section-title">Another Section Example</h2>
         <p className="text-center">This section uses the Section component with secondary background and small spacing</p>
         <div className="text-center" style={{ marginTop: '1rem' }}>
-          <a href="#" className="btn btn-primary">Primary Button</a>
+          <a href="#!" className="btn btn-primary">Primary Button</a>
         </div>
       </Section>
       
@@ -185,7 +185,7 @@ const LayoutExample = () => {
                   <div className="card-content">
                     <h3 className="card-title">Car Event {item}</h3>
                     <p className="card-text">Join us for an exciting car meetup with fellow enthusiasts.</p>
-                    <a href="#" className="btn btn-primary">Learn More</a>
+                    <a href="#!" className="btn btn-primary">Learn More</a>
                   </div>
                 </div>
               </div>
@@ -214,9 +214,9 @@ const LayoutExample = () => {
       <Section>
         <h2 className="section-title">Button Examples</h2>
         <Flex justify="center" gap="lg">
-          <a href="#" className="btn btn-primary">Primary Button</a>
-          <a href="#" className="btn btn-secondary">Secondary Button</a>
-          <a href="#" className="btn btn-outline">Outline Button</a>
+          <a href="#!" className="btn btn-primary">Primary Button</a>
+          <a href="#!" className="btn btn-secondary">Secondary Button</a>
+          <a href="#!" className="btn btn-outline">Outline Button</a>
         </Flex>
       </Section>
       
@@ -233,7 +233,7 @@ const LayoutExample = () => {
             <div className="card-content">
               <h3 className="card-title">Muscle Cars</h3>
               <p className="card-text">Discover the power and style of American muscle cars.</p>
-              <a href="#" className="btn btn-primary">Explore</a>
+              <a href="#!" className="btn btn-primary">Explore</a>
             </div>
           </div>
           
@@ -246,7 +246,7 @@ const LayoutExample = () => {
             <div className="card-content">
               <h3 className="card-title">JDM Imports</h3>
               <p className="card-text">Experience the precision and innovation of Japanese imports.</p>
-              <a href="#" className="btn btn-primary">Explore</a>
+              <a href="#!" className="btn btn-primary">Explore</a>
             </div>
           </div>
           
@@ -259,7 +259,7 @@ const LayoutExample = () => {
             <div className="card-content">
               <h3 className="card-title">Classic Cars</h3>
               <p className="card-text">Appreciate the timeless elegance of classic automobiles.</p>
-              <a href="#" className="btn btn-primary">Explore</a>
+              <a href="#!" className="btn btn-primary">Explore</a>
             </div>
           </div>
         </Grid>

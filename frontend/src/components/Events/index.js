@@ -7,9 +7,6 @@ import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 import Section from '../Section';
-import Container from '../Container';
-import Grid from '../Grid';
-import Spacing from '../Spacing';
 
 const Events = () => {
   const [events, setEvents] = useState([]);

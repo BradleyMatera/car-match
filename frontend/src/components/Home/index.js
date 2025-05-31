@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Section from '../Section';
-import Container from '../Container';
 import Grid from '../Grid';
 import Spacing from '../Spacing';
 import './Home.css';
