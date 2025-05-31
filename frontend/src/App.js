@@ -70,7 +70,7 @@ function AppContent() {
 
 function App() {
   return (
-    <Router>
+    <Router basename="/car-match">
       <AuthProvider>
         <AppContent />
       </AuthProvider>
