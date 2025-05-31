@@ -2009,7 +2009,7 @@ const mockApi = {
 };
 
 // --- START: ADDITIONS FOR REAL API INTEGRATION ---
-const API_BASE_URL = 'https://4b08-18-212-211-242.ngrok-free.app'; // Backend server
+const API_BASE_URL = 'http://localhost:3001'; // Backend server
 
 const realApi = {
   registerUser: async (userData) => {
