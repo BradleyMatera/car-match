@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const cors = require('cors'); // Import cors
+const path = require('path'); // Import path for serving files
 const app = express();
 const port = 3001;
 
@@ -13,9 +14,11 @@ app.use(cors({
 })); // Enable CORS for multiple origins
 app.use(express.json());
 
-// In-memory store for users
-const users = []; 
-const saltRounds = 10;
+// Serve mockApi.js file
+app.get('/mockApi.js', (req, res) => {
+  const mockApiPath = path.join(__dirname, '../frontend/src/api/mockApi.js');
+  res.sendFile(mockApiPath);
+});
 
 // Other backend logic remains unchanged...
 
