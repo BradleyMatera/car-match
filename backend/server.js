@@ -8,7 +8,9 @@ const port = 3001;
 // It's better to store this in an environment variable
 const JWT_SECRET = 'your-secret-key'; 
 
-app.use(cors()); // Enable CORS for all routes
+app.use(cors({
+  origin: 'https://bradleymatera.github.io',
+})); // Enable CORS for specific origin
 app.use(express.json());
 
 // In-memory store for users
