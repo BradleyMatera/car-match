@@ -1937,7 +1937,15 @@ const mockApi = {
   login: (credentials) => Promise.resolve({ token: 'mock-token', user: mockUsers[0] }),
   register: (userData) => Promise.resolve({ ...userData, id: Date.now() }),
   getCurrentUser: () => {
-    // Returns the first user if available, otherwise rejects the promise
+    // Prefer real auth state from localStorage when available
+    try {
+      const stored = localStorage.getItem('currentUser');
+      if (stored) {
+        return Promise.resolve(JSON.parse(stored));
+      }
+    } catch (e) {
+      // ignore and fall back to mock
+    }
     if (!mockUsers.length) {
       return Promise.reject('No user logged in');
     }
@@ -1946,9 +1954,13 @@ const mockApi = {
 
   // Manages conversation and messaging functionality
   getConversations: () => Promise.resolve(mockConversations),
-  getMessages: (conversationId) => 
-    // Filters messages by conversation ID
-    Promise.resolve(mockMessages.filter(m => m.conversationId === conversationId)),
+  getMessages: (conversationId) => {
+    // If a conversationId is provided, filter by it; otherwise return all
+    if (typeof conversationId === 'number') {
+      return Promise.resolve(mockMessages.filter(m => m.conversationId === conversationId));
+    }
+    return Promise.resolve([...mockMessages].sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp)));
+  },
   sendMessage: (message) => {
     // Creates and stores a new message with a unique ID and timestamp
     const newMessage = {
@@ -1964,10 +1976,23 @@ const mockApi = {
   // Manages event-related operations
   getEvents: () => Promise.resolve(mockEvents), // This will now serve the full mockEvents list
   createEvent: (event) => Promise.resolve({ ...event, id: Date.now() }),
-  rsvpToEvent: (eventId) => {
-    // Increments RSVP count for the specified event
+  rsvpToEvent: (userIdOrEventId, maybeEventId) => {
+    // Support both (eventId) and (userId, eventId) signatures
+    const eventId = typeof maybeEventId === 'number' ? maybeEventId : userIdOrEventId;
     const event = mockEvents.find(e => e.id === eventId);
     if (event) event.rsvpCount = (event.rsvpCount || 0) + 1;
+    const storedData = JSON.parse(localStorage.getItem('carMatchData') || '{}');
+    storedData.events = mockEvents;
+    localStorage.setItem('carMatchData', JSON.stringify(storedData));
+    return Promise.resolve(event);
+  },
+  cancelRsvp: (userIdOrEventId, maybeEventId) => {
+    const eventId = typeof maybeEventId === 'number' ? maybeEventId : userIdOrEventId;
+    const event = mockEvents.find(e => e.id === eventId);
+    if (event) event.rsvpCount = Math.max(0, (event.rsvpCount || 0) - 1);
+    const storedData = JSON.parse(localStorage.getItem('carMatchData') || '{}');
+    storedData.events = mockEvents;
+    localStorage.setItem('carMatchData', JSON.stringify(storedData));
     return Promise.resolve(event);
   },
   getUserEvents: (userId) => Promise.resolve(mockEvents.filter(e => e.organizerId === userId)),
@@ -2009,7 +2034,8 @@ const mockApi = {
 };
 
 // --- START: ADDITIONS FOR REAL API INTEGRATION ---
-const API_BASE_URL = 'http://localhost:3001'; // Backend server
+// Backend URL configurable via REACT_APP_API_BASE_URL (for production/Pages)
+const API_BASE_URL = (typeof process !== 'undefined' && process.env && process.env.REACT_APP_API_BASE_URL) || 'http://localhost:3001'; // Backend server
 
 const realApi = {
   registerUser: async (userData) => {
@@ -2051,11 +2077,11 @@ const realApi = {
     if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
     return response.json();
   },
-  // getEvents: async () => { // This is the realApi.getEvents
-  //   const response = await fetch(`${API_BASE_URL}/events`);
-  //   if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
-  //   return response.json();
-  // },
+  getEvents: async () => { // This is the realApi.getEvents
+    const response = await fetch(`${API_BASE_URL}/events`);
+    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
+    return response.json();
+  },
   rsvpToEvent: async (token, eventId) => {
     const response = await fetch(`${API_BASE_URL}/events/${eventId}/rsvp`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } });
     if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
@@ -2071,8 +2097,11 @@ const realApi = {
 const combinedApi = {
   ...mockApi, // Spread original mock first
   ...realApi, // Spread realApi second, so its functions override mock ones with the same name
-  // Explicitly ensure mockApi.getEvents is used for the demo if needed, overriding realApi.getEvents
-  getEvents: () => Promise.resolve(mockEvents), // Ensures mock events are always returned for /events page
+  // Choose events source based on env; mock by default for richer UI content
+  getEvents: () => {
+    const useReal = (typeof process !== 'undefined' && process.env && process.env.REACT_APP_USE_REAL_EVENTS) === 'true';
+    return useReal ? realApi.getEvents() : Promise.resolve(mockEvents);
+  },
 };
 
 export default combinedApi;

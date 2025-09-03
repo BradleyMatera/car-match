@@ -3,10 +3,10 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const cors = require('cors'); // Import cors
 const app = express();
-const port = 3001;
+const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 
 // It's better to store this in an environment variable
-const JWT_SECRET = 'your-secret-key'; 
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'; 
 
 app.use(cors()); // Enable CORS for all routes
 app.use(express.json());
@@ -28,6 +28,46 @@ const rsvps = [];
 app.get('/', (req, res) => {
   res.send('Hello from the Car Match backend!');
 });
+
+// Seed a few demo users and basic events in-memory so the app "feels real"
+const seedDemoData = () => {
+  if (users.length > 0) return; // already seeded
+  try {
+    const demoUsers = [
+      { username: 'demo', password: 'password123', name: 'Demo User', displayTag: 'Demo', gender: 'other', city: 'Los Angeles', state: 'CA' },
+      { username: 'jane', password: 'password123', name: 'Jane Smith', displayTag: 'JSpeed', gender: 'female', city: 'San Francisco', state: 'CA' },
+      { username: 'mike', password: 'password123', name: 'Mike Davis', displayTag: 'MDrives', gender: 'male', city: 'San Diego', state: 'CA' },
+    ];
+    demoUsers.forEach((u) => {
+      const hashed = bcrypt.hashSync(u.password, 10);
+      users.push({
+        id: users.length + 1,
+        username: u.username,
+        password: hashed,
+        name: u.name,
+        displayTag: u.displayTag,
+        gender: u.gender,
+        location: { city: u.city, state: u.state, geoCoordinates: { lat: (Math.random()*180-90), lon: (Math.random()*360-180) } },
+        interests: [], biography: '', profileImage: '', lastLoginTimestamp: null,
+        premiumStatus: u.username === 'jane',
+        developerOverride: u.username === 'demo',
+        activityMetadata: { messageCountToday: 0, lastMessageDate: null },
+        tierSpecificHistory: {}, createdAt: new Date().toISOString()
+      });
+    });
+
+    // Basic sample events to show if frontend switches to real events
+    const now = new Date();
+    const fmt = (d) => d.toISOString().slice(0,10);
+    events.push(
+      { id: 1, name: 'Demo Cars & Coffee', description: 'Meet local enthusiasts.', date: fmt(new Date(now.getTime()+7*86400000)), location: 'Los Angeles, CA', createdByUserId: 1, createdByUsername: 'demo', rsvps: [] },
+      { id: 2, name: 'Track Day Intro', description: 'Beginner-friendly track event.', date: fmt(new Date(now.getTime()+14*86400000)), location: 'San Francisco, CA', createdByUserId: 2, createdByUsername: 'jane', rsvps: [] }
+    );
+  } catch (e) {
+    console.error('Seeding error:', e);
+  }
+};
+seedDemoData();
 
 // User registration endpoint
 app.post('/register', async (req, res) => {

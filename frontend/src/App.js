@@ -1,5 +1,5 @@
 import React, { useContext } from 'react'; // Removed useState, useEffect from here
-import { BrowserRouter as Router, Route, Routes, Navigate, Link } from 'react-router-dom';
+import { HashRouter as Router, Route, Routes, Navigate, Link } from 'react-router-dom';
 import './App.css';
 import Home from './components/Home';
 import Events from './components/Events';
