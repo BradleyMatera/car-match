@@ -18,7 +18,11 @@ Backend (Render example)
    - Root directory: `backend`
    - Build command: `npm install`
    - Start command: `npm start`
-   - Environment: add `JWT_SECRET` (any strong secret string)
+   - Environment:
+     - `JWT_SECRET` (required; strong secret string)
+     - `TOKEN_VERSION` (optional; default `1`. Bump to force re-login after rotations)
+     - `ALLOWED_ORIGINS` (comma-separated list of allowed origins; e.g., `https://bradleymatera.github.io,https://bradleymatera.github.io/car-match`)
+     - `MONGODB_URI` (e.g., `mongodb+srv://.../car-match` for forums persistence)
 3) Deploy. Note the generated URL, e.g., `https://car-match-backend.onrender.com`.
 4) In your GitHub repo, set `REACT_APP_API_BASE_URL` variable to this URL to wire the frontend.
 
@@ -30,5 +34,6 @@ Local Development
   - `REACT_APP_USE_REAL_EVENTS=true` (optional)
 
 Notes
-- CORS is enabled wide-open in the backend for simplicity. Lock it down for production.
+- CORS is restricted via `ALLOWED_ORIGINS`. For local dev, localhost is allowed outside production.
 - The backend is in-memory; use a persistent DB for durability.
+  - Forums now persist using MongoDB when `MONGODB_URI` is provided; otherwise they run in-memory.

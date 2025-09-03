@@ -1,14 +1,41 @@
+require('dotenv').config();
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const cors = require('cors'); // Import cors
+const mongoose = require('mongoose');
+const { ForumThread, ForumPost } = require('./models/forum');
 const app = express();
 const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 
-// It's better to store this in an environment variable
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'; 
+// JWT: require secret in non-dev, allow fallback only in development
+const JWT_SECRET = process.env.JWT_SECRET;
+const TOKEN_VERSION = process.env.TOKEN_VERSION || '1';
+if (!JWT_SECRET) {
+  if (process.env.NODE_ENV !== 'development') {
+    console.error('FATAL: JWT_SECRET is required in production.');
+    process.exit(1);
+  } else {
+    console.warn('WARNING: Using insecure development JWT secret');
+  }
+}
 
-app.use(cors()); // Enable CORS for all routes
+// CORS hardening: allow only configured origins (comma-separated). Allow localhost in dev.
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+const localhostRegex = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true); // allow curl/postman
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    if (process.env.NODE_ENV !== 'production' && localhostRegex.test(origin)) return callback(null, true);
+    return callback(new Error('CORS not allowed'), false);
+  },
+  credentials: true,
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // In-memory store for users
@@ -24,6 +51,14 @@ const events = [];
 
 // In-memory store for RSVPs
 const rsvps = [];
+
+// --- Forums ---
+const forumCategories = [
+  { id: 'cat1', name: 'General Discussion', description: 'Talk about anything cars.' },
+  { id: 'cat2', name: 'Builds & Projects', description: 'Share your build logs and progress.' },
+  { id: 'cat3', name: 'Events & Meetups', description: 'Plan or recap community events.' },
+  { id: 'cat4', name: 'Tech & Tuning', description: 'Ask questions, share tips, tuning talk.' },
+];
 
 app.get('/', (req, res) => {
   res.send('Hello from the Car Match backend!');
@@ -68,6 +103,167 @@ const seedDemoData = () => {
   }
 };
 seedDemoData();
+
+// MongoDB connection (optional but recommended for persistence)
+const MONGODB_URI = process.env.MONGODB_URI;
+if (MONGODB_URI) {
+  mongoose
+    .connect(MONGODB_URI, { serverSelectionTimeoutMS: 5000 })
+    .then(async () => {
+      console.log('Connected to MongoDB');
+      // Seed demo forum threads if none
+      const count = await ForumThread.countDocuments();
+      if (count === 0) {
+        await ForumThread.create([
+          { categoryId: 'cat1', title: 'Welcome to CarMatch Forums!', authorUsername: 'car_lover', createdAt: new Date(), lastPostAt: new Date(), replies: 0 },
+          { categoryId: 'cat2', title: '1968 Mustang Fastback Restoration Log', authorUsername: 'car_lover', createdAt: new Date(), lastPostAt: new Date(), replies: 0 },
+        ]);
+      }
+    })
+    .catch(err => {
+      console.error('MongoDB connection failed:', err.message);
+    });
+} else {
+  console.warn('MONGODB_URI not set; forums will not persist across restarts.');
+}
+
+// --- Forums API ---
+app.get('/forums/categories', (req, res) => {
+  res.json(forumCategories);
+});
+
+app.get('/forums/categories/:categoryId/threads', async (req, res) => {
+  const { categoryId } = req.params;
+  const { search = '', page = '1', pageSize = '20' } = req.query;
+  const p = Math.max(1, parseInt(page, 10) || 1);
+  const ps = Math.min(100, Math.max(1, parseInt(pageSize, 10) || 20));
+  try {
+    if (mongoose.connection.readyState === 1) {
+      const filter = { categoryId };
+      if (search) filter.title = { $regex: String(search), $options: 'i' };
+      const total = await ForumThread.countDocuments(filter);
+      const items = await ForumThread.find(filter)
+        .sort({ pinned: -1, lastPostAt: -1 })
+        .skip((p - 1) * ps)
+        .limit(ps)
+        .lean();
+      return res.json({ items, page: p, pageSize: ps, total });
+    }
+    // Fallback (no DB): empty list
+    return res.json({ items: [], page: p, pageSize: ps, total: 0 });
+  } catch (e) {
+    console.error('List threads error:', e);
+    res.status(500).json({ message: 'Error fetching threads' });
+  }
+});
+
+app.post('/forums/threads', authenticateToken, async (req, res) => {
+  const { categoryId, title } = req.body;
+  if (!categoryId || !title) return res.status(400).json({ message: 'categoryId and title required' });
+  const cat = forumCategories.find(c => c.id === categoryId);
+  if (!cat) return res.status(404).json({ message: 'Category not found' });
+  try {
+    if (mongoose.connection.readyState === 1) {
+      const doc = await ForumThread.create({ categoryId, title: String(title), authorId: req.user.id, authorUsername: req.user.username });
+      return res.status(201).json(doc.toObject());
+    }
+    return res.status(503).json({ message: 'Database not available' });
+  } catch (e) {
+    console.error('Create thread error:', e);
+    res.status(500).json({ message: 'Error creating thread' });
+  }
+});
+
+app.get('/forums/threads/:threadId', async (req, res) => {
+  const { threadId } = req.params;
+  try {
+    if (mongoose.connection.readyState === 1) {
+      const thread = await ForumThread.findById(threadId).lean();
+      if (!thread) return res.status(404).json({ message: 'Thread not found' });
+      const posts = await ForumPost.find({ threadId: thread._id }).sort({ createdAt: 1 }).lean();
+      return res.json({ thread, posts });
+    }
+    return res.status(503).json({ message: 'Database not available' });
+  } catch (e) {
+    console.error('Get thread error:', e);
+    res.status(500).json({ message: 'Error fetching thread' });
+  }
+});
+
+app.post('/forums/threads/:threadId/posts', authenticateToken, async (req, res) => {
+  const { threadId } = req.params;
+  const { body } = req.body;
+  if (!body) return res.status(400).json({ message: 'body required' });
+  try {
+    if (mongoose.connection.readyState === 1) {
+      const thread = await ForumThread.findById(threadId);
+      if (!thread) return res.status(404).json({ message: 'Thread not found' });
+      if (thread.locked) return res.status(423).json({ message: 'Thread is locked' });
+      const post = await ForumPost.create({ threadId: thread._id, authorId: req.user.id, authorUsername: req.user.username, body: String(body) });
+      thread.replies = (thread.replies || 0) + 1;
+      thread.lastPostAt = new Date();
+      await thread.save();
+      return res.status(201).json(post.toObject());
+    }
+    return res.status(503).json({ message: 'Database not available' });
+  } catch (e) {
+    console.error('Add post error:', e);
+    res.status(500).json({ message: 'Error adding post' });
+  }
+});
+
+app.patch('/forums/threads/:threadId/pin', authenticateToken, async (req, res) => {
+  const { threadId } = req.params;
+  const { pinned } = req.body;
+  try {
+    if (mongoose.connection.readyState === 1) {
+      const thread = await ForumThread.findByIdAndUpdate(threadId, { pinned: !!pinned }, { new: true }).lean();
+      if (!thread) return res.status(404).json({ message: 'Thread not found' });
+      return res.json({ ok: true, thread });
+    }
+    return res.status(503).json({ message: 'Database not available' });
+  } catch (e) {
+    console.error('Pin thread error:', e);
+    res.status(500).json({ message: 'Error pinning thread' });
+  }
+});
+
+app.patch('/forums/threads/:threadId/lock', authenticateToken, async (req, res) => {
+  const { threadId } = req.params;
+  const { locked } = req.body;
+  try {
+    if (mongoose.connection.readyState === 1) {
+      const thread = await ForumThread.findByIdAndUpdate(threadId, { locked: !!locked }, { new: true }).lean();
+      if (!thread) return res.status(404).json({ message: 'Thread not found' });
+      return res.json({ ok: true, thread });
+    }
+    return res.status(503).json({ message: 'Database not available' });
+  } catch (e) {
+    console.error('Lock thread error:', e);
+    res.status(500).json({ message: 'Error locking thread' });
+  }
+});
+
+app.delete('/forums/threads/:threadId', authenticateToken, async (req, res) => {
+  const { threadId } = req.params;
+  try {
+    if (mongoose.connection.readyState === 1) {
+      const thread = await ForumThread.findByIdAndDelete(threadId);
+      if (!thread) return res.status(404).json({ message: 'Thread not found' });
+      await ForumPost.deleteMany({ threadId: thread._id });
+      return res.json({ ok: true });
+    }
+    return res.status(503).json({ message: 'Database not available' });
+  } catch (e) {
+    console.error('Delete thread error:', e);
+    res.status(500).json({ message: 'Error deleting thread' });
+  }
+});
+
+app.post('/forums/posts/:postId/report', authenticateToken, (req, res) => {
+  // Stub: accept report
+  res.status(201).json({ ok: true });
+});
 
 // User registration endpoint
 app.post('/register', async (req, res) => {
@@ -159,7 +355,8 @@ app.post('/login', async (req, res) => {
       premiumStatus: user.premiumStatus,
       developerOverride: user.developerOverride // Add dev override to JWT
     };
-    const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '1h' });
+    tokenPayload.tokenVersion = TOKEN_VERSION;
+    const token = jwt.sign(tokenPayload, JWT_SECRET || 'dev-insecure-secret', { expiresIn: '1h' });
     
     res.json({ 
       token, 
@@ -177,7 +374,7 @@ app.post('/login', async (req, res) => {
 });
 
 // Middleware to verify JWT
-const authenticateToken = (req, res, next) => {
+function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
@@ -185,10 +382,13 @@ const authenticateToken = (req, res, next) => {
     return res.sendStatus(401); // if there isn't any token
   }
 
-  jwt.verify(token, JWT_SECRET, (err, decodedPayload) => { 
+  jwt.verify(token, JWT_SECRET || 'dev-insecure-secret', (err, decodedPayload) => { 
     if (err) {
       console.error('JWT verification error:', err);
       return res.sendStatus(403); // if token is no longer valid
+    }
+    if (decodedPayload && decodedPayload.tokenVersion && decodedPayload.tokenVersion !== TOKEN_VERSION) {
+      return res.status(401).json({ message: 'Token version expired. Please re-login.' });
     }
     // Find the full user object to get the most up-to-date status, including developerOverride
     const fullUser = users.find(u => u.id === decodedPayload.userId);
@@ -198,7 +398,7 @@ const authenticateToken = (req, res, next) => {
     req.user = fullUser; // Attach the full, current user object
     next(); // proceed to the protected route
   });
-};
+}
 
 // Endpoint to simulate upgrading a user to premium
 app.put('/users/:userId/upgrade-to-premium', authenticateToken, (req, res) => {

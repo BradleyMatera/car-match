@@ -5,6 +5,8 @@ import Home from './components/Home';
 import Events from './components/Events';
 import Profile from './components/Profile';
 import Settings from './components/Settings';
+import Forums from './components/Forums';
+import MessagesPage from './components/MessagesPage';
 // import EntryModal from './components/EntryModal'; // Replaced by SignUp component for /signup route
 import SignUp from './components/SignUp'; // Import the new SignUp component
 import Login from './components/Login'; 
@@ -29,6 +31,8 @@ function AppContent() {
             <ul>
               <li><Link to="/">Discover</Link></li>
               <li><Link to="/events">Events</Link></li>
+              <li><Link to="/forums">Forums</Link></li>
+              <li><Link to="/messages">Messages</Link></li>
               <li><Link to="/profile">Profile</Link></li>
               <li><Link to="/settings">Settings</Link></li>
               <li><button onClick={logout} className="logout-button">Logout</button></li>
@@ -48,6 +52,8 @@ function AppContent() {
             <>
               <Route path="/" element={<Layout><Home /></Layout>} />
               <Route path="/events" element={<Layout><Events /></Layout>} />
+              <Route path="/forums" element={<Layout><Forums /></Layout>} />
+              <Route path="/messages" element={<Layout><MessagesPage /></Layout>} />
               <Route path="/profile" element={<Layout><Profile /></Layout>} />
               <Route path="/settings" element={<Layout><Settings /></Layout>} />
               <Route path="/layout-example" element={<Layout><LayoutExample /></Layout>} />
