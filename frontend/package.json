@@ -26,7 +26,13 @@
     "deploy": "gh-pages -d build"
   },
   "devDependencies": {
-    "gh-pages": "^6.1.1"
+    "gh-pages": "^6.1.1",
+    "core-js-pure": "^3.38.1"
+  },
+  "overrides": {
+    "core-js-pure": "^3.38.1",
+    "webpack-dev-server": "^4.15.2",
+    "html-webpack-plugin": "^5.6.4"
   },
   "eslintConfig": {
     "extends": [
@@ -45,5 +51,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  }
+  ,
+  "engines": {
+    "node": ">=18 <22"
   }
 }
