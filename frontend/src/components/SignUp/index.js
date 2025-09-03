@@ -22,7 +22,7 @@ const SignUp = () => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const auth = useContext(AuthContext);
+  useContext(AuthContext); // auth was unused
 
   const handleChange = (e) => {
     const { name, value } = e.target;

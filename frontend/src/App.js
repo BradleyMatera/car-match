@@ -1,5 +1,5 @@
 import React, { useContext } from 'react'; // Removed useState, useEffect from here
-import { BrowserRouter as Router, Route, Routes, Navigate, Link } from 'react-router-dom';
+import { HashRouter as Router, Route, Routes, Navigate, Link } from 'react-router-dom';
 import './App.css';
 import Home from './components/Home';
 import Events from './components/Events';
@@ -15,14 +15,6 @@ import AuthContext, { AuthProvider } from './context/AuthContext';
 function AppContent() { 
   const { currentUser, logout, loadingAuth } = useContext(AuthContext);
   const isLoggedIn = !!currentUser; // Determine login status from currentUser
-
-  // The old handleModalSubmit might need to call context's login or a registration function
-  const handleModalSubmit = (formData) => {
-    // This was for the old EntryModal. If EntryModal is a registration form:
-    // authContext.register(formData) then authContext.login(formData.username, formData.password)
-    // For now, we'll assume Login component handles login.
-    console.log("EntryModal submitted, needs integration with AuthContext", formData);
-  };
 
   if (loadingAuth) {
     return <div>Loading application...</div>; // Or a proper spinner

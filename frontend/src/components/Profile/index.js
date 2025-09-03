@@ -36,7 +36,7 @@ const Profile = () => {
   const [messageError, setMessageError] = useState(null);
   const [newMessageText, setNewMessageText] = useState('');
   const [recipientUsername, setRecipientUsername] = useState('');
-  const [replyingTo, setReplyingTo] = useState(null);
+  // const [replyingTo, setReplyingTo] = useState(null); // replyingTo was unused
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const isEffectivelyPremium = currentUser?.premiumStatus || currentUser?.developerOverride;
@@ -128,7 +128,7 @@ const Profile = () => {
       } else {
         setNewMessageText('');
         setRecipientUsername('');
-        setReplyingTo(null);
+        // setReplyingTo(null); // replyingTo was unused
         alert('Message sent!');
         fetchMessagesForTab(activeMessageTab, messageFilters);
       }
@@ -189,7 +189,7 @@ const Profile = () => {
     setRecipientUsername(messageToReplyTo.senderUsername);
     const quotedText = `> ${messageToReplyTo.text.split('\n').join('\n> ')}\n\n`;
     setNewMessageText(quotedText);
-    setReplyingTo(messageToReplyTo);
+    // setReplyingTo(messageToReplyTo); // replyingTo was unused
     document.getElementById('newMessageTextarea')?.focus();
   };
 
