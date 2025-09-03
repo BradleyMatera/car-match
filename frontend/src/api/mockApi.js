@@ -1916,6 +1916,26 @@ const mockConversations = [
   },
 ];
 
+// --- Forums: Mock Data & API ---
+const mockForumCategories = [
+  { id: 'cat1', name: 'General Discussion', description: 'Talk about anything cars.' },
+  { id: 'cat2', name: 'Builds & Projects', description: 'Share your build logs and progress.' },
+  { id: 'cat3', name: 'Events & Meetups', description: 'Plan or recap community events.' },
+  { id: 'cat4', name: 'Tech & Tuning', description: 'Ask questions, share tips, tuning talk.' },
+];
+
+const mockForumThreads = [
+  { id: 't1', categoryId: 'cat1', title: 'Welcome to CarMatch Forums!', author: 'car_lover', createdAt: new Date().toISOString(), replies: 2, lastPostAt: new Date().toISOString() },
+  { id: 't2', categoryId: 'cat2', title: '1968 Mustang Fastback Restoration Log', author: 'car_lover', createdAt: new Date().toISOString(), replies: 5, lastPostAt: new Date().toISOString() },
+  { id: 't3', categoryId: 'cat3', title: 'Who is going to the Vintage Car Rally?', author: 'speedster99', createdAt: new Date().toISOString(), replies: 3, lastPostAt: new Date().toISOString() },
+];
+
+const mockForumPosts = [
+  { id: 'p1', threadId: 't1', author: 'car_lover', body: 'Stoked to have everyone here. Be kind and have fun!', createdAt: new Date().toISOString() },
+  { id: 'p2', threadId: 't1', author: 'classic_enthusiast', body: 'Glad to join! Looking forward to sharing my 911 rebuild.', createdAt: new Date().toISOString() },
+  { id: 'p3', threadId: 't2', author: 'car_lover', body: 'Today I welded in new floor pans. Pics soon!', createdAt: new Date().toISOString() },
+];
+
 const mockApi = {
   // Initializes mock data by storing it in localStorage if not already present
   initMockData: () => {
@@ -1929,6 +1949,14 @@ const mockApi = {
         conversations: mockConversations
       };
       localStorage.setItem('carMatchData', JSON.stringify(initialData));
+    }
+    if (!localStorage.getItem('carMatchForums')) {
+      const forumData = {
+        categories: mockForumCategories,
+        threads: mockForumThreads,
+        posts: mockForumPosts,
+      };
+      localStorage.setItem('carMatchForums', JSON.stringify(forumData));
     }
     return Promise.resolve();
   },
@@ -2030,7 +2058,46 @@ const mockApi = {
     localStorage.setItem('carMatchData', JSON.stringify(storedData));
     
     return Promise.resolve(comment);
-  }
+  },
+
+  // Forums: categories, threads, posts (all mock/localStorage)
+  getForumCategories: () => {
+    const data = JSON.parse(localStorage.getItem('carMatchForums') || '{}');
+    return Promise.resolve(data.categories || mockForumCategories);
+  },
+  getThreadsByCategory: (categoryId) => {
+    const data = JSON.parse(localStorage.getItem('carMatchForums') || '{}');
+    const threads = (data.threads || mockForumThreads).filter(t => t.categoryId === categoryId);
+    return Promise.resolve(threads);
+  },
+  getThreadById: (threadId) => {
+    const data = JSON.parse(localStorage.getItem('carMatchForums') || '{}');
+    const thread = (data.threads || mockForumThreads).find(t => t.id === threadId);
+    const posts = (data.posts || mockForumPosts).filter(p => p.threadId === threadId).sort((a,b)=> new Date(a.createdAt) - new Date(b.createdAt));
+    return Promise.resolve({ thread, posts });
+  },
+  createThread: ({ categoryId, title, author }) => {
+    const data = JSON.parse(localStorage.getItem('carMatchForums') || '{}');
+    const threads = data.threads || mockForumThreads;
+    const newThread = { id: 't' + Date.now(), categoryId, title, author, createdAt: new Date().toISOString(), replies: 0, lastPostAt: new Date().toISOString() };
+    threads.push(newThread);
+    data.threads = threads;
+    localStorage.setItem('carMatchForums', JSON.stringify(data));
+    return Promise.resolve(newThread);
+  },
+  addPostToThread: ({ threadId, author, body }) => {
+    const data = JSON.parse(localStorage.getItem('carMatchForums') || '{}');
+    const posts = data.posts || mockForumPosts;
+    const threads = data.threads || mockForumThreads;
+    const newPost = { id: 'p' + Date.now(), threadId, author, body, createdAt: new Date().toISOString() };
+    posts.push(newPost);
+    const thread = threads.find(t => t.id === threadId);
+    if (thread) { thread.replies = (thread.replies || 0) + 1; thread.lastPostAt = new Date().toISOString(); }
+    data.posts = posts;
+    data.threads = threads;
+    localStorage.setItem('carMatchForums', JSON.stringify(data));
+    return Promise.resolve(newPost);
+  },
 };
 
 // --- START: ADDITIONS FOR REAL API INTEGRATION ---

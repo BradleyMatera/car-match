@@ -21,6 +21,13 @@ All UI structure and technical planning is detailed in `designdoc.md`. The repo 
 
 <br>
 
+## Community Features
+
+- Events: browse upcoming community events and RSVP.
+- Profiles: build out your profile, interests, and garage.
+- Messaging: user-to-user messaging with premium gating and filters.
+- Forums: categories, threads, and replies (mock-backed) to foster discussion.
+
 ## Key Resources
 
 - [Live Repo](https://github.com/BradleyMatera/car-match)
