@@ -2034,8 +2034,8 @@ const mockApi = {
 };
 
 // --- START: ADDITIONS FOR REAL API INTEGRATION ---
-// Backend URL configurable via REACT_APP_API_BASE_URL (for production/Pages)
-const API_BASE_URL = (typeof process !== 'undefined' && process.env && process.env.REACT_APP_API_BASE_URL) || 'http://localhost:3001'; // Backend server
+// Backend URL configurable via REACT_APP_API_BASE_URL (for production/Pages). If not set, stay fully mock.
+const API_BASE_URL = (typeof process !== 'undefined' && process.env && process.env.REACT_APP_API_BASE_URL) || '';
 
 const realApi = {
   registerUser: async (userData) => {
@@ -2094,14 +2094,37 @@ const realApi = {
   }
 };
 
-const combinedApi = {
-  ...mockApi, // Spread original mock first
-  ...realApi, // Spread realApi second, so its functions override mock ones with the same name
-  // Choose events source based on env; mock by default for richer UI content
-  getEvents: () => {
-    const useReal = (typeof process !== 'undefined' && process.env && process.env.REACT_APP_USE_REAL_EVENTS) === 'true';
-    return useReal ? realApi.getEvents() : Promise.resolve(mockEvents);
-  },
+// Add mock equivalents for auth flows so the app can run without a backend
+mockApi.loginUser = async (username, password) => {
+  // naive mock auth: accept any non-empty user/pass, return first mock user with token
+  if (!username || !password) throw new Error('Username and password are required');
+  const baseUser = mockUsers[0] || { id: 'mock', username: 'mock', name: 'Mock User' };
+  return { 
+    token: 'mock-token',
+    userId: baseUser.id,
+    username: baseUser.username,
+    name: baseUser.name,
+    displayTag: baseUser.displayTag || 'Mock',
+    premiumStatus: !!baseUser.premiumStatus,
+    developerOverride: !!baseUser.developerOverride
+  };
 };
+
+mockApi.registerUser = async (userData) => {
+  const newUser = { id: String(Date.now()), role: 'user', ...userData };
+  mockUsers.push(newUser);
+  return { message: 'User registered successfully', userId: newUser.id };
+};
+
+const combinedApi = (() => {
+  const useRealBackend = !!API_BASE_URL;
+  const base = useRealBackend ? { ...mockApi, ...realApi } : { ...mockApi };
+  // Choose events source based on env; mock by default for richer UI content
+  base.getEvents = () => {
+    const useRealEvents = (typeof process !== 'undefined' && process.env && process.env.REACT_APP_USE_REAL_EVENTS) === 'true';
+    return useRealEvents && useRealBackend ? realApi.getEvents() : Promise.resolve(mockEvents);
+  };
+  return base;
+})();
 
 export default combinedApi;
