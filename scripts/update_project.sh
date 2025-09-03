@@ -23,8 +23,27 @@ FIELDS_JSON=$(gh project field-list "$NUMBER" --owner "$OWNER" --format json)
 get_field_id() { # name
   jq -r --arg n "$1" '.fields[] | select(.name == $n) | .id' <<< "$FIELDS_JSON"
 }
-get_status_option_id() { # option name
+get_status_option_id_exact() { # option name exact
   jq -r --arg n "$1" '.fields[] | select(.name == "Status") | .options[] | select(.name == $n) | .id' <<< "$FIELDS_JSON"
+}
+get_status_option_id_fuzzy() { # desired semantic bucket: TODO|INPROGRESS|DONE
+  local kind=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+  local all=$(jq -r '.fields[] | select(.name == "Status") | [.options[].name] | @json' <<< "$FIELDS_JSON")
+  # strip quotes and brackets
+  local opts; opts=$(jq -r '.[]' <<< "$all")
+  while read -r opt; do
+    local o=$(echo "$opt" | tr '[:upper:]' '[:lower:]')
+    case "$kind" in
+      todo)
+        if [[ "$o" =~ ^(to do|todo|not started|backlog|ready|up next)$ ]]; then echo "$opt"; return 0; fi ;;
+      inprogress)
+        if [[ "$o" =~ ^(in progress|doing|working|active|progress)$ ]]; then echo "$opt"; return 0; fi ;;
+      done)
+        if [[ "$o" =~ ^(done|completed|closed|finished|shipped|merged)$ ]]; then echo "$opt"; return 0; fi ;;
+    esac
+  done <<< "$opts"
+  # fallback: first option
+  echo "$opts" | head -n1
 }
 
 STATUS_FIELD_ID=$(get_field_id "Status" || true)
@@ -33,11 +52,24 @@ if [[ -z "${STATUS_FIELD_ID:-}" ]]; then
   exit 1
 fi
 
-set_status() { # itemId, statusName
+set_status() { # itemId, statusSemanticOrName
   local ITEM_ID="$1"; local STATUS_NAME="$2";
-  local OPT_ID; OPT_ID=$(get_status_option_id "$STATUS_NAME")
+  local OPT_ID
+  OPT_ID=$(get_status_option_id_exact "$STATUS_NAME")
   if [[ -z "$OPT_ID" || "$OPT_ID" == "null" ]]; then
-    echo "Status option '$STATUS_NAME' not found; skipping set_status for item $ITEM_ID" >&2
+    # try fuzzy mapping
+    local semantic
+    case "$(echo "$STATUS_NAME" | tr '[:upper:]' '[:lower:]')" in
+      todo|to\ do|not\ started|backlog|ready) semantic="todo";;
+      in\ progress|doing|working|active|progress) semantic="inprogress";;
+      done|completed|closed|finished|shipped|merged) semantic="done";;
+      *) semantic="todo";;
+    esac
+    local FUZZY_NAME; FUZZY_NAME=$(get_status_option_id_fuzzy "$semantic")
+    OPT_ID=$(get_status_option_id_exact "$FUZZY_NAME")
+  fi
+  if [[ -z "$OPT_ID" || "$OPT_ID" == "null" ]]; then
+    echo "Status option mapping failed for '$STATUS_NAME' on item $ITEM_ID" >&2
     return 0
   fi
   gh project item-edit --id "$ITEM_ID" --project-id "$PROJECT_ID" --field-id "$STATUS_FIELD_ID" --single-select-option-id "$OPT_ID" >/dev/null
@@ -64,6 +96,33 @@ add_issue_url "https://github.com/BradleyMatera/car-match/pull/41" "Done" || tru
 add_issue_url "https://github.com/BradleyMatera/car-match/issues/42" "Todo" || true
 add_issue_url "https://github.com/BradleyMatera/car-match/issues/43" "Todo" || true
 add_issue_url "https://github.com/BradleyMatera/car-match/issues/44" "Todo" || true
+
+# Align statuses for existing items by URL or title
+ITEMS_JSON=$(gh project item-list "$NUMBER" --owner "$OWNER" --format json)
+
+set_status_by_url() { # url, status
+  local URL="$1"; local STATUS="$2"
+  local ID
+  ID=$(jq -r --arg u "$URL" '.items[] | select(.content != null and .content.url == $u) | .id' <<< "$ITEMS_JSON")
+  if [[ -n "$ID" && "$ID" != "null" ]]; then set_status "$ID" "$STATUS"; fi
+}
+set_status_by_title() { # title, status
+  local TITLE="$1"; local STATUS="$2"
+  local ID
+  ID=$(jq -r --arg t "$TITLE" '.items[] | select(.type=="DRAFT_ISSUE" and .title == $t) | .id' <<< "$ITEMS_JSON")
+  if [[ -n "$ID" && "$ID" != "null" ]]; then set_status "$ID" "$STATUS"; fi
+}
+
+set_status_by_url "https://github.com/BradleyMatera/car-match/pull/41" "Done"
+set_status_by_url "https://github.com/BradleyMatera/car-match/issues/42" "Todo"
+set_status_by_url "https://github.com/BradleyMatera/car-match/issues/43" "Done"
+set_status_by_url "https://github.com/BradleyMatera/car-match/issues/44" "Done"
+
+set_status_by_title "Deploy backend to Render" "In Progress"
+set_status_by_title "Wire frontend to backend URL" "Todo"
+set_status_by_title "Enable real events in production" "Todo"
+set_status_by_title "Tighten CORS and secrets" "Done"
+set_status_by_title "Address Dependabot alerts" "Todo"
 
 # Draft tasks to fully "make it real"
 add_draft "Deploy backend to Render" $'Use render.yaml -> create web service in backend/. Set JWT_SECRET env. After deploy, copy URL.' "In Progress" || true
