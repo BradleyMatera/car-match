@@ -1916,6 +1916,26 @@ const mockConversations = [
   },
 ];
 
+// --- Forums: Mock Data & API ---
+const mockForumCategories = [
+  { id: 'cat1', name: 'General Discussion', description: 'Talk about anything cars.' },
+  { id: 'cat2', name: 'Builds & Projects', description: 'Share your build logs and progress.' },
+  { id: 'cat3', name: 'Events & Meetups', description: 'Plan or recap community events.' },
+  { id: 'cat4', name: 'Tech & Tuning', description: 'Ask questions, share tips, tuning talk.' },
+];
+
+const mockForumThreads = [
+  { id: 't1', categoryId: 'cat1', title: 'Welcome to CarMatch Forums!', author: 'car_lover', createdAt: new Date().toISOString(), replies: 2, lastPostAt: new Date().toISOString() },
+  { id: 't2', categoryId: 'cat2', title: '1968 Mustang Fastback Restoration Log', author: 'car_lover', createdAt: new Date().toISOString(), replies: 5, lastPostAt: new Date().toISOString() },
+  { id: 't3', categoryId: 'cat3', title: 'Who is going to the Vintage Car Rally?', author: 'speedster99', createdAt: new Date().toISOString(), replies: 3, lastPostAt: new Date().toISOString() },
+];
+
+const mockForumPosts = [
+  { id: 'p1', threadId: 't1', author: 'car_lover', body: 'Stoked to have everyone here. Be kind and have fun!', createdAt: new Date().toISOString() },
+  { id: 'p2', threadId: 't1', author: 'classic_enthusiast', body: 'Glad to join! Looking forward to sharing my 911 rebuild.', createdAt: new Date().toISOString() },
+  { id: 'p3', threadId: 't2', author: 'car_lover', body: 'Today I welded in new floor pans. Pics soon!', createdAt: new Date().toISOString() },
+];
+
 const mockApi = {
   // Initializes mock data by storing it in localStorage if not already present
   initMockData: () => {
@@ -1930,6 +1950,14 @@ const mockApi = {
       };
       localStorage.setItem('carMatchData', JSON.stringify(initialData));
     }
+    if (!localStorage.getItem('carMatchForums')) {
+      const forumData = {
+        categories: mockForumCategories,
+        threads: mockForumThreads,
+        posts: mockForumPosts,
+      };
+      localStorage.setItem('carMatchForums', JSON.stringify(forumData));
+    }
     return Promise.resolve();
   },
 
@@ -1937,7 +1965,15 @@ const mockApi = {
   login: (credentials) => Promise.resolve({ token: 'mock-token', user: mockUsers[0] }),
   register: (userData) => Promise.resolve({ ...userData, id: Date.now() }),
   getCurrentUser: () => {
-    // Returns the first user if available, otherwise rejects the promise
+    // Prefer real auth state from localStorage when available
+    try {
+      const stored = localStorage.getItem('currentUser');
+      if (stored) {
+        return Promise.resolve(JSON.parse(stored));
+      }
+    } catch (e) {
+      // ignore and fall back to mock
+    }
     if (!mockUsers.length) {
       return Promise.reject('No user logged in');
     }
@@ -1946,9 +1982,13 @@ const mockApi = {
 
   // Manages conversation and messaging functionality
   getConversations: () => Promise.resolve(mockConversations),
-  getMessages: (conversationId) => 
-    // Filters messages by conversation ID
-    Promise.resolve(mockMessages.filter(m => m.conversationId === conversationId)),
+  getMessages: (conversationId) => {
+    // If a conversationId is provided, filter by it; otherwise return all
+    if (typeof conversationId === 'number') {
+      return Promise.resolve(mockMessages.filter(m => m.conversationId === conversationId));
+    }
+    return Promise.resolve([...mockMessages].sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp)));
+  },
   sendMessage: (message) => {
     // Creates and stores a new message with a unique ID and timestamp
     const newMessage = {
@@ -1964,10 +2004,23 @@ const mockApi = {
   // Manages event-related operations
   getEvents: () => Promise.resolve(mockEvents), // This will now serve the full mockEvents list
   createEvent: (event) => Promise.resolve({ ...event, id: Date.now() }),
-  rsvpToEvent: (eventId) => {
-    // Increments RSVP count for the specified event
+  rsvpToEvent: (userIdOrEventId, maybeEventId) => {
+    // Support both (eventId) and (userId, eventId) signatures
+    const eventId = typeof maybeEventId === 'number' ? maybeEventId : userIdOrEventId;
     const event = mockEvents.find(e => e.id === eventId);
     if (event) event.rsvpCount = (event.rsvpCount || 0) + 1;
+    const storedData = JSON.parse(localStorage.getItem('carMatchData') || '{}');
+    storedData.events = mockEvents;
+    localStorage.setItem('carMatchData', JSON.stringify(storedData));
+    return Promise.resolve(event);
+  },
+  cancelRsvp: (userIdOrEventId, maybeEventId) => {
+    const eventId = typeof maybeEventId === 'number' ? maybeEventId : userIdOrEventId;
+    const event = mockEvents.find(e => e.id === eventId);
+    if (event) event.rsvpCount = Math.max(0, (event.rsvpCount || 0) - 1);
+    const storedData = JSON.parse(localStorage.getItem('carMatchData') || '{}');
+    storedData.events = mockEvents;
+    localStorage.setItem('carMatchData', JSON.stringify(storedData));
     return Promise.resolve(event);
   },
   getUserEvents: (userId) => Promise.resolve(mockEvents.filter(e => e.organizerId === userId)),
@@ -2005,11 +2058,164 @@ const mockApi = {
     localStorage.setItem('carMatchData', JSON.stringify(storedData));
     
     return Promise.resolve(comment);
-  }
+  },
+
+  // Forums: categories, threads, posts (all mock/localStorage)
+  getForumCategories: () => {
+    const data = JSON.parse(localStorage.getItem('carMatchForums') || '{}');
+    return Promise.resolve(data.categories || mockForumCategories);
+  },
+  getThreadsByCategory: (categoryId) => {
+    const data = JSON.parse(localStorage.getItem('carMatchForums') || '{}');
+    const threads = (data.threads || mockForumThreads).filter(t => t.categoryId === categoryId);
+    return Promise.resolve(threads);
+  },
+  getThreadById: (threadId) => {
+    const data = JSON.parse(localStorage.getItem('carMatchForums') || '{}');
+    const thread = (data.threads || mockForumThreads).find(t => t.id === threadId);
+    const posts = (data.posts || mockForumPosts).filter(p => p.threadId === threadId).sort((a,b)=> new Date(a.createdAt) - new Date(b.createdAt));
+    return Promise.resolve({ thread, posts });
+  },
+  createThread: ({ categoryId, title, author }) => {
+    const data = JSON.parse(localStorage.getItem('carMatchForums') || '{}');
+    const threads = data.threads || mockForumThreads;
+    const newThread = { id: 't' + Date.now(), categoryId, title, author, createdAt: new Date().toISOString(), replies: 0, lastPostAt: new Date().toISOString() };
+    threads.push(newThread);
+    data.threads = threads;
+    localStorage.setItem('carMatchForums', JSON.stringify(data));
+    return Promise.resolve(newThread);
+  },
+  addPostToThread: ({ threadId, author, body }) => {
+    const data = JSON.parse(localStorage.getItem('carMatchForums') || '{}');
+    const posts = data.posts || mockForumPosts;
+    const threads = data.threads || mockForumThreads;
+    const newPost = { id: 'p' + Date.now(), threadId, author, body, createdAt: new Date().toISOString() };
+    posts.push(newPost);
+    const thread = threads.find(t => t.id === threadId);
+    if (thread) { thread.replies = (thread.replies || 0) + 1; thread.lastPostAt = new Date().toISOString(); }
+    data.posts = posts;
+    data.threads = threads;
+    localStorage.setItem('carMatchForums', JSON.stringify(data));
+    return Promise.resolve(newPost);
+  },
+  // Fetch messages (mock) honoring category and simple filters
+  fetchMessages: async (token, category = 'inbox', filters = {}) => {
+    // Determine current user from localStorage or fall back to first mock user
+    let user = null;
+    try { const stored = localStorage.getItem('currentUser'); if (stored) user = JSON.parse(stored); } catch {}
+    if (!user && mockUsers.length) user = mockUsers[0];
+    if (!user) return [];
+
+    // Base: messages involving the user
+    let list = mockMessages.filter(m => m.recipientId === user.id || m.senderId === user.id).map(m => ({ ...m }));
+
+    // Categories
+    switch ((category || 'inbox').toLowerCase()) {
+      case 'unread':
+        list = list.filter(m => m.recipientId === user.id && !m.read && !m.systemMessage);
+        break;
+      case 'sent':
+        list = list.filter(m => m.senderId === user.id && !m.systemMessage);
+        break;
+      case 'system':
+        list = list.filter(m => m.systemMessage === true && m.recipientId === user.id);
+        break;
+      case 'locked':
+        list = list.filter(m => m.recipientId === user.id && m.isLocked);
+        break;
+      case 'inbox':
+      default:
+        // keep all
+        break;
+    }
+
+    // Filters (accept both gender/filterGender and radius/filterRadius)
+    const gender = filters.filterGender || filters.gender;
+    if (gender) {
+      list = list.filter(msg => {
+        const sender = mockUsers.find(u => u.id === msg.senderId);
+        return sender ? (sender.gender === gender) : true;
+      });
+    }
+    const radius = parseInt(filters.filterRadius || filters.radius || 0, 10);
+    if (radius && user.location && user.location.geoCoordinates) {
+      const { lat: uLat, lon: uLon } = user.location.geoCoordinates;
+      const dist = (aLat, aLon, bLat, bLon) => {
+        const R = 3959; const dLat = (bLat - aLat) * Math.PI/180; const dLon = (bLon - aLon) * Math.PI/180;
+        const t = Math.sin(dLat/2)**2 + Math.cos(aLat*Math.PI/180) * Math.cos(bLat*Math.PI/180) * Math.sin(dLon/2)**2;
+        return 2 * R * Math.atan2(Math.sqrt(t), Math.sqrt(1-t));
+      };
+      list = list.filter(msg => {
+        const sender = mockUsers.find(u => u.id === msg.senderId);
+        const sl = sender && sender.location && sender.location.geoCoordinates;
+        if (!sl) return true; // if missing, don't exclude
+        return dist(uLat, uLon, sl.lat, sl.lon) <= radius;
+      });
+    }
+
+    // Sort
+    if ((filters.sortBy || '').toLowerCase() === 'proximity' && user.location && user.location.geoCoordinates) {
+      const { lat: uLat, lon: uLon } = user.location.geoCoordinates;
+      const dist = (aLat, aLon, bLat, bLon) => {
+        const R = 3959; const dLat = (bLat - aLat) * Math.PI/180; const dLon = (bLon - aLon) * Math.PI/180;
+        const t = Math.sin(dLat/2)**2 + Math.cos(aLat*Math.PI/180) * Math.cos(bLat*Math.PI/180) * Math.sin(dLon/2)**2;
+        return 2 * R * Math.atan2(Math.sqrt(t), Math.sqrt(1-t));
+      };
+      list.sort((a,b) => {
+        const sa = mockUsers.find(u => u.id === a.senderId);
+        const sb = mockUsers.find(u => u.id === b.senderId);
+        const da = sa && sa.location && sa.location.geoCoordinates ? dist(uLat,uLon,sa.location.geoCoordinates.lat,sa.location.geoCoordinates.lon) : Infinity;
+        const db = sb && sb.location && sb.location.geoCoordinates ? dist(uLat,uLon,sb.location.geoCoordinates.lat,sb.location.geoCoordinates.lon) : Infinity;
+        return da - db;
+      });
+    } else {
+      list.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+    }
+
+    // When viewing, mark unread incoming as read (mock behavior similar to backend)
+    list.forEach(m => {
+      if (m.recipientId === user.id && !m.read && !m.systemMessage) {
+        const idx = mockMessages.findIndex(mm => mm.id === m.id);
+        if (idx !== -1) mockMessages[idx].read = true;
+        m.read = true;
+      }
+    });
+    return list;
+  },
+  pinThread: (threadId, pinned) => {
+    const data = JSON.parse(localStorage.getItem('carMatchForums') || '{}');
+    const threads = data.threads || mockForumThreads;
+    const t = threads.find(x => x.id === threadId);
+    if (t) t.pinned = !!pinned;
+    data.threads = threads;
+    localStorage.setItem('carMatchForums', JSON.stringify(data));
+    return Promise.resolve({ ok: true, thread: t });
+  },
+  lockThread: (threadId, locked) => {
+    const data = JSON.parse(localStorage.getItem('carMatchForums') || '{}');
+    const threads = data.threads || mockForumThreads;
+    const t = threads.find(x => x.id === threadId);
+    if (t) t.locked = !!locked;
+    data.threads = threads;
+    localStorage.setItem('carMatchForums', JSON.stringify(data));
+    return Promise.resolve({ ok: true, thread: t });
+  },
+  deleteThread: (threadId) => {
+    const data = JSON.parse(localStorage.getItem('carMatchForums') || '{}');
+    let threads = data.threads || mockForumThreads;
+    threads = threads.filter(x => x.id !== threadId);
+    data.threads = threads;
+    // remove posts
+    data.posts = (data.posts || mockForumPosts).filter(p => p.threadId !== threadId);
+    localStorage.setItem('carMatchForums', JSON.stringify(data));
+    return Promise.resolve({ ok: true });
+  },
+  reportPost: (postId, reason) => Promise.resolve({ ok: true }),
 };
 
 // --- START: ADDITIONS FOR REAL API INTEGRATION ---
-const API_BASE_URL = 'http://localhost:3001'; // Backend server
+// Backend URL configurable via REACT_APP_API_BASE_URL (for production/Pages). If not set, stay fully mock.
+const API_BASE_URL = (typeof process !== 'undefined' && process.env && process.env.REACT_APP_API_BASE_URL) || '';
 
 const realApi = {
   registerUser: async (userData) => {
@@ -2051,11 +2257,11 @@ const realApi = {
     if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
     return response.json();
   },
-  // getEvents: async () => { // This is the realApi.getEvents
-  //   const response = await fetch(`${API_BASE_URL}/events`);
-  //   if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
-  //   return response.json();
-  // },
+  getEvents: async () => { // This is the realApi.getEvents
+    const response = await fetch(`${API_BASE_URL}/events`);
+    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
+    return response.json();
+  },
   rsvpToEvent: async (token, eventId) => {
     const response = await fetch(`${API_BASE_URL}/events/${eventId}/rsvp`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } });
     if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
@@ -2065,14 +2271,95 @@ const realApi = {
     const response = await fetch(`${API_BASE_URL}/my-rsvps`, { method: 'GET', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } });
     if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
     return response.json();
-  }
+  },
+
+  // Forums (real)
+  getForumCategories: async () => {
+    const response = await fetch(`${API_BASE_URL}/forums/categories`);
+    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
+    return response.json();
+  },
+  getThreadsByCategory: async (categoryId, { search = '', page = 1, pageSize = 20 } = {}) => {
+    const qs = new URLSearchParams({ search, page: String(page), pageSize: String(pageSize) }).toString();
+    const response = await fetch(`${API_BASE_URL}/forums/categories/${encodeURIComponent(categoryId)}/threads?${qs}`);
+    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
+    return response.json(); // { items, page, pageSize, total }
+  },
+  getThreadById: async (threadId) => {
+    const response = await fetch(`${API_BASE_URL}/forums/threads/${encodeURIComponent(threadId)}`);
+    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
+    return response.json(); // { thread, posts }
+  },
+  createThread: async (token, { categoryId, title }) => {
+    const response = await fetch(`${API_BASE_URL}/forums/threads`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ categoryId, title }) });
+    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
+    return response.json();
+  },
+  addPostToThread: async (token, { threadId, body }) => {
+    const response = await fetch(`${API_BASE_URL}/forums/threads/${encodeURIComponent(threadId)}/posts`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ body }) });
+    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
+    return response.json();
+  },
+  pinThread: async (token, threadId, pinned) => {
+    const response = await fetch(`${API_BASE_URL}/forums/threads/${encodeURIComponent(threadId)}/pin`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ pinned }) });
+    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
+    return response.json();
+  },
+  lockThread: async (token, threadId, locked) => {
+    const response = await fetch(`${API_BASE_URL}/forums/threads/${encodeURIComponent(threadId)}/lock`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ locked }) });
+    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
+    return response.json();
+  },
+  deleteThread: async (token, threadId) => {
+    const response = await fetch(`${API_BASE_URL}/forums/threads/${encodeURIComponent(threadId)}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
+    return response.json();
+  },
+  reportPost: async (token, postId, reason) => {
+    const response = await fetch(`${API_BASE_URL}/forums/posts/${encodeURIComponent(postId)}/report`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ reason }) });
+    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.message || `HTTP error! status: ${response.status}`); }
+    return response.json();
+  },
 };
 
-const combinedApi = {
-  ...mockApi, // Spread original mock first
-  ...realApi, // Spread realApi second, so its functions override mock ones with the same name
-  // Explicitly ensure mockApi.getEvents is used for the demo if needed, overriding realApi.getEvents
-  getEvents: () => Promise.resolve(mockEvents), // Ensures mock events are always returned for /events page
+// Add mock equivalents for auth flows so the app can run without a backend
+mockApi.loginUser = async (username, password) => {
+  // naive mock auth: accept any non-empty user/pass, return first mock user with token
+  if (!username || !password) throw new Error('Username and password are required');
+  const baseUser = mockUsers[0] || { id: 'mock', username: 'mock', name: 'Mock User' };
+  return { 
+    token: 'mock-token',
+    userId: baseUser.id,
+    username: baseUser.username,
+    name: baseUser.name,
+    displayTag: baseUser.displayTag || 'Mock',
+    premiumStatus: !!baseUser.premiumStatus,
+    developerOverride: !!baseUser.developerOverride
+  };
 };
+
+mockApi.registerUser = async (userData) => {
+  const newUser = { id: String(Date.now()), role: 'user', ...userData };
+  mockUsers.push(newUser);
+  return { message: 'User registered successfully', userId: newUser.id };
+};
+
+const combinedApi = (() => {
+  const useRealBackend = !!API_BASE_URL;
+  const base = useRealBackend ? { ...mockApi, ...realApi } : { ...mockApi };
+  // Choose events source based on env; mock by default for richer UI content
+  base.getEvents = () => {
+    const useRealEvents = (typeof process !== 'undefined' && process.env && process.env.REACT_APP_USE_REAL_EVENTS) === 'true';
+    return useRealEvents && useRealBackend ? realApi.getEvents() : Promise.resolve(mockEvents);
+  };
+  // Normalize fetchMessages filters for both real and mock
+  base.fetchMessages = (token, category, filters = {}) => {
+    const normalized = { ...filters };
+    if (filters.gender && !filters.filterGender) normalized.filterGender = filters.gender;
+    if (filters.radius && !filters.filterRadius) normalized.filterRadius = filters.radius;
+    return useRealBackend ? realApi.fetchMessages(token, category, normalized) : mockApi.fetchMessages(token, category, normalized);
+  };
+  return base;
+})();
 
 export default combinedApi;

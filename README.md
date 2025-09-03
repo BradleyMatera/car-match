@@ -21,9 +21,22 @@ All UI structure and technical planning is detailed in `designdoc.md`. The repo 
 
 <br>
 
+## Community Features
+
+- Events: browse upcoming community events and RSVP.
+- Profiles: build out your profile, interests, and garage.
+- Messaging: user-to-user messaging with premium gating and filters.
+- Forums: categories, threads, and replies to foster discussion (mock-backed by default; persists when backend MongoDB is configured).
+
 ## Key Resources
 
 - [Live Repo](https://github.com/BradleyMatera/car-match)
+- Live Site: https://bradleymatera.github.io/car-match/
 - [Design Doc](https://github.com/BradleyMatera/car-match/blob/main/car-match-mvp/designdoc.md)
 - [Research Notes](./docs/research)
 - [Design Log](https://github.com/BradleyMatera/car-match/blob/main/docs/designs/README.md)
+ - [Deployment Guide](./docs/DEPLOYMENT.md)
+
+Deploy Backend with Render
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)

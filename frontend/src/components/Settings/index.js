@@ -1,8 +1,6 @@
 import React from 'react';
 import Section from '../Section';
-import Container from '../Container';
 import Grid from '../Grid';
-import Spacing from '../Spacing';
 import './Settings.css';
 
 const Settings = () => {

@@ -14,9 +14,8 @@ Each week I will summarize my milestone activity and progress by writing a stand
 ⚙️ Overview - What I worked on this past week  
 🌵 Challenges - What problems did I have & how I'm addressing them  
 🏆 Accomplishments - What is something I "leveled up" on this week  
-🔮 Next Steps - What I plan to prioritize and do next  
-
-<br>
+🔮 Next Steps - What I plan to prioritize and do next
+_______
 
 ### Week 1
 
@@ -62,6 +61,27 @@ Next, I’m going to work on letting users create their own events. The RSVP sys
 
 ### Week 4
 
-My final stand up...
+⚙️ **Overview:**  
+This week was all about connecting it all for real. I finished deploying the backend and got it live at [https://3587-18-212-211-242.ngrok-free.app](https://3587-18-212-211-242.ngrok-free.app). I also finalized all the dev environment logic and can now boot up the local frontend at `localhost:3000` and have it sync with the backend running on port `3001`. Auth is fully working in dev—login works, session stays, user object returns, and backend calls show up in terminal. I cleaned out all ESLint warnings, confirmed everything builds cleanly, and even started scripting the prod-ready build flow.
+
+🌵 **Challenges:**  
+Frontend on GitHub Pages is still broken ([example](https://bradleymatera.github.io/car-match/login))—I haven’t pushed the fix yet. I’ve confirmed that it's a URL pathing issue related to routing with React Router not being properly set up for GH Pages. I also ran into backend env sync issues where the wrong mock data was being called, but I fixed it by making sure I installed the **`prod` branch** clean and reset everything. I had to re-clone and reconfigure a few times. ngrok session kept changing URLs too, so I’m still manually updating that link in frontend for now.
+
+🏆 **Accomplishments:**  
+I officially have three working environments:  
+- **Dev:** `localhost:3000` to `localhost:3001`, fully working  
+- **Test:** any local IP (like `10.0.0.192:3000`) verified and syncing  
+- **Prod:** backend live via ngrok, frontend pending fix
+
+I fixed all ESLint warnings in core components (`App.js`, `Profile`, `Settings`, `SignUp`, etc.), polished the message system logic, and verified login/signup is fully stable. The backend now logs every user action to the console. Also added environment variable handling in `server.js`, structured routing, and verified the DB connection logs correctly.
+
+🔮 **Next Steps:**  
+This weekend I’m squashing bugs and preparing to push the fixed frontend to GitHub Pages. Main priorities are:
+- Syncing the frontend `prod` branch and verifying the correct `homepage` URL is set
+- Finalizing env variable flow and making the ngrok endpoint easier to swap
+- Testing across devices
+- Making sure event creation and RSVP workflows are stable for real users
+
+After that I’ll polish the UI interactions and make sure nothing feels dead. This phase is all bug-fixing, cleanup, and deployment prep. Then I’ll probably look at setting up a backup deployment with Vercel or Netlify just in case GitHub Pages stays stubborn.
 
 <br>
