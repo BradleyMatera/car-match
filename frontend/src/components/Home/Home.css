@@ -1,0 +1,82 @@
+.homepage-container {
+  width: 100%;
+}
+
+/* Text utilities */
+.text-light {
+  color: var(--text-light);
+}
+
+/* Hero section styling */
+.hero {
+  position: relative;
+  background: linear-gradient(135deg, var(--primary-color) 0%, #0d5a8a 100%);
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('https://source.unsplash.com/random/1600x900?car');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.2;
+  z-index: 0;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* Section styling */
+.section-title {
+  position: relative;
+  display: inline-block;
+  margin-bottom: var(--space-xl);
+}
+
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50px;
+  height: 3px;
+  background-color: var(--secondary-color);
+}
+
+/* Card animations */
+.card {
+  overflow: hidden;
+}
+
+.card .card-img {
+  transition: transform 0.5s ease;
+}
+
+.card:hover .card-img {
+  transform: scale(1.05);
+}
+
+/* Button styling */
+.btn {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .hero-content h1 {
+    font-size: 2rem;
+  }
+  
+  .hero-content p {
+    font-size: 1rem;
+  }
+}

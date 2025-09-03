@@ -1,0 +1,89 @@
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80vh; /* Adjust as needed */
+  padding: var(--space-lg);
+}
+
+.login-form {
+  background: white;
+  padding: var(--space-xl);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  width: 100%;
+  max-width: 400px;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.login-form h2 {
+  text-align: center;
+  color: var(--primary-color);
+  margin-bottom: var(--space-lg);
+  font-size: 1.8rem;
+}
+
+.form-group {
+  margin-bottom: var(--space-md);
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: var(--space-xs);
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.form-group input {
+  width: 100%;
+  padding: var(--space-md);
+  border: 1px solid var(--border-color, #ccc);
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-group input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(21, 116, 187, 0.2); /* Using primary color with alpha */
+  outline: none;
+}
+
+.login-form button[type="submit"] {
+  width: 100%;
+  padding: var(--space-md);
+  background-color: var(--primary-color);
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.login-form button[type="submit"]:hover {
+  background-color: #0d5a8a; /* Darker primary */
+  transform: translateY(-2px);
+}
+
+.login-form button[type="submit"]:disabled {
+  background-color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.error-text {
+  color: var(--accent-color, #ff6b6b); /* Ensure accent-color is defined in global.css or here */
+  background-color: rgba(255, 107, 107, 0.1);
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-md);
+  text-align: center;
+  border: 1px solid var(--accent-color, #ff6b6b);
+}
+
+/* Re-using fadeIn animation from Profile.css, ensure it's globally available or defined here */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

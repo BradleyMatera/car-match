@@ -1,0 +1,236 @@
+/* App Layout */
+.App {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Navigation */
+.top-nav {
+  position: sticky;
+  top: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md) var(--space-xl);
+  background: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  z-index: 1000;
+  transition: box-shadow 0.3s ease;
+}
+
+.top-nav:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  transition: transform 0.3s ease;
+}
+
+.logo:hover {
+  transform: scale(1.05);
+}
+
+nav ul {
+  display: flex;
+  gap: var(--space-xl);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+nav a {
+  color: var(--text-dark);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s, transform 0.2s;
+  display: inline-block;
+}
+
+nav a:hover {
+  color: var(--primary-color);
+  transform: translateY(-2px);
+}
+
+nav.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Hero Section */
+.hero {
+  position: relative;
+  height: 600px;
+  background: var(--primary-color);
+  color: white;
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--space-3xl);
+}
+
+.hero-content {
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+  padding: var(--space-xl);
+}
+
+.hero h1 {
+  font-size: 3.5rem;
+  margin-bottom: var(--space-lg);
+  animation: fadeIn 1s ease-out;
+}
+
+.hero-text {
+  font-size: 1.25rem;
+  margin-bottom: var(--space-xl);
+  line-height: 1.8;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  animation: fadeIn 1.5s ease-out;
+}
+
+/* Buttons */
+.cta-button {
+  display: inline-block;
+  background-color: var(--secondary-color);
+  color: var(--text-light);
+  padding: var(--space-md) var(--space-xl);
+  font-size: 1.25rem;
+  border-radius: var(--radius-full);
+  text-decoration: none;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  animation: fadeIn 2s ease-out;
+}
+
+.cta-button:hover {
+  transform: scale(1.05) translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.cta-button:active {
+  transform: scale(0.98) translateY(0);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.logout-button {
+  background-color: transparent;
+  color: var(--text-dark);
+  border: 1px solid var(--text-dark);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.logout-button:hover {
+  background-color: var(--text-dark);
+  color: white;
+}
+
+/* Benefits Section */
+.benefits {
+  padding: var(--space-3xl) 0;
+  background-color: var(--background-light);
+}
+
+.benefits h2 {
+  text-align: center;
+  margin-bottom: var(--space-2xl);
+  font-size: 2.5rem;
+  color: var(--primary-color);
+}
+
+.benefits-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--space-xl);
+  max-width: var(--container-xl);
+  margin: 0 auto;
+  padding: 0 var(--space-md);
+}
+
+.benefit-card {
+  background: white;
+  padding: var(--space-xl);
+  border-radius: var(--radius-md);
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.benefit-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.benefit-icon {
+  font-size: 2.5rem;
+  margin-bottom: var(--space-md);
+  color: var(--primary-color);
+}
+
+.benefit-card h3 {
+  color: var(--primary-color);
+  margin-bottom: var(--space-md);
+  font-size: 1.5rem;
+}
+
+.benefit-card p {
+  color: var(--text-dark);
+  line-height: 1.6;
+}
+
+/* Modal */
+.modal-active {
+  overflow: hidden;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .top-nav {
+    padding: var(--space-sm) var(--space-md);
+  }
+  
+  nav ul {
+    gap: var(--space-md);
+  }
+  
+  .hero {
+    height: 500px;
+  }
+  
+  .hero h1 {
+    font-size: 2.5rem;
+  }
+  
+  .hero-text {
+    font-size: 1rem;
+  }
+  
+  .cta-button {
+    padding: var(--space-sm) var(--space-lg);
+    font-size: 1rem;
+  }
+  
+  .benefits-grid {
+    gap: var(--space-md);
+  }
+}

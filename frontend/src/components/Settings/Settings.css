@@ -1,0 +1,183 @@
+.settings-container {
+  max-width: var(--container-lg);
+  margin: var(--space-xl) auto;
+  padding: var(--space-xl);
+}
+
+.settings-header {
+  text-align: center;
+  margin-bottom: var(--space-xl);
+}
+
+.settings-header h1 {
+  font-size: 2.5rem;
+  color: var(--primary-color);
+  margin-bottom: var(--space-md);
+  position: relative;
+  display: inline-block;
+}
+
+.settings-header h1::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50px;
+  height: 3px;
+  background-color: var(--secondary-color);
+}
+
+.settings-section {
+  margin-bottom: var(--space-lg);
+  padding: var(--space-lg);
+  border: 1px solid #E6E6E6;
+  border-radius: var(--radius-md);
+  background: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.settings-section:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.settings-section h2 {
+  color: var(--primary-color);
+  margin-bottom: var(--space-md);
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.settings-section h2 span {
+  margin-left: var(--space-xs);
+}
+
+.settings-section p {
+  color: var(--text-dark);
+  opacity: 0.8;
+  margin-bottom: var(--space-sm);
+}
+
+.settings-form label {
+  display: block;
+  margin-bottom: var(--space-md);
+  color: var(--text-dark);
+  font-weight: 500;
+}
+
+.settings-form input {
+  width: 100%;
+  padding: var(--space-sm);
+  margin-top: var(--space-xs);
+  border: 1px solid #E6E6E6;
+  border-radius: var(--radius-md);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.settings-form input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(21, 116, 187, 0.2);
+  outline: none;
+}
+
+.settings-actions {
+  display: flex;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.save-button {
+  background: var(--secondary-color);
+  color: var(--text-light);
+  padding: var(--space-sm) var(--space-lg);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.save-button:hover {
+  background-color: #6b9900;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.password-button,
+.mfa-button {
+  background: var(--background-light);
+  color: var(--text-dark);
+  padding: var(--space-sm) var(--space-lg);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.password-button:hover,
+.mfa-button:hover {
+  background-color: #e6e6e6;
+  transform: translateY(-2px);
+}
+
+.danger-zone {
+  border-color: var(--error-color);
+  background: #FFF0F0;
+}
+
+.delete-button {
+  background: var(--error-color);
+  color: var(--text-light);
+  padding: var(--space-sm) var(--space-lg);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+}
+
+.delete-button:hover {
+  background-color: #cc0000;
+  transform: translateY(-2px);
+}
+
+.warning {
+  color: var(--error-color);
+  margin-top: var(--space-sm);
+  font-size: 0.9rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .settings-container {
+    padding: var(--space-md);
+  }
+  
+  .settings-section {
+    padding: var(--space-md);
+  }
+  
+  .settings-actions {
+    flex-direction: column;
+  }
+  
+  .settings-actions button {
+    width: 100%;
+  }
+}
+
+/* Animation for new sections */
+.settings-section {
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}

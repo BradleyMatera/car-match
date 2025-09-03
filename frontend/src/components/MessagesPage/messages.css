@@ -1,0 +1,9 @@
+.messages-page{max-width:960px;margin:0 auto}
+.tabs{display:flex;gap:8px;margin:12px 0}
+.tabs button.active{font-weight:700}
+.filters{display:flex;gap:8px;align-items:center;margin:8px 0}
+.list .row{border:1px solid #eee;border-radius:8px;padding:8px;margin:6px 0}
+.list .row.locked{opacity:.7}
+.compose{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.compose textarea{min-height:100px}
+.error-text{color:#b00020}
