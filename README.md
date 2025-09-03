@@ -1,25 +1,12 @@
-# Welcome! ...🚀 
+# Car Match — Community MVP 🚗❤️
 
-This repository holds my Project & Portfolio IV work for May 2025. It documents my research, design planning, and weekly development progress for the Car Match MVP — a dating platform concept for car enthusiasts. This is a frontend-first build focused on clean UI, responsive layout, and mock interaction logic. It’s built to behave like a real app and structured for easy backend integration down the line.
-
-<br>
-
-# Project & Portfolio  
-### Bradley Matera  
-
-![Degree Program](https://img.shields.io/badge/degree-web%20development-blue.svg)
-
-[Log](./docs/log.md)
-
-<br>
+Live, working MVP for a car‑enthusiast community: profiles, events, forums, and messaging. Frontend runs on GitHub Pages; backend runs on Node/Express and can be deployed on Render with optional MongoDB persistence for forums.
 
 ## Overview
 
-The Car Match MVP was started from scratch on May 4th. I focused first on building a working prototype using HTML, CSS, and vanilla JavaScript. The frontend includes simulated login gating, user profile layout, events with RSVP logic, and a modular dashboard. State is managed with localStorage and mock JSON data to simulate real app behavior.
+Frontend‑first build with mock interaction logic and seamless backend integration. Supports real auth/messages/events via backend; forums persist when a MongoDB URI is configured.
 
-All UI structure and technical planning is detailed in `designdoc.md`. The repo is structured using feature branch workflow with dev → stage → main merges, and I’m using GitHub Projects, Issues, and Milestones to organize weekly deliverables.
-
-<br>
+Owner: Bradley Matera — [Log](./docs/log.md)
 
 ## Community Features
 
@@ -30,13 +17,34 @@ All UI structure and technical planning is detailed in `designdoc.md`. The repo 
 
 ## Key Resources
 
-- [Live Repo](https://github.com/BradleyMatera/car-match)
-- Live Site: https://bradleymatera.github.io/car-match/
-- [Design Doc](https://github.com/BradleyMatera/car-match/blob/main/car-match-mvp/designdoc.md)
-- [Research Notes](./docs/research)
-- [Design Log](https://github.com/BradleyMatera/car-match/blob/main/docs/designs/README.md)
- - [Deployment Guide](./docs/DEPLOYMENT.md)
+- Live App: https://bradleymatera.github.io/car-match/
+- Repo: https://github.com/BradleyMatera/car-match
+- Deployment: [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)
+- API: [docs/API.md](./docs/API.md)
+- Troubleshooting: [docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)
+- Designs: [docs/designs](./docs/designs)
 
-Deploy Backend with Render
+## Quick Start (Local)
+
+Prereqs: Node 18 (use `.nvmrc`).
+
+1) Backend
+   - `cd backend && npm i && node server.js`
+   - Optional env: `JWT_SECRET=dev TOKEN_VERSION=1 MONGODB_URI=<mongo>`
+2) Frontend
+   - `cd frontend && npm i && npm start`
+
+## Env & Toggles
+- Frontend repo variables (Pages builds):
+  - `REACT_APP_API_BASE_URL` — backend URL (e.g., Render)
+  - `REACT_APP_USE_REAL_EVENTS=true` — use backend events
+- Backend (Render):
+  - `JWT_SECRET` (required in prod)
+  - `TOKEN_VERSION=1`
+  - `ALLOWED_ORIGINS= https://bradleymatera.github.io,http://localhost:3000`
+  - `MONGODB_URI` (optional; enables forum persistence)
+
+## Deploy Backend (Render)
+[Docs](./docs/DEPLOYMENT.md) — or click:
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)

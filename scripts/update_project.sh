@@ -19,6 +19,8 @@ PROJECT_ID=$(jq -r '.id' <<< "$PROJECT_JSON")
 echo "Project ID: $PROJECT_ID"
 
 FIELDS_JSON=$(gh project field-list "$NUMBER" --owner "$OWNER" --format json)
+# Initial items snapshot
+ITEMS_JSON=$(gh project item-list "$NUMBER" --owner "$OWNER" --format json)
 
 get_field_id() { # name
   jq -r --arg n "$1" '.fields[] | select(.name == $n) | .id' <<< "$FIELDS_JSON"
@@ -75,29 +77,51 @@ set_status() { # itemId, statusSemanticOrName
   gh project item-edit --id "$ITEM_ID" --project-id "$PROJECT_ID" --field-id "$STATUS_FIELD_ID" --single-select-option-id "$OPT_ID" >/dev/null
 }
 
+find_item_id_by_url() { # url
+  local URL="$1"; jq -r --arg u "$URL" '.items[] | select(.content != null and .content.url == $u) | .id' <<< "$ITEMS_JSON" | head -n1
+}
+
 add_issue_url() { # url, status
   local URL="$1"; local STATUS="$2";
-  echo "Adding $URL ..."
-  local ITEM_JSON; ITEM_JSON=$(gh project item-add "$NUMBER" --owner "$OWNER" --url "$URL" --format json)
-  local ITEM_ID; ITEM_ID=$(jq -r '.id' <<< "$ITEM_JSON")
-  set_status "$ITEM_ID" "$STATUS"
+  local EXISTING_ID; EXISTING_ID=$(find_item_id_by_url "$URL")
+  if [[ -n "$EXISTING_ID" && "$EXISTING_ID" != "null" ]]; then
+    echo "Present: $URL ($EXISTING_ID) -> set status '$STATUS'"
+    set_status "$EXISTING_ID" "$STATUS"
+  else
+    echo "Adding $URL ..."
+    local ITEM_JSON; ITEM_JSON=$(gh project item-add "$NUMBER" --owner "$OWNER" --url "$URL" --format json)
+    local ITEM_ID; ITEM_ID=$(jq -r '.id' <<< "$ITEM_JSON")
+    set_status "$ITEM_ID" "$STATUS"
+    ITEMS_JSON=$(gh project item-list "$NUMBER" --owner "$OWNER" --format json)
+  fi
+}
+
+find_item_id_by_title() { # title
+  local TITLE="$1"; jq -r --arg t "$TITLE" '.items[] | select(.type=="DRAFT_ISSUE" and .title == $t) | .id' <<< "$ITEMS_JSON" | head -n1
 }
 
 add_draft() { # title, body, status
   local TITLE="$1"; local BODY="$2"; local STATUS="$3";
-  echo "Creating draft: $TITLE ..."
-  local ITEM_JSON; ITEM_JSON=$(gh project item-create "$NUMBER" --owner "$OWNER" --title "$TITLE" --body "$BODY" --format json)
-  local ITEM_ID; ITEM_ID=$(jq -r '.id' <<< "$ITEM_JSON")
-  set_status "$ITEM_ID" "$STATUS"
+  local EXISTING_ID; EXISTING_ID=$(find_item_id_by_title "$TITLE")
+  if [[ -n "$EXISTING_ID" && "$EXISTING_ID" != "null" ]]; then
+    echo "Present draft: $TITLE ($EXISTING_ID) -> set status '$STATUS'"
+    set_status "$EXISTING_ID" "$STATUS"
+  else
+    echo "Creating draft: $TITLE ..."
+    local ITEM_JSON; ITEM_JSON=$(gh project item-create "$NUMBER" --owner "$OWNER" --title "$TITLE" --body "$BODY" --format json)
+    local ITEM_ID; ITEM_ID=$(jq -r '.id' <<< "$ITEM_JSON")
+    set_status "$ITEM_ID" "$STATUS"
+    ITEMS_JSON=$(gh project item-list "$NUMBER" --owner "$OWNER" --format json)
+  fi
 }
 
 # Add recent PR and issue
 add_issue_url "https://github.com/BradleyMatera/car-match/pull/41" "Done" || true
-add_issue_url "https://github.com/BradleyMatera/car-match/issues/42" "Todo" || true
+add_issue_url "https://github.com/BradleyMatera/car-match/issues/42" "In progress" || true
 add_issue_url "https://github.com/BradleyMatera/car-match/issues/43" "Todo" || true
 add_issue_url "https://github.com/BradleyMatera/car-match/issues/44" "Todo" || true
 
-# Align statuses for existing items by URL or title
+# Align statuses for existing items by URL or title (refresh snapshot)
 ITEMS_JSON=$(gh project item-list "$NUMBER" --owner "$OWNER" --format json)
 
 set_status_by_url() { # url, status
@@ -114,15 +138,15 @@ set_status_by_title() { # title, status
 }
 
 set_status_by_url "https://github.com/BradleyMatera/car-match/pull/41" "Done"
-set_status_by_url "https://github.com/BradleyMatera/car-match/issues/42" "Todo"
+set_status_by_url "https://github.com/BradleyMatera/car-match/issues/42" "In progress"
 set_status_by_url "https://github.com/BradleyMatera/car-match/issues/43" "Done"
 set_status_by_url "https://github.com/BradleyMatera/car-match/issues/44" "Done"
 
 set_status_by_title "Deploy backend to Render" "In Progress"
-set_status_by_title "Wire frontend to backend URL" "Todo"
-set_status_by_title "Enable real events in production" "Todo"
+set_status_by_title "Wire frontend to backend URL" "Ready"
+set_status_by_title "Enable real events in production" "Done"
 set_status_by_title "Tighten CORS and secrets" "Done"
-set_status_by_title "Address Dependabot alerts" "Todo"
+set_status_by_title "Address Dependabot alerts" "In progress"
 
 # Draft tasks to fully "make it real"
 add_draft "Deploy backend to Render" $'Use render.yaml -> create web service in backend/. Set JWT_SECRET env. After deploy, copy URL.' "In Progress" || true
