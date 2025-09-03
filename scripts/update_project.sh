@@ -62,6 +62,8 @@ add_draft() { # title, body, status
 # Add recent PR and issue
 add_issue_url "https://github.com/BradleyMatera/car-match/pull/41" "Done" || true
 add_issue_url "https://github.com/BradleyMatera/car-match/issues/42" "Todo" || true
+add_issue_url "https://github.com/BradleyMatera/car-match/issues/43" "Todo" || true
+add_issue_url "https://github.com/BradleyMatera/car-match/issues/44" "Todo" || true
 
 # Draft tasks to fully "make it real"
 add_draft "Deploy backend to Render" $'Use render.yaml -> create web service in backend/. Set JWT_SECRET env. After deploy, copy URL.' "In Progress" || true
@@ -71,4 +73,3 @@ add_draft "Tighten CORS and secrets" $'Lock CORS to Pages origin; move JWT_SECRE
 add_draft "Address Dependabot alerts" $'Track in issue #42. Perform safe upgrades; keep build green.' "Todo" || true
 
 echo "Project updates complete."
-

@@ -26,7 +26,7 @@ All UI structure and technical planning is detailed in `designdoc.md`. The repo 
 - Events: browse upcoming community events and RSVP.
 - Profiles: build out your profile, interests, and garage.
 - Messaging: user-to-user messaging with premium gating and filters.
-- Forums: categories, threads, and replies (mock-backed) to foster discussion.
+- Forums: categories, threads, and replies to foster discussion (mock-backed by default; persists when backend MongoDB is configured).
 
 ## Key Resources
 
