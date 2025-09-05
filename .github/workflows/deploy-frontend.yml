@@ -34,6 +34,17 @@ jobs:
           REACT_APP_USE_REAL_EVENTS: ${{ vars.REACT_APP_USE_REAL_EVENTS }}
         run: npm run build
 
+      - name: Check backend health (warn only)
+        if: ${{ vars.REACT_APP_API_BASE_URL != '' }}
+        run: |
+          API="${{ vars.REACT_APP_API_BASE_URL }}"
+          echo "Pinging $API/healthz"
+          RESP=$(curl -sS -m 10 "$API/healthz" || true)
+          echo "::notice::/healthz response: $RESP"
+          if ! echo "$RESP" | grep -q '"connected":true'; then
+            echo "::warning::Backend /healthz did not report connected=true. Proceeding with deploy."
+          fi
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
