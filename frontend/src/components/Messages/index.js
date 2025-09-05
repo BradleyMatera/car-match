@@ -7,23 +7,19 @@ const Messages = ({ userId }) => {
   const [newMessage, setNewMessage] = useState('');
 
   useEffect(() => {
-    mockApi.initMockData();
     loadMessages();
   }, []);
 
   const loadMessages = async () => {
-    const messages = await mockApi.getMessages();
-    setMessages(messages);
+    // Legacy component not used; show empty list
+    setMessages([]);
   };
 
   const handleSend = async (e) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
 
-    await mockApi.sendMessage({
-      senderId: userId,
-      text: newMessage
-    });
+    // Requires auth; this placeholder UI is not wired in routing
     
     setNewMessage('');
     await loadMessages();

@@ -3,6 +3,7 @@ import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import './Events.css';
 import mockApi from '../../api/mockApi';
+import AuthContext from '../../context/AuthContext';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
@@ -13,6 +14,7 @@ const Events = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [newComment, setNewComment] = useState('');
   const [rsvpStatus, setRsvpStatus] = useState({});
+  const { currentUser, token } = React.useContext(AuthContext);
 
   useEffect(() => {
     const loadEvents = async () => {
@@ -23,6 +25,13 @@ const Events = () => {
           start: new Date(event.date),
           end: new Date(event.date)
         })));
+        // Preload RSVP status if logged in
+        if (token) {
+          const myRsvps = await mockApi.getMyRsvps(token);
+          const map = {};
+          myRsvps.forEach(r => { map[r.eventId] = true; });
+          setRsvpStatus(map);
+        }
       } catch (error) {
         console.error('Error loading events:', error);
       }
@@ -32,27 +41,17 @@ const Events = () => {
 
   const handleRsvpToggle = async (eventId) => {
     try {
-      const user = await mockApi.getCurrentUser().catch(() => {
-        alert('Please login to RSVP');
-        throw new Error('Not authenticated');
-      });
-      setRsvpStatus(prevStatus => {
-        const isRsvped = prevStatus[eventId];
-        const updatedStatus = { ...prevStatus, [eventId]: !isRsvped };
-        if (selectedEvent && selectedEvent.id === eventId) {
-          setSelectedEvent({
-            ...selectedEvent,
-            rsvpCount: isRsvped ? selectedEvent.rsvpCount - 1 : selectedEvent.rsvpCount + 1
-          });
-        }
-        // Update mock API with RSVP status
-        if (!isRsvped) {
-          mockApi.rsvpToEvent(user.id, eventId);
-        } else {
-          mockApi.cancelRsvp(user.id, eventId);
-        }
-        return updatedStatus;
-      });
+      if (!token || !currentUser) { alert('Please login to RSVP'); return; }
+      if (rsvpStatus[eventId]) return; // already RSVPed; no cancel supported yet
+      await mockApi.rsvpToEvent(token, eventId);
+      setRsvpStatus(prev => ({ ...prev, [eventId]: true }));
+      // Refresh events to update counts
+      const refreshed = await mockApi.getEvents();
+      setEvents(refreshed.map(ev => ({ ...ev, start: new Date(ev.date), end: new Date(ev.date) })));
+      if (selectedEvent && selectedEvent.id === eventId) {
+        const updated = refreshed.find(e => e.id === eventId);
+        if (updated) setSelectedEvent(updated);
+      }
     } catch (error) {
       console.error('Error handling RSVP:', error);
     }
@@ -176,75 +175,36 @@ const Events = () => {
               )}
             </div>
             
-            <h3>Schedule</h3>
-            <div className="schedule-grid">
-              {selectedEvent.schedule.map((item, index) => (
-                <div key={index} className="schedule-item">
-                  <span className="schedule-time">{item.time}</span>
-                  <span className="schedule-activity">{item.activity}</span>
-                </div>
-              ))}
-            </div>
-
-            <section className="comments-section">
-              <h3>Discussion ({selectedEvent?.comments?.length || 0})</h3>
-              <div className="comment-form">
-                <textarea 
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Add your comment..."
-                  className="comment-input"
-                  rows="3"
-                />
-                <button 
-                  className="comment-button"
-                  onClick={async () => {
-                    if (!newComment.trim()) return;
-                    
-                    try {
-                      const user = await mockApi.getCurrentUser().catch(() => {
-                        alert('Please login to comment');
-                        throw new Error('Not authenticated');
-                      });
-                      const comment = {
-                        id: Date.now(),
-                        user: user.name,
-                        text: newComment,
-                        timestamp: new Date().toISOString()
-                      };
-                      
-                      // Update local state
-                      const updatedEvent = {
-                        ...selectedEvent,
-                        comments: [...(selectedEvent.comments || []), comment]
-                      };
-                      setSelectedEvent(updatedEvent);
-                      setNewComment('');
-                      
-                      // Update mock API
-                      await mockApi.addComment(selectedEvent.id, comment);
-                    } catch (error) {
-                      console.error('Error posting comment:', error);
-                    }
-                  }}
-                >
-                  Post Comment
-                </button>
-              </div>
-              <div className="comments-list">
-                {(selectedEvent?.comments || []).map(comment => (
-                  <div key={comment.id} className="comment-card">
-                    <div className="comment-header">
-                      <span className="comment-user">{comment.user}</span>
-                      <span className="comment-date">
-                        {new Date(comment.timestamp).toLocaleDateString()}
-                      </span>
+            {Array.isArray(selectedEvent.schedule) && selectedEvent.schedule.length > 0 && (
+              <>
+                <h3>Schedule</h3>
+                <div className="schedule-grid">
+                  {selectedEvent.schedule.map((item, index) => (
+                    <div key={index} className="schedule-item">
+                      <span className="schedule-time">{item.time}</span>
+                      <span className="schedule-activity">{item.activity}</span>
                     </div>
-                    <p className="comment-text">{comment.text}</p>
-                  </div>
-                ))}
-              </div>
-            </section>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {Array.isArray(selectedEvent.comments) && selectedEvent.comments.length > 0 && (
+              <section className="comments-section">
+                <h3>Discussion ({selectedEvent?.comments?.length || 0})</h3>
+                <div className="comments-list">
+                  {(selectedEvent?.comments || []).map(comment => (
+                    <div key={comment.id} className="comment-card">
+                      <div className="comment-header">
+                        <span className="comment-user">{comment.user}</span>
+                        <span className="comment-date">{new Date(comment.timestamp).toLocaleDateString()}</span>
+                      </div>
+                      <p className="comment-text">{comment.text}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
         )}
       </div>
