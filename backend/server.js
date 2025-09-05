@@ -64,6 +64,20 @@ app.get('/', (req, res) => {
   res.send('Hello from the Car Match backend!');
 });
 
+// Simple health and readiness endpoint for Render/monitoring
+app.get('/healthz', (req, res) => {
+  const readyState = mongoose.connection?.readyState ?? 0; // 0=disconnected,1=connected,2=connecting,3=disconnecting
+  res.json({
+    status: 'ok',
+    env: process.env.NODE_ENV || 'development',
+    db: {
+      configured: Boolean(process.env.MONGODB_URI),
+      readyState,
+      connected: readyState === 1,
+    },
+  });
+});
+
 // Seed a few demo users and basic events in-memory so the app "feels real"
 const seedDemoData = () => {
   if (users.length > 0) return; // already seeded

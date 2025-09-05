@@ -23,6 +23,7 @@ Owner: Bradley Matera — [Log](./docs/log.md)
 - API: [docs/API.md](./docs/API.md)
 - Troubleshooting: [docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)
 - Designs: [docs/designs](./docs/designs)
+ - Health: `GET /healthz` on the backend returns service/db readiness
 
 ## Quick Start (Local)
 
@@ -42,7 +43,9 @@ Prereqs: Node 18 (use `.nvmrc`).
   - `JWT_SECRET` (required in prod)
   - `TOKEN_VERSION=1`
   - `ALLOWED_ORIGINS= https://bradleymatera.github.io,http://localhost:3000`
-  - `MONGODB_URI` (optional; enables forum persistence)
+  - `MONGODB_URI` (optional; enables forum persistence). Example:
+    `mongodb+srv://USERNAME:PASSWORD@car-match.ehzw3qa.mongodb.net/car-match?retryWrites=true&w=majority&appName=car-match`.
+    Remember to URL‑encode passwords (`!` becomes `%21`).
 
 ## Deploy Backend (Render)
 [Docs](./docs/DEPLOYMENT.md) — or click:

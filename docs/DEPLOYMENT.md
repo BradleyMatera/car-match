@@ -18,12 +18,14 @@ Backend (Render example)
    - Root directory: `backend`
    - Build command: `npm ci`
    - Start command: `npm start`
+   - Health Check Path: `/healthz`
    - Health Check Path: `/`
    - Environment:
      - `JWT_SECRET` (required; strong secret string)
      - `TOKEN_VERSION` (optional; default `1`. Bump to force re-login after rotations)
      - `ALLOWED_ORIGINS` (comma-separated list of allowed origins; e.g., `https://bradleymatera.github.io,https://bradleymatera.github.io/car-match`)
-     - `MONGODB_URI` (e.g., `mongodb+srv://.../car-match` for forums persistence)
+     - `MONGODB_URI` (e.g., `mongodb+srv://USERNAME:PASSWORD@car-match.ehzw3qa.mongodb.net/car-match?retryWrites=true&w=majority&appName=car-match`)
+       - IMPORTANT: URL‑encode special characters in the password (e.g., `!` -> `%21`).
 3) Deploy. Note the generated URL, e.g., `https://car-match-h2gw.onrender.com`.
 4) In your GitHub repo, set `REACT_APP_API_BASE_URL` variable to this URL to wire the frontend.
 
@@ -38,3 +40,4 @@ Notes
 - CORS is restricted via `ALLOWED_ORIGINS`. For local dev, localhost is allowed outside production.
 - The backend is in-memory; use a persistent DB for durability.
   - Forums now persist using MongoDB when `MONGODB_URI` is provided; otherwise they run in-memory.
+ - Health endpoint: `GET /healthz` returns `{ db: { connected: true|false } }`.
