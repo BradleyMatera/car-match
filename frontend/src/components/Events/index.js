@@ -25,6 +25,7 @@ const Events = () => {
   const [editData, setEditData] = useState({ name: '', description: '', date: '', location: '' });
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editCommentText, setEditCommentText] = useState('');
+  const [forumPreview, setForumPreview] = useState([]);
   const routerLocation = useLocation();
 
   useEffect(() => {
@@ -62,6 +63,18 @@ const Events = () => {
       } catch {}
     })();
   }, [routerLocation.search]);
+
+  // Load a small preview of the forum thread (latest 3 posts)
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!selectedEvent || !selectedEvent.threadId) { setForumPreview([]); return; }
+        const data = await mockApi.getThreadById(selectedEvent.threadId);
+        const posts = Array.isArray(data?.posts) ? data.posts.slice(-3) : [];
+        setForumPreview(posts);
+      } catch { setForumPreview([]); }
+    })();
+  }, [selectedEvent, selectedEvent?.threadId]);
 
   const refreshEvents = async () => {
     const refreshed = await mockApi.getEvents();
@@ -215,49 +228,27 @@ const Events = () => {
                 <h3>About this Event</h3>
                 <p>{selectedEvent.description || 'Details coming soon.'}</p>
                 {/* Comments */}
-                {Array.isArray(selectedEvent.comments) && selectedEvent.comments.length > 0 && (
-                  <section className="comments-section">
-                    <h3>Discussion ({selectedEvent?.comments?.length || 0})</h3>
-                    <div className="comments-list">
-                      {(selectedEvent?.comments || []).map(comment => {
-                        const canEdit = currentUser && (comment.user === currentUser.username || canModerate || String(comment.userId) === String(currentUser.id));
-                        const isEditing = editingCommentId === comment.id;
-                        return (
-                          <div key={comment.id} className="comment-card">
+                {/* Forum Discussion preview only (no event comments duplicate) */}
+                {selectedEvent.threadId && (
+                  <section className="comments-section" style={{marginTop:16}}>
+                    <h3>Forum Discussion (latest)</h3>
+                    {forumPreview.length === 0 ? (
+                      <p>No forum replies yet. Be the first to discuss in Forums.</p>
+                    ) : (
+                      <div className="comments-list">
+                        {forumPreview.map(fp => (
+                          <div key={fp._id || fp.id} className="comment-card">
                             <div className="comment-header">
-                              <span className="comment-user">{comment.user}</span>
-                              <span className="comment-date">{new Date(comment.timestamp).toLocaleDateString()}</span>
+                              <span className="comment-user">{fp.authorUsername || 'user'}</span>
+                              <span className="comment-date">{new Date(fp.createdAt).toLocaleDateString()}</span>
                             </div>
-                            {!isEditing ? (
-                              <p className="comment-text">{comment.text}</p>
-                            ) : (
-                              <textarea value={editCommentText} onChange={e=>setEditCommentText(e.target.value)} rows={3} />
-                            )}
-                            {canEdit && (
-                              <div style={{display:'flex',gap:8,marginTop:6}}>
-                                {!isEditing ? (
-                                  <button className="btn btn-small" onClick={()=>{ setEditingCommentId(comment.id); setEditCommentText(comment.text); }}>Edit</button>
-                                ) : (
-                                  <>
-                                    <button className="btn btn-small btn-primary" onClick={async ()=>{ try { await mockApi.editEventComment(token, selectedEvent.id, comment.id, editCommentText.trim()); setEditingCommentId(null); setEditCommentText(''); await refreshEvents(); const ev = await mockApi.getEvent(selectedEvent.id); setSelectedEvent(ev); } catch(e){ alert(e.message||'Failed to save'); } }}>Save</button>
-                                    <button className="btn btn-small" onClick={()=>{ setEditingCommentId(null); setEditCommentText(''); }}>Cancel</button>
-                                  </>
-                                )}
-                                <button className="btn btn-small btn-warning" onClick={async ()=>{ if (!window.confirm('Delete this comment?')) return; try { await mockApi.deleteEventComment(token, selectedEvent.id, comment.id); await refreshEvents(); const ev = await mockApi.getEvent(selectedEvent.id); setSelectedEvent(ev); } catch(e){ alert(e.message||'Failed to delete'); } }}>Delete</button>
-                              </div>
-                            )}
+                            <p className="comment-text">{fp.body}</p>
                           </div>
-                        );
-                      })}
-                    </div>
-                  </section>
-                )}
-                {token && (
-                  <section className="comments-section">
-                    <h3>Add a comment</h3>
-                    <div className="comment-form">
-                      <textarea value={newComment} onChange={(e)=>setNewComment(e.target.value)} placeholder="Add your comment..." className="comment-input" rows={3} />
-                      <button className="comment-button" onClick={async ()=>{ if (!newComment.trim()) return; try { await mockApi.addEventComment(token, selectedEvent.id, newComment.trim()); const ev = await mockApi.getEvent(selectedEvent.id); setSelectedEvent(ev); setNewComment(''); } catch(e){ alert(e.message||'Failed to add comment'); } }}>Post Comment</button>
+                        ))}
+                      </div>
+                    )}
+                    <div style={{marginTop:8}}>
+                      <Link to={`/forums?open=${selectedEvent.threadId}`} className="btn">Open Full Thread</Link>
                     </div>
                   </section>
                 )}
