@@ -19,9 +19,10 @@ const EventSchema = new mongoose.Schema({
   schedule: [ScheduleItemSchema],
   testimonials: [{}],
   comments: [CommentSchema],
-  createdByUserId: Number,
+  createdByUserId: { type: mongoose.Schema.Types.Mixed },
   createdByUsername: String,
   rsvps: [mongoose.Schema.Types.Mixed], // user ids (string/number)
+  threadId: { type: mongoose.Schema.Types.ObjectId, ref: 'ForumThread' },
 }, { timestamps: true });
 
 module.exports = mongoose.models.Event || mongoose.model('Event', EventSchema);

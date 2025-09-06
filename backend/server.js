@@ -770,7 +770,7 @@ app.get('/messages/inbox', authenticateToken, async (req, res) => {
 app.post('/events', authenticateToken, async (req, res) => {
   try {
     const { name, description, date, location } = req.body;
-    const createdByUserId = req.user.userId; // userId from JWT payload
+    const createdByUserId = req.user.id || req.user.userId; // support mongo _id
     const createdByUsername = req.user.username;
 
     if (!name || !description || !date || !location) {
@@ -788,12 +788,18 @@ app.post('/events', authenticateToken, async (req, res) => {
       rsvps: [] // To store userIds who RSVPed
     };
     events.push(newEvent);
+    let saved = newEvent;
     if (mongoose.connection.readyState === 1 && EventModel) {
-      await EventModel.create(newEvent);
+      saved = await EventModel.create(newEvent);
+      // Auto-create forum thread for event under Events & Meetups (cat3)
+      try {
+        const thread = await ForumThread.create({ categoryId: 'cat3', title: name, authorId: createdByUserId, authorUsername: createdByUsername });
+        await EventModel.updateOne({ _id: saved._id }, { $set: { threadId: thread._id } });
+        saved.threadId = thread._id;
+      } catch (e) { console.warn('Auto thread create failed:', e.message); }
     }
 
-    console.log('Events:', events); // For debugging
-    res.status(201).json({ message: 'Event created successfully', data: newEvent });
+    res.status(201).json({ message: 'Event created successfully', data: saved });
   } catch (error) {
     console.error('Create event error:', error);
     res.status(500).json({ message: 'Error creating event' });
@@ -804,7 +810,7 @@ app.post('/events', authenticateToken, async (req, res) => {
 app.post('/events/:eventId/rsvp', authenticateToken, async (req, res) => {
   try {
     const eventId = parseInt(req.params.eventId, 10);
-    const rsvpUserId = req.user.userId; // userId from JWT payload
+    const rsvpUserId = req.user.id || req.user.userId; // userId from JWT payload
     const rsvpUsername = req.user.username;
 
     let event = events.find(e => e.id === eventId);
@@ -844,6 +850,32 @@ app.post('/events/:eventId/rsvp', authenticateToken, async (req, res) => {
   }
 });
 
+// Cancel RSVP (toggle off)
+app.delete('/events/:eventId/rsvp', authenticateToken, async (req, res) => {
+  try {
+    const eventId = parseInt(req.params.eventId, 10);
+    const rsvpUserId = req.user.id || req.user.userId;
+    let event = events.find(e => e.id === eventId);
+    if (!event && mongoose.connection.readyState === 1 && EventModel) {
+      event = await EventModel.findOne({ id: eventId }).lean();
+    }
+    if (!event) return res.status(404).json({ message: 'Event not found' });
+    if (Array.isArray(event.rsvps)) {
+      const idx = event.rsvps.findIndex(v => String(v) === String(rsvpUserId));
+      if (idx > -1) event.rsvps.splice(idx, 1);
+    }
+    if (mongoose.connection.readyState === 1 && EventModel) {
+      await EventModel.updateOne({ id: eventId }, { $pull: { rsvps: rsvpUserId } });
+    }
+    const i2 = rsvps.findIndex(r => r.eventId === eventId && String(r.userId) === String(rsvpUserId));
+    if (i2 > -1) rsvps.splice(i2, 1);
+    res.json({ message: 'RSVP removed', eventId });
+  } catch (error) {
+    console.error('Cancel RSVP error:', error);
+    res.status(500).json({ message: 'Error cancelling RSVP' });
+  }
+});
+
 // Get all events endpoint
 app.get('/events', async (req, res) => {
   try {
@@ -865,6 +897,7 @@ app.get('/events', async (req, res) => {
         rsvpCount: Array.isArray(d.rsvps) ? d.rsvps.length : (d.rsvpCount || 0),
         createdByUserId: d.createdByUserId,
         createdByUsername: d.createdByUsername,
+        threadId: d.threadId,
       }));
       return res.json(items);
     }
@@ -878,7 +911,7 @@ app.get('/events', async (req, res) => {
 // Get user's RSVPs endpoint
 app.get('/my-rsvps', authenticateToken, async (req, res) => {
   try {
-    const rsvpUserId = req.user.userId;
+    const rsvpUserId = req.user.id || req.user.userId;
     let userRsvps = rsvps.filter(rsvp => rsvp.userId === rsvpUserId);
     if (mongoose.connection.readyState === 1 && EventModel) {
       const docs = await EventModel.find({ rsvps: rsvpUserId }, { id: 1 }).lean();

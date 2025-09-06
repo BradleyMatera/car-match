@@ -12,6 +12,7 @@ import Section from '../Section';
 const Events = () => {
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [newComment, setNewComment] = useState('');
   const [rsvpStatus, setRsvpStatus] = useState({});
   const { currentUser, token } = React.useContext(AuthContext);
 
@@ -41,9 +42,13 @@ const Events = () => {
   const handleRsvpToggle = async (eventId) => {
     try {
       if (!token || !currentUser) { alert('Please login to RSVP'); return; }
-      if (rsvpStatus[eventId]) return; // already RSVPed; no cancel supported yet
-      await mockApi.rsvpToEvent(token, eventId);
-      setRsvpStatus(prev => ({ ...prev, [eventId]: true }));
+      if (rsvpStatus[eventId]) {
+        await mockApi.cancelRsvp(token, eventId);
+        setRsvpStatus(prev => ({ ...prev, [eventId]: false }));
+      } else {
+        await mockApi.rsvpToEvent(token, eventId);
+        setRsvpStatus(prev => ({ ...prev, [eventId]: true }));
+      }
       // Refresh events to update counts
       const refreshed = await mockApi.getEvents();
       setEvents(refreshed.map(ev => ({ ...ev, start: new Date(ev.date), end: new Date(ev.date) })));
@@ -201,6 +206,35 @@ const Events = () => {
                       <p className="comment-text">{comment.text}</p>
                     </div>
                   ))}
+                </div>
+              </section>
+            )}
+            {token && (
+              <section className="comments-section">
+                <h3>Add a comment</h3>
+                <div className="comment-form">
+                  <textarea 
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="Add your comment..."
+                    className="comment-input"
+                    rows="3"
+                  />
+                  <button 
+                    className="comment-button"
+                    onClick={async () => {
+                      if (!newComment.trim()) return;
+                      try {
+                        await mockApi.addEventComment(token, selectedEvent.id, newComment.trim());
+                        const refreshed = await mockApi.getEvents();
+                        const updated = refreshed.find(e => e.id === selectedEvent.id);
+                        if (updated) setSelectedEvent(updated);
+                        setNewComment('');
+                      } catch (e) { alert(e.message || 'Failed to add comment'); }
+                    }}
+                  >
+                    Post Comment
+                  </button>
                 </div>
               </section>
             )}

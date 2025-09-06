@@ -98,6 +98,8 @@ const api = {
 
   rsvpToEvent: async (token, eventId) =>
     ok(await fetch(`${API_BASE_URL}/events/${encodeURIComponent(eventId)}/rsvp`, { method: 'POST', headers: { ...jsonHeader, ...authHeader(token) } })).then(json),
+  cancelRsvp: async (token, eventId) =>
+    ok(await fetch(`${API_BASE_URL}/events/${encodeURIComponent(eventId)}/rsvp`, { method: 'DELETE', headers: { ...authHeader(token) } })).then(json),
 
   getMyRsvps: async (token) =>
     ok(await fetch(`${API_BASE_URL}/my-rsvps`, { headers: { ...jsonHeader, ...authHeader(token) } })).then(json),
@@ -151,8 +153,10 @@ const api = {
   // --- Legacy shims (no mocks) ---
   initMockData: () => Promise.resolve(),
   getMessages: async () => [],
-  cancelRsvp: async () => { throw new Error('Cancel RSVP not supported yet'); },
-  addComment: async () => { /* Not persisted on backend yet */ return { ok: true }; },
+  addEventComment: async (token, eventId, text) =>
+    ok(await fetch(`${API_BASE_URL}/events/${encodeURIComponent(eventId)}/comments`, { method: 'POST', headers: { ...jsonHeader, ...authHeader(token) }, body: JSON.stringify({ text }) })).then(json),
+  editEventComment: async (token, eventId, commentId, text) =>
+    ok(await fetch(`${API_BASE_URL}/events/${encodeURIComponent(eventId)}/comments/${encodeURIComponent(commentId)}`, { method: 'PUT', headers: { ...jsonHeader, ...authHeader(token) }, body: JSON.stringify({ text }) })).then(json),
   updateProfile: async (data) => {
     // Persist locally so the UI reflects changes; real backend endpoint not implemented yet
     const cur = getStoredUser() || {};
