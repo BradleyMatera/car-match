@@ -15,7 +15,7 @@
   background-size: cover;
   background-position: center;
   filter: grayscale(100%);
-  opacity: 0.18; /* faded but visible */
+  opacity: 1; /* faded but visible */
   transition: background-image 1s ease-in-out;
   pointer-events: none;
 }
