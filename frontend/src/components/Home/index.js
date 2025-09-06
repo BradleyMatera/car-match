@@ -43,36 +43,36 @@ const Home = () => {
     })();
   }, []);
 
-  // Find next event matching keywords; fallback to first upcoming
-  const findNextByKeywords = (keywords) => {
-    const lowerIncludes = (s, kw) => (s||'').toLowerCase().includes(kw);
-    const match = events.find(e => {
-      const text = `${e.title||e.name||''} ${e.description||''}`.toLowerCase();
-      return (keywords||[]).some(k => lowerIncludes(text, k));
-    });
-    return match || events[0];
-  };
-
-  const featuredByType = useMemo(() => ([
-    {
-      key: 'muscle',
-      title: 'Muscle Cars',
-      img: 'https://images.unsplash.com/photo-1584345604325-f5091269a0d1?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-      event: findNextByKeywords(['muscle', 'v8', 'camaro', 'mustang', 'charger'])
-    },
-    {
-      key: 'jdm',
-      title: 'JDM Imports',
-      img: 'https://images.unsplash.com/photo-1627008118989-d5d640a259fc?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8SkRNJTIwaW1wb3J0fGVufDB8fDB8fHww',
-      event: findNextByKeywords(['jdm', 'japanese', 'supra', 'rx7', 'skyline', 'silvia'])
-    },
-    {
-      key: 'classic',
-      title: 'Classic Cars',
-      img: 'https://images.unsplash.com/photo-1489008777659-ad1fc8e07097?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8Y2xhc3NpYyUyMGNhcnxlbnwwfHwwfHx8MA%3D%3D',
-      event: findNextByKeywords(['classic', 'vintage', 'antique', 'retro', 'heritage'])
-    }
-  ]), [events]);
+  const featuredByType = useMemo(() => {
+    const categories = [
+      {
+        key: 'muscle',
+        title: 'Muscle Cars',
+        img: 'https://images.unsplash.com/photo-1584345604325-f5091269a0d1?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+        keywords: ['muscle', 'v8', 'camaro', 'mustang', 'charger']
+      },
+      {
+        key: 'jdm',
+        title: 'JDM Imports',
+        img: 'https://images.unsplash.com/photo-1627008118989-d5d640a259fc?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8SkRNJTIwaW1wb3J0fGVufDB8fDB8fHww',
+        keywords: ['jdm', 'japanese', 'supra', 'rx7', 'skyline', 'silvia']
+      },
+      {
+        key: 'classic',
+        title: 'Classic Cars',
+        img: 'https://images.unsplash.com/photo-1489008777659-ad1fc8e07097?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8Y2xhc3NpYyUyMGNhcnxlbnwwfHwwfHx8MA%3D%3D',
+        keywords: ['classic', 'vintage', 'antique', 'retro', 'heritage']
+      }
+    ];
+    const findMatch = (keywords = []) => {
+      const match = events.find(e => {
+        const text = `${e.title||e.name||''} ${e.description||''}`.toLowerCase();
+        return keywords.some(k => text.includes(k));
+      });
+      return match || events[0];
+    };
+    return categories.map(c => ({ ...c, event: findMatch(c.keywords) }));
+  }, [events]);
   return (
     <div className="homepage-container">
       {/* Hero Section */}
@@ -103,7 +103,7 @@ const Home = () => {
         <h2 className="section-title">Forums</h2>
         <div className="forum-front-cards">
           {(forumSections||[]).map(s => (
-            <Link key={s.id} to={`/forums`} className="forum-card" onClick={(e)=>{ /* let user click, they can select category in sidebar */ }}>
+            <Link key={s.id} to={`/forums`} className="forum-card">
               <div className="forum-card-title">{s.name}</div>
               <div className="forum-card-desc">{s.description}</div>
               <div className="forum-card-stats"><span>{s.posts} posts</span><span>{s.threads} threads</span></div>
