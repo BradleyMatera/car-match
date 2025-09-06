@@ -632,6 +632,27 @@ function getDistanceInMiles(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
+// --- Helpers: Events ---
+const isObjectIdLike = (v) => typeof v === 'string' && /^[a-fA-F0-9]{24}$/.test(v);
+async function findEventByParam(eventIdParam) {
+  // Try memory first by number
+  const n = Number(eventIdParam);
+  if (!Number.isNaN(n)) {
+    let ev = events.find(e => e.id === n);
+    if (ev) return { ev, source: 'mem' };
+    if (mongoose.connection.readyState === 1 && EventModel) {
+      const doc = await EventModel.findOne({ id: n });
+      if (doc) return { ev: doc, source: 'db' };
+    }
+  }
+  // Try Mongo _id fallback
+  if (mongoose.connection.readyState === 1 && EventModel && isObjectIdLike(eventIdParam)) {
+    const doc = await EventModel.findById(eventIdParam);
+    if (doc) return { ev: doc, source: 'db' };
+  }
+  return { ev: null, source: null };
+}
+
 // Inbox endpoint to fetch messages for the logged-in user
 app.get('/messages/inbox', authenticateToken, async (req, res) => {
   try {
@@ -809,18 +830,16 @@ app.post('/events', authenticateToken, async (req, res) => {
 // RSVP to an event endpoint
 app.post('/events/:eventId/rsvp', authenticateToken, async (req, res) => {
   try {
-    const eventId = parseInt(req.params.eventId, 10);
+    const eventIdParam = req.params.eventId;
     const rsvpUserId = req.user.id || req.user.userId; // userId from JWT payload
     const rsvpUsername = req.user.username;
-
-    let event = events.find(e => e.id === eventId);
-    if (!event && mongoose.connection.readyState === 1 && EventModel) {
-      event = await EventModel.findOne({ id: eventId }).lean();
-    }
+    const { ev, source } = await findEventByParam(eventIdParam);
+    const event = source === 'db' ? ev.toObject() : ev;
     if (!event) return res.status(404).json({ message: 'Event not found' });
 
     // Check if user has already RSVPed
-    const existingRsvp = rsvps.find(rsvp => rsvp.eventId === eventId && rsvp.userId === rsvpUserId);
+    const eid = event.id || (event._id?.toString ? event._id.toString() : undefined);
+    const existingRsvp = rsvps.find(rsvp => String(rsvp.eventId) === String(eid) && String(rsvp.userId) === String(rsvpUserId));
     if (existingRsvp) {
       return res.status(409).json({ message: 'Already RSVPed to this event' });
     }
@@ -832,14 +851,15 @@ app.post('/events/:eventId/rsvp', authenticateToken, async (req, res) => {
 
     const newRsvp = {
       id: rsvps.length + 1,
-      eventId,
+      eventId: eid,
       userId: rsvpUserId,
       username: rsvpUsername,
       timestamp: new Date().toISOString(),
     };
     rsvps.push(newRsvp);
     if (mongoose.connection.readyState === 1 && EventModel) {
-      await EventModel.updateOne({ id: eventId }, { $addToSet: { rsvps: rsvpUserId } }, { upsert: true });
+      if (source === 'db') await EventModel.updateOne({ _id: ev._id }, { $addToSet: { rsvps: rsvpUserId } });
+      else await EventModel.updateOne({ id: Number(eventIdParam) }, { $addToSet: { rsvps: rsvpUserId } }, { upsert: true });
     }
 
     console.log('RSVPs:', rsvps); // For debugging
@@ -853,21 +873,21 @@ app.post('/events/:eventId/rsvp', authenticateToken, async (req, res) => {
 // Cancel RSVP (toggle off)
 app.delete('/events/:eventId/rsvp', authenticateToken, async (req, res) => {
   try {
-    const eventId = parseInt(req.params.eventId, 10);
+    const eventIdParam = req.params.eventId;
     const rsvpUserId = req.user.id || req.user.userId;
-    let event = events.find(e => e.id === eventId);
-    if (!event && mongoose.connection.readyState === 1 && EventModel) {
-      event = await EventModel.findOne({ id: eventId }).lean();
-    }
+    const { ev, source } = await findEventByParam(eventIdParam);
+    const event = source === 'db' ? ev.toObject() : ev;
     if (!event) return res.status(404).json({ message: 'Event not found' });
     if (Array.isArray(event.rsvps)) {
       const idx = event.rsvps.findIndex(v => String(v) === String(rsvpUserId));
       if (idx > -1) event.rsvps.splice(idx, 1);
     }
     if (mongoose.connection.readyState === 1 && EventModel) {
-      await EventModel.updateOne({ id: eventId }, { $pull: { rsvps: rsvpUserId } });
+      if (source === 'db') await EventModel.updateOne({ _id: ev._id }, { $pull: { rsvps: rsvpUserId } });
+      else await EventModel.updateOne({ id: Number(eventIdParam) }, { $pull: { rsvps: rsvpUserId } });
     }
-    const i2 = rsvps.findIndex(r => r.eventId === eventId && String(r.userId) === String(rsvpUserId));
+    const eid = event.id || (event._id?.toString ? event._id.toString() : undefined);
+    const i2 = rsvps.findIndex(r => String(r.eventId) === String(eid) && String(r.userId) === String(rsvpUserId));
     if (i2 > -1) rsvps.splice(i2, 1);
     res.json({ message: 'RSVP removed', eventId });
   } catch (error) {
@@ -914,8 +934,8 @@ app.get('/my-rsvps', authenticateToken, async (req, res) => {
     const rsvpUserId = req.user.id || req.user.userId;
     let userRsvps = rsvps.filter(rsvp => rsvp.userId === rsvpUserId);
     if (mongoose.connection.readyState === 1 && EventModel) {
-      const docs = await EventModel.find({ rsvps: rsvpUserId }, { id: 1 }).lean();
-      userRsvps = docs.map(d => ({ id: 0, eventId: d.id, userId: rsvpUserId, username: req.user.username, timestamp: new Date().toISOString() }));
+      const docs = await EventModel.find({ rsvps: rsvpUserId }, { id: 1, _id: 1 }).lean();
+      userRsvps = docs.map(d => ({ id: 0, eventId: d.id || d._id.toString(), userId: rsvpUserId, username: req.user.username, timestamp: new Date().toISOString() }));
     }
     
     // Optionally, enrich RSVP data with event details
@@ -932,6 +952,112 @@ app.get('/my-rsvps', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Get my RSVPs error:', error);
     res.status(500).json({ message: 'Error fetching your RSVPs' });
+  }
+});
+
+// Event comments
+app.post('/events/:eventId/comments', authenticateToken, async (req, res) => {
+  try {
+    const eventIdParam = req.params.eventId;
+    const { text } = req.body;
+    if (!text) return res.status(400).json({ message: 'text required' });
+    const { ev, source } = await findEventByParam(eventIdParam);
+    if (!ev) return res.status(404).json({ message: 'Event not found' });
+    if (source === 'db') {
+      const doc = await EventModel.findById(ev._id);
+      const comment = { id: Date.now(), user: req.user.username, userId: req.user.id || req.user.userId, text, timestamp: new Date().toISOString() };
+      doc.comments = doc.comments || [];
+      doc.comments.push(comment);
+      await doc.save();
+      return res.status(201).json(comment);
+    }
+    const comment = { id: Date.now(), user: req.user.username, userId: req.user.id || req.user.userId, text, timestamp: new Date().toISOString() };
+    ev.comments = ev.comments || [];
+    ev.comments.push(comment);
+    res.status(201).json(comment);
+  } catch (e) {
+    console.error('Add comment error:', e);
+    res.status(500).json({ message: 'Error adding comment' });
+  }
+});
+
+app.put('/events/:eventId/comments/:commentId', authenticateToken, async (req, res) => {
+  try {
+    const eventIdParam = req.params.eventId;
+    const commentId = parseInt(req.params.commentId, 10);
+    const { text } = req.body;
+    if (!text) return res.status(400).json({ message: 'text required' });
+    const { ev, source } = await findEventByParam(eventIdParam);
+    if (!ev) return res.status(404).json({ message: 'Event not found' });
+    const userId = String(req.user.id || req.user.userId);
+    if (source === 'db') {
+      const doc = await EventModel.findById(ev._id);
+      const c = (doc.comments || []).find(x => x.id === commentId);
+      if (!c) return res.status(404).json({ message: 'Comment not found' });
+      const can = String(c.userId) === userId || String(doc.createdByUserId) === userId || req.user.developerOverride;
+      if (!can) return res.status(403).json({ message: 'Forbidden' });
+      c.text = text;
+      await doc.save();
+      return res.json(c);
+    }
+    const c = (ev.comments || []).find(x => x.id === commentId);
+    if (!c) return res.status(404).json({ message: 'Comment not found' });
+    const can = String(c.userId) === userId || req.user.developerOverride;
+    if (!can) return res.status(403).json({ message: 'Forbidden' });
+    c.text = text;
+    res.json(c);
+  } catch (e) {
+    console.error('Edit comment error:', e);
+    res.status(500).json({ message: 'Error editing comment' });
+  }
+});
+
+app.delete('/events/:eventId', authenticateToken, async (req, res) => {
+  try {
+    const eventIdParam = req.params.eventId;
+    const { ev, source } = await findEventByParam(eventIdParam);
+    if (!ev) return res.status(404).json({ message: 'Event not found' });
+    const userId = String(req.user.id || req.user.userId);
+    if (source === 'db') {
+      const doc = await EventModel.findById(ev._id);
+      const can = String(doc.createdByUserId) === userId || req.user.developerOverride;
+      if (!can) return res.status(403).json({ message: 'Forbidden' });
+      await EventModel.deleteOne({ _id: ev._id });
+      return res.json({ ok: true });
+    }
+    // Memory fallback
+    const idx = events.findIndex(e => String(e.id) === String(eventIdParam));
+    if (idx > -1) events.splice(idx, 1);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('Delete event error:', e);
+    res.status(500).json({ message: 'Error deleting event' });
+  }
+});
+
+app.put('/events/:eventId', authenticateToken, async (req, res) => {
+  try {
+    const eventIdParam = req.params.eventId;
+    const { ev, source } = await findEventByParam(eventIdParam);
+    if (!ev) return res.status(404).json({ message: 'Event not found' });
+    const userId = String(req.user.id || req.user.userId);
+    if (source === 'db') {
+      const doc = await EventModel.findById(ev._id);
+      const can = String(doc.createdByUserId) === userId || req.user.developerOverride;
+      if (!can) return res.status(403).json({ message: 'Forbidden' });
+      const allowed = ((f) => ({ name: f.name, description: f.description, date: f.date, location: f.location, image: f.image, thumbnail: f.thumbnail, schedule: f.schedule, tags: f.tags }))(req.body || {});
+      Object.assign(doc, allowed);
+      await doc.save();
+      return res.json(doc.toObject());
+    }
+    // Memory fallback
+    const idx = events.findIndex(e => String(e.id) === String(eventIdParam));
+    if (idx === -1) return res.status(404).json({ message: 'Event not found' });
+    Object.assign(events[idx], req.body || {});
+    res.json(events[idx]);
+  } catch (e) {
+    console.error('Update event error:', e);
+    res.status(500).json({ message: 'Error updating event' });
   }
 });
 
