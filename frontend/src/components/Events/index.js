@@ -26,6 +26,8 @@ const Events = () => {
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editCommentText, setEditCommentText] = useState('');
   const [forumPreview, setForumPreview] = useState([]);
+  const [bgImages, setBgImages] = useState([]);
+  const [bgIndex, setBgIndex] = useState(0);
   const routerLocation = useLocation();
 
   useEffect(() => {
@@ -37,6 +39,15 @@ const Events = () => {
           start: new Date(event.date),
           end: new Date(event.date)
         })));
+        const imgs = Array.from(new Set(eventsData.map(e => e.image || e.thumbnail).filter(Boolean)));
+        if (imgs.length === 0) {
+          imgs.push(
+            'https://images.unsplash.com/photo-1514316454349-750a7fd3da3a',
+            'https://images.unsplash.com/photo-1503376780353-7e6692767b70',
+            'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf'
+          );
+        }
+        setBgImages(imgs);
         // Preload RSVP status if logged in
         if (token) {
           const myRsvps = await mockApi.getMyRsvps(token);
@@ -50,6 +61,12 @@ const Events = () => {
     };
     loadEvents();
   }, [token]);
+
+  useEffect(() => {
+    if (!bgImages.length) return;
+    const id = setInterval(() => setBgIndex(i => (i + 1) % bgImages.length), 8000);
+    return () => clearInterval(id);
+  }, [bgImages]);
 
   // If URL has ?event=<id>, open that event after events load
   useEffect(() => {
@@ -132,6 +149,7 @@ const Events = () => {
 
   return (
     <div className="events-container">
+      <div className="events-bg" style={{ backgroundImage: `linear-gradient(rgba(255,255,255,0.9), rgba(255,255,255,0.9)), url(${bgImages[bgIndex] || ''})` }} />
       <header className="events-header">
         <h1>Car Community Events</h1>
         <p className="page-description">
