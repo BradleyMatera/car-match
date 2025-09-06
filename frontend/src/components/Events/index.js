@@ -147,6 +147,14 @@ const Events = () => {
                       <span>📍 {event.location}</span>
                       <span>👥 {event.rsvpCount} attending</span>
                     </div>
+                    <div className="event-meta" style={{marginTop:6}}>
+                      <span>Organizer: {event.createdByUsername || 'Unknown'}</span>
+                    </div>
+                    {event.threadId && (
+                      <div style={{marginTop:8}}>
+                        <button className="btn btn-small" onClick={(e)=>{ e.stopPropagation(); window.location.hash = `#/forums?open=${event.threadId}`; }}>View Discussion</button>
+                      </div>
+                    )}
                     <button 
                       className={`rsvp-button small ${rsvpStatus[event.id] ? 'rsvp-confirmed' : ''}`}
                       onClick={(e) => {
@@ -194,6 +202,7 @@ const Events = () => {
               })}</p>
               <p>📍 {selectedEvent.location}</p>
               <p>👥 {selectedEvent.rsvpCount} attendees</p>
+              <p>🧑‍💼 Organizer: {selectedEvent.createdByUsername || 'Unknown'}</p>
             </div>
             {selectedEvent.threadId && (
               <div style={{marginTop:8}}>
