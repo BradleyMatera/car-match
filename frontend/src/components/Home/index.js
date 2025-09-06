@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Section from '../Section';
 import Grid from '../Grid';
@@ -9,6 +9,7 @@ const Home = () => {
   const [stats, setStats] = useState({ users: 0, threads: 0, posts: 0, events: 0 });
   const [forumSections, setForumSections] = useState([]); // {id,name,threads,posts}
   const [latestThreads, setLatestThreads] = useState([]); // flattened + sorted by lastPostAt
+  const [events, setEvents] = useState([]); // upcoming events
 
   useEffect(() => {
     (async () => {
@@ -31,9 +32,47 @@ const Home = () => {
           flat.sort((a,b) => new Date(b.lastPostAt||b.createdAt) - new Date(a.lastPostAt||a.createdAt));
           setLatestThreads(flat.slice(0,6));
         } catch {}
+        // Upcoming events
+        try {
+          const evs = await mockApi.getEvents();
+          const withDates = (evs||[]).map(e => ({...e, dateObj: new Date(e.date)})).filter(e => !isNaN(e.dateObj));
+          withDates.sort((a,b) => a.dateObj - b.dateObj);
+          setEvents(withDates);
+        } catch {}
       } catch {}
     })();
   }, []);
+
+  // Find next event matching keywords; fallback to first upcoming
+  const findNextByKeywords = (keywords) => {
+    const lowerIncludes = (s, kw) => (s||'').toLowerCase().includes(kw);
+    const match = events.find(e => {
+      const text = `${e.title||e.name||''} ${e.description||''}`.toLowerCase();
+      return (keywords||[]).some(k => lowerIncludes(text, k));
+    });
+    return match || events[0];
+  };
+
+  const featuredByType = useMemo(() => ([
+    {
+      key: 'muscle',
+      title: 'Muscle Cars',
+      img: 'https://images.unsplash.com/photo-1584345604325-f5091269a0d1?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+      event: findNextByKeywords(['muscle', 'v8', 'camaro', 'mustang', 'charger'])
+    },
+    {
+      key: 'jdm',
+      title: 'JDM Imports',
+      img: 'https://images.unsplash.com/photo-1627008118989-d5d640a259fc?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8SkRNJTIwaW1wb3J0fGVufDB8fDB8fHww',
+      event: findNextByKeywords(['jdm', 'japanese', 'supra', 'rx7', 'skyline', 'silvia'])
+    },
+    {
+      key: 'classic',
+      title: 'Classic Cars',
+      img: 'https://images.unsplash.com/photo-1489008777659-ad1fc8e07097?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8Y2xhc3NpYyUyMGNhcnxlbnwwfHwwfHx8MA%3D%3D',
+      event: findNextByKeywords(['classic', 'vintage', 'antique', 'retro', 'heritage'])
+    }
+  ]), [events]);
   return (
     <div className="homepage-container">
       {/* Hero Section */}
@@ -128,51 +167,37 @@ const Home = () => {
         </Grid>
       </Section>
 
-      {/* Featured Cars Section */}
+      {/* Upcoming Events Section (by car type) */}
       <Section>
-        <h2 className="section-title">Featured Car Categories</h2>
+        <h2 className="section-title">Upcoming Events by Car Type</h2>
         <Grid cols={1} mdCols={3} gap="lg">
-          <div className="card">
-            <img 
-              src="https://images.unsplash.com/photo-1584345604325-f5091269a0d1?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" 
-              alt="Muscle Car" 
-              className="card-img" 
-              loading="lazy"
-            />
-            <div className="card-content">
-              <h3 className="card-title">Muscle Cars</h3>
-              <p className="card-text">Discover the power and style of American muscle cars.</p>
-              <Link to="/forums" className="btn btn-primary">Explore</Link>
-            </div>
-          </div>
-          
-          <div className="card">
-            <img 
-              src="https://images.unsplash.com/photo-1627008118989-d5d640a259fc?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8SkRNJTIwaW1wb3J0fGVufDB8fDB8fHww" 
-              alt="JDM Car" 
-              className="card-img" 
-              loading="lazy"
-            />
-            <div className="card-content">
-              <h3 className="card-title">JDM Imports</h3>
-              <p className="card-text">Experience the precision and innovation of Japanese imports.</p>
-              <Link to="/forums" className="btn btn-primary">Explore</Link>
-            </div>
-          </div>
-          
-          <div className="card">
-            <img 
-              src="https://images.unsplash.com/photo-1489008777659-ad1fc8e07097?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8Y2xhc3NpYyUyMGNhcnxlbnwwfHwwfHx8MA%3D%3D" 
-              alt="Classic Car" 
-              className="card-img" 
-              loading="lazy"
-            />
-            <div className="card-content">
-              <h3 className="card-title">Classic Cars</h3>
-              <p className="card-text">Appreciate the timeless elegance of classic automobiles.</p>
-              <Link to="/forums" className="btn btn-primary">Explore</Link>
-            </div>
-          </div>
+          {featuredByType.map(card => {
+            const ev = card.event;
+            const hasEvent = !!ev;
+            const img = (ev && (ev.image || ev.thumbnail)) || card.img;
+            const title = hasEvent ? (ev.title || ev.name) : card.title;
+            const dateStr = hasEvent && ev.date ? new Date(ev.date).toLocaleDateString('en-US', { month:'long', day:'numeric', weekday:'long' }) : null;
+            return (
+              <div key={card.key} className="card">
+                <img src={img} alt={card.title} className="card-img" loading="lazy" />
+                <div className="card-content">
+                  <h3 className="card-title">{card.title}</h3>
+                  {hasEvent ? (
+                    <>
+                      <p className="card-text" style={{fontWeight:600}}>{title}</p>
+                      <p className="card-text">{dateStr} • {ev.location}</p>
+                      <Link to={`/events?event=${encodeURIComponent(ev.id)}`} className="btn btn-primary">View Event</Link>
+                    </>
+                  ) : (
+                    <>
+                      <p className="card-text">No upcoming events yet.</p>
+                      <Link to="/events" className="btn">Browse All Events</Link>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </Grid>
       </Section>
 
