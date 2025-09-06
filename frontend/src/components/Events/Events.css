@@ -4,6 +4,13 @@
   margin: 0 auto;
   padding: var(--space-xl);
 }
+/* Modal (shared styles with Forums) */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1000}
+.modal{background:#fff;width:min(720px,92vw);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.2);overflow:hidden}
+.modal header{padding:14px 16px;border-bottom:1px solid #eee;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.modal .content{padding:16px;display:flex;flex-direction:column;gap:10px}
+.modal input,.modal textarea{width:100%;border:1px solid #ddd;border-radius:8px;padding:10px;font-size:14px}
+.modal footer{padding:12px 16px;border-top:1px solid #eee;display:flex;gap:10px;justify-content:flex-end}
 
 .events-header {
   text-align: center;

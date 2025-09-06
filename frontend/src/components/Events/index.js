@@ -115,17 +115,8 @@ const Events = () => {
       <Section>
         {currentUser && (
           <div style={{display:'flex',justifyContent:'flex-end',marginBottom:8}}>
-            <button className="btn" onClick={()=> setShowCreate(s=>!s)}>{showCreate? 'Close' : 'New Event'}</button>
+            <button className="btn" onClick={()=> setShowCreate(true)}>New Event</button>
           </div>
-        )}
-        {showCreate && (
-          <form className="event-form" onSubmit={async (e)=>{e.preventDefault(); try { await mockApi.createEvent(token, createData); setShowCreate(false); setCreateData({name:'',description:'',date:'',location:''}); await refreshEvents(); } catch(err){ alert(err.message || 'Failed to create event'); }}}>
-            <input placeholder="Name" value={createData.name} onChange={e=>setCreateData(d=>({...d,name:e.target.value}))} required />
-            <input placeholder="Date (YYYY-MM-DD)" value={createData.date} onChange={e=>setCreateData(d=>({...d,date:e.target.value}))} required />
-            <input placeholder="Location" value={createData.location} onChange={e=>setCreateData(d=>({...d,location:e.target.value}))} required />
-            <textarea placeholder="Description" value={createData.description} onChange={e=>setCreateData(d=>({...d,description:e.target.value}))} required />
-            <button type="submit" className="btn btn-primary">Create</button>
-          </form>
         )}
         <h2 className="section-title">Upcoming Events</h2>
         <div className="carousel-container">
@@ -156,13 +147,13 @@ const Events = () => {
                       </div>
                     )}
                     <button 
-                      className={`rsvp-button small ${rsvpStatus[event.id] ? 'rsvp-confirmed' : ''}`}
+                      className={`rsvp-button small ${rsvpStatus[String(event.id)] ? 'rsvp-confirmed' : ''}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleRsvpToggle(event.id);
                       }}
                     >
-                      {rsvpStatus[event.id] ? '✅ Going' : 'RSVP'}
+                      {rsvpStatus[String(event.id)] ? '✅ Going' : 'RSVP'}
                     </button>
                   </div>
                 </div>
@@ -402,6 +393,41 @@ const Events = () => {
           </div>
         )}
       </div>
+      {showCreate && (
+        <div className="modal-backdrop" onClick={(e)=>{ if (e.target.classList.contains('modal-backdrop')) setShowCreate(false); }}>
+          <div className="modal" role="dialog" aria-modal="true">
+            <header>
+              <span>Create Event</span>
+              <button className="btn" onClick={()=> setShowCreate(false)}>✕</button>
+            </header>
+            <form onSubmit={async (e)=>{
+              e.preventDefault();
+              try {
+                const res = await mockApi.createEvent(token, createData);
+                const ev = res?.data || res;
+                setShowCreate(false);
+                setCreateData({ name:'', description:'', date:'', location:'', image:'' });
+                await refreshEvents();
+                if (ev && ev.id) {
+                  try { const fetched = await mockApi.getEvent(ev.id); setSelectedEvent(fetched); } catch { setSelectedEvent(ev); }
+                }
+              } catch(err){ alert(err.message || 'Failed to create event'); }
+            }}>
+              <div className="content">
+                <input placeholder="Name" value={createData.name} onChange={e=>setCreateData(d=>({...d,name:e.target.value}))} required />
+                <input placeholder="Date (YYYY-MM-DD)" value={createData.date} onChange={e=>setCreateData(d=>({...d,date:e.target.value}))} required />
+                <input placeholder="Location (City, State)" value={createData.location} onChange={e=>setCreateData(d=>({...d,location:e.target.value}))} required />
+                <input placeholder="Image URL (optional)" value={createData.image} onChange={e=>setCreateData(d=>({...d,image:e.target.value}))} />
+                <textarea placeholder="Description" value={createData.description} onChange={e=>setCreateData(d=>({...d,description:e.target.value}))} rows={5} required />
+              </div>
+              <footer>
+                <button type="button" className="btn" onClick={()=> setShowCreate(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Create Event</button>
+              </footer>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

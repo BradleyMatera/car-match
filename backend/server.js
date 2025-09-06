@@ -856,7 +856,7 @@ app.get('/messages/inbox', authenticateToken, async (req, res) => {
 // Event creation endpoint
 app.post('/events', authenticateToken, async (req, res) => {
   try {
-    const { name, description, date, location } = req.body;
+    const { name, description, date, location, image, thumbnail } = req.body;
     const createdByUserId = req.user.id || req.user.userId; // support mongo _id
     const createdByUsername = req.user.username;
 
@@ -870,6 +870,8 @@ app.post('/events', authenticateToken, async (req, res) => {
       description,
       date,
       location,
+      image,
+      thumbnail,
       createdByUserId,
       createdByUsername,
       rsvps: [] // To store userIds who RSVPed
