@@ -4,18 +4,20 @@
   margin: 0 auto;
   padding: var(--space-xl);
   position: relative;
+  z-index: 1; /* sit above fixed bg */
 }
 
 /* Full-page, ultra-faded rotating background */
 .events-bg{
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: 0;
   background-size: cover;
   background-position: center;
   filter: grayscale(100%);
-  opacity: 0.08; /* super faded so light gray text is readable */
+  opacity: 0.18; /* faded but visible */
   transition: background-image 1s ease-in-out;
+  pointer-events: none;
 }
 /* Modal (shared styles with Forums) */
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1000}

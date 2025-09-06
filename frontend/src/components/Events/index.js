@@ -14,7 +14,7 @@ import Section from '../Section';
 const Events = () => {
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [newComment, setNewComment] = useState('');
+  // Event-specific comment composer removed in favor of forum preview + link
   const [rsvpStatus, setRsvpStatus] = useState({});
   const { currentUser, token } = useContext(AuthContext);
   const isOwner = selectedEvent && currentUser && String(selectedEvent.createdByUserId) === String(currentUser.id);
@@ -23,8 +23,7 @@ const Events = () => {
   const [createData, setCreateData] = useState({ name: '', description: '', date: '', location: '' });
   const [editingEvent, setEditingEvent] = useState(false);
   const [editData, setEditData] = useState({ name: '', description: '', date: '', location: '' });
-  const [editingCommentId, setEditingCommentId] = useState(null);
-  const [editCommentText, setEditCommentText] = useState('');
+  // Editing event comments removed from UI (still supported in API)
   const [forumPreview, setForumPreview] = useState([]);
   const [bgImages, setBgImages] = useState([]);
   const [bgIndex, setBgIndex] = useState(0);
@@ -149,7 +148,7 @@ const Events = () => {
 
   return (
     <div className="events-container">
-      <div className="events-bg" style={{ backgroundImage: `linear-gradient(rgba(255,255,255,0.9), rgba(255,255,255,0.9)), url(${bgImages[bgIndex] || ''})` }} />
+      <div className="events-bg" style={{ backgroundImage: `linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url(${bgImages[bgIndex] || ''})` }} />
       <header className="events-header">
         <h1>Car Community Events</h1>
         <p className="page-description">
@@ -335,85 +334,6 @@ const Events = () => {
               </aside>
             </div>
             
-            {Array.isArray(selectedEvent.schedule) && selectedEvent.schedule.length > 0 && (
-              <>
-                <h3>Schedule</h3>
-                <div className="schedule-grid">
-                  {selectedEvent.schedule.map((item, index) => (
-                    <div key={index} className="schedule-item">
-                      <span className="schedule-time">{item.time}</span>
-                      <span className="schedule-activity">{item.activity}</span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {Array.isArray(selectedEvent.comments) && selectedEvent.comments.length > 0 && (
-              <section className="comments-section">
-                <h3>Discussion ({selectedEvent?.comments?.length || 0})</h3>
-                <div className="comments-list">
-                  {(selectedEvent?.comments || []).map(comment => {
-                    const canEdit = currentUser && (comment.user === currentUser.username || canModerate || String(comment.userId) === String(currentUser.id));
-                    const isEditing = editingCommentId === comment.id;
-                    return (
-                      <div key={comment.id} className="comment-card">
-                        <div className="comment-header">
-                          <span className="comment-user">{comment.user}</span>
-                          <span className="comment-date">{new Date(comment.timestamp).toLocaleDateString()}</span>
-                        </div>
-                        {!isEditing ? (
-                          <p className="comment-text">{comment.text}</p>
-                        ) : (
-                          <textarea value={editCommentText} onChange={e=>setEditCommentText(e.target.value)} rows={3} />
-                        )}
-                        {canEdit && (
-                          <div style={{display:'flex',gap:8,marginTop:6}}>
-                            {!isEditing ? (
-                              <button className="btn btn-small" onClick={()=>{ setEditingCommentId(comment.id); setEditCommentText(comment.text); }}>Edit</button>
-                            ) : (
-                              <>
-                                <button className="btn btn-small btn-primary" onClick={async ()=>{ try { await mockApi.editEventComment(token, selectedEvent.id, comment.id, editCommentText.trim()); setEditingCommentId(null); setEditCommentText(''); await refreshEvents(); } catch(e){ alert(e.message||'Failed to save'); } }}>Save</button>
-                                <button className="btn btn-small" onClick={()=>{ setEditingCommentId(null); setEditCommentText(''); }}>Cancel</button>
-                              </>
-                            )}
-                            <button className="btn btn-small btn-warning" onClick={async ()=>{ if (!window.confirm('Delete this comment?')) return; try { await mockApi.deleteEventComment(token, selectedEvent.id, comment.id); await refreshEvents(); } catch(e){ alert(e.message||'Failed to delete'); } }}>Delete</button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
-            {token && (
-              <section className="comments-section">
-                <h3>Add a comment</h3>
-                <div className="comment-form">
-                  <textarea 
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="Add your comment..."
-                    className="comment-input"
-                    rows="3"
-                  />
-                  <button 
-                    className="comment-button"
-                    onClick={async () => {
-                      if (!newComment.trim()) return;
-                      try {
-                        await mockApi.addEventComment(token, selectedEvent.id, newComment.trim());
-                        const updated = await mockApi.getEvent(selectedEvent.id);
-                        setSelectedEvent(updated);
-                        setNewComment('');
-                      } catch (e) { alert(e.message || 'Failed to add comment'); }
-                    }}
-                  >
-                    Post Comment
-                  </button>
-                </div>
-              </section>
-            )}
           </div>
         )}
       </div>
