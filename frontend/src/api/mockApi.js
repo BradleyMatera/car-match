@@ -95,6 +95,8 @@ const api = {
       rsvps: e.rsvps || [],
     }));
   },
+  getEvent: async (eventId) =>
+    ok(await fetch(`${API_BASE_URL}/events/${encodeURIComponent(eventId)}`)).then(json),
 
   rsvpToEvent: async (token, eventId) =>
     ok(await fetch(`${API_BASE_URL}/events/${encodeURIComponent(eventId)}/rsvp`, { method: 'POST', headers: { ...jsonHeader, ...authHeader(token) } })).then(json),

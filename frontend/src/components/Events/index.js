@@ -68,6 +68,8 @@ const Events = () => {
         setRsvpStatus(prev => ({ ...prev, [eventId]: true }));
       }
       await refreshEvents();
+      // Ensure selected event detail is freshest from API
+      try { const ev = await mockApi.getEvent(eventId); setSelectedEvent(ev); } catch {}
     } catch (error) {
       console.error('Error handling RSVP:', error);
     }
@@ -296,9 +298,8 @@ const Events = () => {
                       if (!newComment.trim()) return;
                       try {
                         await mockApi.addEventComment(token, selectedEvent.id, newComment.trim());
-                        const refreshed = await mockApi.getEvents();
-                        const updated = refreshed.find(e => e.id === selectedEvent.id);
-                        if (updated) setSelectedEvent(updated);
+                        const updated = await mockApi.getEvent(selectedEvent.id);
+                        setSelectedEvent(updated);
                         setNewComment('');
                       } catch (e) { alert(e.message || 'Failed to add comment'); }
                     }}

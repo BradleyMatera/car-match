@@ -994,6 +994,36 @@ app.get('/events', async (req, res) => {
   }
 });
 
+// Get single event (by numeric id or ObjectId)
+app.get('/events/:eventId', async (req, res) => {
+  try {
+    const { ev, source } = await findEventByParam(req.params.eventId);
+    if (!ev) return res.status(404).json({ message: 'Event not found' });
+    const d = source === 'db' ? ev.toObject() : ev;
+    const item = {
+      id: d.id || (d._id?.toString ? d._id.toString() : d._id),
+      title: d.title || d.name,
+      name: d.name || d.title,
+      date: d.date,
+      location: d.location,
+      description: d.description,
+      image: d.image,
+      thumbnail: d.thumbnail,
+      schedule: d.schedule || [],
+      comments: d.comments || [],
+      rsvps: d.rsvps || [],
+      rsvpCount: Array.isArray(d.rsvps) ? d.rsvps.length : (d.rsvpCount || 0),
+      createdByUserId: d.createdByUserId,
+      createdByUsername: d.createdByUsername,
+      threadId: d.threadId,
+    };
+    res.json(item);
+  } catch (e) {
+    console.error('Get event error:', e);
+    res.status(500).json({ message: 'Error fetching event' });
+  }
+});
+
 // Get user's RSVPs endpoint
 app.get('/my-rsvps', authenticateToken, async (req, res) => {
   try {
