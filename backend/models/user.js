@@ -24,7 +24,7 @@ const CarSchema = new mongoose.Schema({
 const UserSchema = new mongoose.Schema({
   mockId: String, // e.g., 'user1' from mock data
   username: { type: String, index: true, unique: true },
-  email: String,
+  email: { type: String },
   password: String, // bcrypt hash (default for seeded users)
   name: String,
   displayTag: String,
@@ -41,5 +41,7 @@ const UserSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
-module.exports = mongoose.models.User || mongoose.model('User', UserSchema);
+// Enforce email uniqueness only when email exists
+UserSchema.index({ email: 1 }, { unique: true, partialFilterExpression: { email: { $type: 'string' } } });
 
+module.exports = mongoose.models.User || mongoose.model('User', UserSchema);

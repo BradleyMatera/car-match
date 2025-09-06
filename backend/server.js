@@ -298,7 +298,8 @@ app.post('/register', async (req, res) => {
       displayTag, 
       gender, 
       city, 
-      state 
+      state,
+      email: rawEmail,
       // Other fields like orientation, interests, bio, profileImage can be added later or made optional
     } = req.body;
 
@@ -310,7 +311,8 @@ app.post('/register', async (req, res) => {
     let existingUser = users.find(user => user.username === username);
     // Also check Mongo if available
     if (!existingUser && mongoose.connection.readyState === 1 && UserModel) {
-      existingUser = await UserModel.findOne({ username }).lean();
+      const email = rawEmail || (username.includes('@') ? username : undefined);
+      existingUser = await UserModel.findOne({ $or: [ { username }, ...(email?[{ email }]:[]) ] }).lean();
     }
     if (existingUser) {
       return res.status(409).json({ message: 'Username already exists' });
@@ -347,7 +349,7 @@ app.post('/register', async (req, res) => {
       await UserModel.create({
         mockId: String(newUser.id),
         username: newUser.username,
-        email: `${newUser.username}@example.com`,
+        email: rawEmail || (username.includes('@') ? username : undefined) || `${newUser.username}@example.com`,
         password: newUser.password,
         name: newUser.name,
         displayTag: newUser.displayTag,
@@ -382,7 +384,10 @@ app.post('/login', async (req, res) => {
     let user = users.find(u => u.username === username);
     // If not found in-memory, try MongoDB
     if (!user && mongoose.connection.readyState === 1 && UserModel) {
-      const dbUser = await UserModel.findOne({ username }).lean();
+      // Support login with username OR email
+      const loginId = String(username || '').trim();
+      const query = loginId.includes('@') ? { email: loginId } : { username: loginId };
+      const dbUser = await UserModel.findOne(query).lean();
       if (dbUser) {
         const ok = await bcrypt.compare(password, dbUser.password);
         if (!ok) return res.status(401).json({ message: 'Invalid credentials (password mismatch)' });

@@ -48,8 +48,10 @@ const Forums = () => {
     }
   };
 
+  const getThreadId = (t) => t?.id || t?._id || t?.threadId;
+
   const openThread = async (thread) => {
-    const data = await mockApi.getThreadById(thread.id);
+    const data = await mockApi.getThreadById(getThreadId(thread));
     setActiveThread(data.thread);
     setThreadPosts(data.posts);
   };
@@ -76,9 +78,9 @@ const Forums = () => {
     if (!activeThread || !newPostBody.trim()) return;
     try {
       if (!token) { alert('Please log in.'); return; }
-      await mockApi.addPostToThread(token, { threadId: activeThread.id, body: newPostBody.trim() });
+      await mockApi.addPostToThread(token, { threadId: getThreadId(activeThread), body: newPostBody.trim() });
       setNewPostBody('');
-      const data = await mockApi.getThreadById(activeThread.id);
+      const data = await mockApi.getThreadById(getThreadId(activeThread));
       setActiveThread(data.thread);
       setThreadPosts(data.posts);
     } catch (err) {
@@ -89,7 +91,7 @@ const Forums = () => {
   const pinToggle = async (thread, pinned) => {
     try {
       if (!token) { alert('Please log in.'); return; }
-      await mockApi.pinThread(token, thread.id, pinned);
+      await mockApi.pinThread(token, getThreadId(thread), pinned);
       await loadThreads(selectedCategory, { page });
     } catch (e) { alert(e.message || 'Failed to pin'); }
   };
@@ -97,8 +99,8 @@ const Forums = () => {
   const lockToggle = async (thread, locked) => {
     try {
       if (!token) { alert('Please log in.'); return; }
-      await mockApi.lockThread(token, thread.id, locked);
-      const data = await mockApi.getThreadById(thread.id);
+      await mockApi.lockThread(token, getThreadId(thread), locked);
+      const data = await mockApi.getThreadById(getThreadId(thread));
       setActiveThread(data.thread);
       setThreadPosts(data.posts);
     } catch (e) { alert(e.message || 'Failed to lock'); }
@@ -108,7 +110,7 @@ const Forums = () => {
     if (!window.confirm('Delete this thread?')) return;
     try {
       if (!token) { alert('Please log in.'); return; }
-      await mockApi.deleteThread(token, thread.id);
+      await mockApi.deleteThread(token, getThreadId(thread));
       setActiveThread(null);
       await loadThreads(selectedCategory, { page: 1 });
     } catch (e) { alert(e.message || 'Failed to delete'); }
