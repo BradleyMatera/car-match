@@ -26,15 +26,24 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
   .split(',')
   .map(s => s.trim())
   .filter(Boolean);
+// Always include GitHub Pages host for this project unless explicitly disabled
+const defaultPagesHost = 'https://bradleymatera.github.io';
+if (!allowedOrigins.includes(defaultPagesHost)) allowedOrigins.push(defaultPagesHost);
+
 const localhostRegex = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+const ghUser = process.env.GITHUB_PAGES_USER && String(process.env.GITHUB_PAGES_USER).trim();
 const corsOptions = {
   origin: (origin, callback) => {
     if (!origin) return callback(null, true); // allow curl/postman
     if (allowedOrigins.includes(origin)) return callback(null, true);
+    // Allow exact GitHub Pages user if configured
+    if (ghUser && origin === `https://${ghUser}.github.io`) return callback(null, true);
     if (process.env.NODE_ENV !== 'production' && localhostRegex.test(origin)) return callback(null, true);
     return callback(new Error('CORS not allowed'), false);
   },
   credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
 };
 app.use(cors(corsOptions));
 app.use(express.json());
