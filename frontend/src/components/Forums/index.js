@@ -79,6 +79,19 @@ const Forums = () => {
     setThreadEvent(data.event || null);
   };
 
+  // Scroll to a specific post if ?post=<id>
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const postId = params.get('post');
+    if (!postId || !activeThread || threadPosts.length === 0) return;
+    const el = document.getElementById(`post-${postId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('highlight');
+      setTimeout(()=> el.classList.remove('highlight'), 1500);
+    }
+  }, [location.search, activeThread, threadPosts]);
+
   const handleCreateThread = async (e) => {
     e.preventDefault();
     if (!currentUser) { alert('Please log in to create a thread.'); return; }
@@ -297,7 +310,7 @@ const Forums = () => {
                 const stats = authorStats(author);
                 const atts = extractAttachments(p.body);
                 return (
-                  <li key={p.id} className="post-item post-row">
+                  <li key={p.id} id={`post-${p._id || p.id}`} className="post-item post-row">
                     <aside className="post-author">
                       <div className="avatar" aria-hidden>👤</div>
                       <div className="author-name">{author}</div>

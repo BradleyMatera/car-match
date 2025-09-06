@@ -253,15 +253,18 @@ const Events = () => {
                       <p>No forum replies yet. Be the first to discuss in Forums.</p>
                     ) : (
                       <div className="comments-list">
-                        {forumPreview.map(fp => (
-                          <div key={fp._id || fp.id} className="comment-card">
-                            <div className="comment-header">
-                              <span className="comment-user">{fp.authorUsername || 'user'}</span>
-                              <span className="comment-date">{new Date(fp.createdAt).toLocaleDateString()}</span>
-                            </div>
-                            <p className="comment-text">{fp.body}</p>
-                          </div>
-                        ))}
+                    {forumPreview.map(fp => (
+                      <div key={fp._id || fp.id} className="comment-card">
+                        <div className="comment-header">
+                          <span className="comment-user">{fp.authorUsername || 'user'}</span>
+                          <span className="comment-date">{new Date(fp.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <p className="comment-text">{fp.body}</p>
+                        <div style={{marginTop:6}}>
+                          <Link to={`/forums?open=${selectedEvent.threadId}&post=${fp._id || fp.id}`} className="btn btn-small">Go to post</Link>
+                        </div>
+                      </div>
+                    ))}
                       </div>
                     )}
                     <div style={{marginTop:8}}>

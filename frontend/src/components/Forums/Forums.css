@@ -27,6 +27,7 @@
 .thread-item .meta{font-size:12px;color:#666}
 .thread-view .post-list{list-style:none;margin:0;padding:0}
 .post-item{padding:12px;border:1px solid #eee;border-radius:8px;margin-bottom:8px}
+.post-item.highlight{box-shadow:0 0 0 3px rgba(97,194,0,0.35)}
 .post-row{display:grid;grid-template-columns:180px 1fr 220px;gap:12px}
 .post-author{background:#f8f9fb;border:1px solid #eee;border-radius:8px;padding:10px;text-align:center}
 .post-author .avatar{font-size:32px;margin-bottom:6px}
