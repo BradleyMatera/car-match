@@ -6,6 +6,18 @@
 .forums-sidebar button{background:none;border:none;color:#0d6efd;text-align:left;padding:0;cursor:pointer}
 .cat-desc{font-size:12px;color:#666;margin:4px 0 0}
 .forums-main{flex:1}
+.forum-front{display:flex;flex-direction:column;gap:16px}
+.forum-subnav{display:flex;gap:8px;align-items:center;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:8px;padding:8px}
+.forum-title{font-size:24px;margin:4px 0}
+.forum-sections{display:flex;flex-direction:column;gap:10px}
+.forum-card{display:flex;justify-content:space-between;align-items:center;background:#fff;border:1px solid #ddd;border-radius:10px;padding:14px;cursor:pointer}
+.forum-card:hover{background:#fafafa}
+.forum-card-title{font-weight:700;font-size:16px;margin-bottom:4px}
+.forum-card-desc{color:#555}
+.forum-card-right{display:flex;gap:14px;align-items:center}
+.forum-count{display:flex;flex-direction:column;align-items:center;min-width:70px}
+.forum-count strong{font-size:18px}
+.forum-count span{font-size:11px;color:#666}
 .threads-header{display:flex;gap:12px;align-items:center;margin-bottom:12px;position:relative}
 .new-thread-form{display:flex;gap:8px}
 .new-thread-form input{flex:1;padding:8px}

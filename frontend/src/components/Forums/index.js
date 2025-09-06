@@ -20,6 +20,7 @@ const Forums = () => {
   const [newThreadBody, setNewThreadBody] = useState('');
   const [newPostBody, setNewPostBody] = useState('');
   const location = useLocation();
+  const [frontStats, setFrontStats] = useState([]);
 
   const canModerate = useMemo(() => !!currentUser, [currentUser]);
 
@@ -27,6 +28,8 @@ const Forums = () => {
     (async () => {
       const cats = await mockApi.getForumCategories();
       setCategories(cats);
+      // Load front-page stats for category tiles
+      try { const stats = await mockApi.getForumStats(); setFrontStats(stats); } catch {}
       const params = new URLSearchParams(location.search);
       const open = params.get('open');
       if (open) {
@@ -176,7 +179,37 @@ const Forums = () => {
         </ul>
       </aside>
       <section className="forums-main">
-        {!selectedCategory && <p>Select a forum category to view threads.</p>}
+        {!selectedCategory && (
+          <div className="forum-front">
+            <div className="forum-subnav">
+              <button className="btn btn-small">Guidelines</button>
+              <button className="btn btn-small">Staff</button>
+              <button className="btn btn-small">Online Users</button>
+              <div style={{marginLeft:'auto', display:'flex', gap:8}}>
+                <input type="search" placeholder="Search" value={search} onChange={e=>setSearch(e.target.value)} />
+                <button className="btn" onClick={()=> { if (categories[0]) loadThreads(categories[0], { page:1, search }); }}>Go</button>
+              </div>
+            </div>
+            <h1 className="forum-title">CarMatch Forums</h1>
+            <div className="forum-sections">
+              {categories.map(cat => {
+                const s = frontStats.find(x => x.id === cat.id) || { threads: 0, posts: 0 };
+                return (
+                  <div key={cat.id} className="forum-card" onClick={()=> loadThreads(cat, { page: 1 })}>
+                    <div className="forum-card-left">
+                      <div className="forum-card-title">{cat.name}</div>
+                      <div className="forum-card-desc">{cat.description}</div>
+                    </div>
+                    <div className="forum-card-right">
+                      <div className="forum-count"><strong>{s.posts}</strong><span>posts</span></div>
+                      <div className="forum-count"><strong>{s.threads}</strong><span>threads</span></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
         {selectedCategory && !activeThread && (
           <div className="threads-view">
             <div className="threads-header">

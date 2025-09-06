@@ -167,6 +167,37 @@ app.get('/forums/categories', (req, res) => {
   res.json(forumCategories);
 });
 
+// Forum stats per category (threads/posts/latest)
+app.get('/forums/stats', async (_req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      // No DB: return categories with zero counts
+      return res.json(forumCategories.map(c => ({
+        id: c.id, name: c.name, description: c.description,
+        threads: 0, posts: 0, latestThread: null,
+      })));
+    }
+    const results = [];
+    for (const c of forumCategories) {
+      const threads = await ForumThread.find({ categoryId: c.id }).sort({ lastPostAt: -1 }).limit(1).lean();
+      const threadCount = await ForumThread.countDocuments({ categoryId: c.id });
+      // Count posts for this category via thread ids
+      let postsCount = 0;
+      const ids = await ForumThread.find({ categoryId: c.id }, { _id: 1 }).lean();
+      if (ids.length) postsCount = await ForumPost.countDocuments({ threadId: { $in: ids.map(t => t._id) } });
+      results.push({
+        id: c.id, name: c.name, description: c.description,
+        threads: threadCount, posts: postsCount,
+        latestThread: threads[0] ? { id: threads[0]._id, title: threads[0].title, lastPostAt: threads[0].lastPostAt } : null,
+      });
+    }
+    res.json(results);
+  } catch (e) {
+    console.error('Forum stats error:', e);
+    res.status(500).json({ message: 'Error computing forum stats' });
+  }
+});
+
 app.get('/forums/categories/:categoryId/threads', async (req, res) => {
   const { categoryId } = req.params;
   const { search = '', page = '1', pageSize = '20' } = req.query;
