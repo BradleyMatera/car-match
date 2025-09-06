@@ -21,6 +21,7 @@ const Forums = () => {
   const [newPostBody, setNewPostBody] = useState('');
   const location = useLocation();
   const [frontStats, setFrontStats] = useState([]);
+  const [showEmoji, setShowEmoji] = useState(false);
 
   const canModerate = useMemo(() => !!currentUser, [currentUser]);
 
@@ -165,6 +166,25 @@ const Forums = () => {
     return { postsInThread: count, stars };
   };
 
+  // Formatting helpers (safe construction of limited HTML from plain text)
+  const escapeHTML = (s) => s.replace(/[&<>"']/g, (c)=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+  const safeUrl = (u) => (/^https?:\/\//i.test(u) ? u : null);
+  const formatPost = (raw) => {
+    if (!raw) return '';
+    const esc = escapeHTML(raw);
+    // blockquote: lines starting with "> "
+    let html = esc.split('\n').map(l => l.startsWith('&gt; ') ? `<blockquote>${l.slice(5)}</blockquote>` : l).join('\n');
+    // simple bold/italic
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/_(.+?)_/g, '<em>$1</em>');
+    // [img](url)
+    html = html.replace(/\[img\]\((https?:[^\s)]+)\)/gi, (m, u) => safeUrl(u) ? `<img src="${u}" alt="image" />` : m);
+    // autolink
+    html = html.replace(/(https?:\/\/[^\s<]+)/g, (m)=>`<a href="${m}" target="_blank" rel="noreferrer">${m}</a>`);
+    // line breaks
+    html = html.replace(/\n/g,'<br/>');
+    return html;
+  };
+
   return (
     <div className="forums-container">
       <aside className="forums-sidebar">
@@ -179,17 +199,21 @@ const Forums = () => {
         </ul>
       </aside>
       <section className="forums-main">
+        <div className="forum-subnav">
+          <button className="btn btn-small">Guidelines</button>
+          <button className="btn btn-small">Staff</button>
+          <button className="btn btn-small">Online Users</button>
+          <div style={{marginLeft:'auto', display:'flex', gap:8}}>
+            <input type="search" placeholder="Search" value={search} onChange={e=>setSearch(e.target.value)} />
+            {selectedCategory ? (
+              <button className="btn" onClick={()=> loadThreads(selectedCategory, { page: 1, search })}>Search</button>
+            ) : (
+              <button className="btn" onClick={()=> { if (categories[0]) loadThreads(categories[0], { page:1, search }); }}>Go</button>
+            )}
+          </div>
+        </div>
         {!selectedCategory && (
           <div className="forum-front">
-            <div className="forum-subnav">
-              <button className="btn btn-small">Guidelines</button>
-              <button className="btn btn-small">Staff</button>
-              <button className="btn btn-small">Online Users</button>
-              <div style={{marginLeft:'auto', display:'flex', gap:8}}>
-                <input type="search" placeholder="Search" value={search} onChange={e=>setSearch(e.target.value)} />
-                <button className="btn" onClick={()=> { if (categories[0]) loadThreads(categories[0], { page:1, search }); }}>Go</button>
-              </div>
-            </div>
             <h1 className="forum-title">CarMatch Forums</h1>
             <div className="forum-sections">
               {categories.map(cat => {
@@ -280,7 +304,7 @@ const Forums = () => {
                         <div className="post-title">{activeThread.title}</div>
                         <div className="post-index">{ordinal(idx)} • {new Date(p.createdAt).toLocaleString()}</div>
                       </header>
-                      <div className="post-content">{p.body}</div>
+                      <div className="post-content" dangerouslySetInnerHTML={{__html: formatPost(p.body)}} />
                       {atts.length>0 && (
                         <div className="post-attachments">
                           <div className="label">Attached Files</div>
@@ -305,7 +329,24 @@ const Forums = () => {
             </ul>
             {currentUser && !activeThread.locked && (
               <form onSubmit={handleAddPost} className="reply-form">
+                <div className="editor-toolbar">
+                  <button type="button" className="btn btn-small" onClick={()=> setNewPostBody(b=> b + '**bold**')}>B</button>
+                  <button type="button" className="btn btn-small" onClick={()=> setNewPostBody(b=> b + '_italic_')}>I</button>
+                  <button type="button" className="btn btn-small" onClick={()=> setNewPostBody(b=> b + '\n> quote')}>Quote</button>
+                  <button type="button" className="btn btn-small" onClick={()=> {
+                    const url = prompt('Image URL (https://...)'); if (url) setNewPostBody(b=> b + `\n[img](${url})\n`);
+                  }}>Image</button>
+                  <button type="button" className="btn btn-small" onClick={()=> setShowEmoji(s=>!s)}>😊</button>
+                </div>
+                {showEmoji && (
+                  <div className="emoji-palette">
+                    {['😀','😁','😂','😍','😎','🤙','👍','🔥','🚗','🏁'].map(e => (
+                      <button type="button" key={e} onClick={()=> setNewPostBody(b=> b + e)}>{e}</button>
+                    ))}
+                  </div>
+                )}
                 <textarea placeholder="Write a reply..." value={newPostBody} onChange={(e)=>setNewPostBody(e.target.value)} />
+                <small>Tip: use **bold**, _italic_, [img](url), and &gt; quote.</small>
                 <button type="submit">Post Reply</button>
               </form>
             )}

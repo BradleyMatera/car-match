@@ -48,6 +48,9 @@
 .reply-form{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 .reply-form textarea{min-height:100px;padding:8px}
 .back-link{background:none;border:none;color:#0d6efd;padding:0;margin-bottom:8px;cursor:pointer}
+.editor-toolbar{display:flex;gap:6px}
+.emoji-palette{display:flex;gap:6px;flex-wrap:wrap}
+.emoji-palette button{border:1px solid #eee;background:#fff;border-radius:6px;padding:4px 6px;cursor:pointer}
 
 /* Modal */
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1000}
