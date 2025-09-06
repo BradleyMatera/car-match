@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const cors = require('cors'); // Import cors
 const mongoose = require('mongoose');
 const { ForumThread, ForumPost } = require('./models/forum');
+let UserModel, EventModel, MessageModel; // loaded only when Mongo is configured
 const app = express();
 const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 
@@ -125,6 +126,10 @@ if (MONGODB_URI) {
     .connect(MONGODB_URI, { serverSelectionTimeoutMS: 5000 })
     .then(async () => {
       console.log('Connected to MongoDB');
+      // Load additional models now that a connection exists
+      UserModel = require('./models/user');
+      EventModel = require('./models/event');
+      MessageModel = require('./models/message');
       // Seed demo forum threads if none
       const count = await ForumThread.countDocuments();
       if (count === 0) {
@@ -133,6 +138,10 @@ if (MONGODB_URI) {
           { categoryId: 'cat2', title: '1968 Mustang Fastback Restoration Log', authorUsername: 'car_lover', createdAt: new Date(), lastPostAt: new Date(), replies: 0 },
         ]);
       }
+      // Ensure events collection exists; if empty, leave seeding to a dedicated script
+      await EventModel.init().catch(()=>{});
+      await MessageModel.init().catch(()=>{});
+      await UserModel.init().catch(()=>{});
     })
     .catch(err => {
       console.error('MongoDB connection failed:', err.message);
@@ -297,8 +306,12 @@ app.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'Username, password, name, displayTag, gender, city, and state are required' });
     }
 
-    // Check if user already exists
-    const existingUser = users.find(user => user.username === username);
+    // Check if user already exists (in-memory)
+    let existingUser = users.find(user => user.username === username);
+    // Also check Mongo if available
+    if (!existingUser && mongoose.connection.readyState === 1 && UserModel) {
+      existingUser = await UserModel.findOne({ username }).lean();
+    }
     if (existingUser) {
       return res.status(409).json({ message: 'Username already exists' });
     }
@@ -329,6 +342,26 @@ app.post('/register', async (req, res) => {
     };
     users.push(newUser);
 
+    // Persist to Mongo if available
+    if (mongoose.connection.readyState === 1 && UserModel) {
+      await UserModel.create({
+        mockId: String(newUser.id),
+        username: newUser.username,
+        email: `${newUser.username}@example.com`,
+        password: newUser.password,
+        name: newUser.name,
+        displayTag: newUser.displayTag,
+        gender: newUser.gender,
+        location: newUser.location,
+        premiumStatus: newUser.premiumStatus,
+        developerOverride: newUser.developerOverride,
+        activityMetadata: newUser.activityMetadata,
+        biography: newUser.biography,
+        profileImage: newUser.profileImage,
+        carInterests: newUser.interests,
+      });
+    }
+
     console.log('Registered User:', newUser); // For debugging
     res.status(201).json({ message: 'User registered successfully', userId: newUser.id });
   } catch (error) {
@@ -346,7 +379,32 @@ app.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Username and password are required' });
     }
 
-    const user = users.find(u => u.username === username);
+    let user = users.find(u => u.username === username);
+    // If not found in-memory, try MongoDB
+    if (!user && mongoose.connection.readyState === 1 && UserModel) {
+      const dbUser = await UserModel.findOne({ username }).lean();
+      if (dbUser) {
+        const ok = await bcrypt.compare(password, dbUser.password);
+        if (!ok) return res.status(401).json({ message: 'Invalid credentials (password mismatch)' });
+        user = {
+          id: dbUser._id.toString(),
+          username: dbUser.username,
+          password: dbUser.password,
+          name: dbUser.name,
+          displayTag: dbUser.displayTag,
+          gender: dbUser.gender,
+          location: dbUser.location,
+          interests: dbUser.carInterests || [],
+          biography: dbUser.biography || '',
+          profileImage: dbUser.profileImage || '',
+          lastLoginTimestamp: null,
+          premiumStatus: !!dbUser.premiumStatus,
+          developerOverride: !!dbUser.developerOverride,
+          activityMetadata: dbUser.activityMetadata || { messageCountToday: 0, lastMessageDate: null },
+          tierSpecificHistory: {}, createdAt: new Date().toISOString()
+        };
+      }
+    }
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials (user not found)' });
     }
@@ -388,7 +446,7 @@ app.post('/login', async (req, res) => {
 });
 
 // Middleware to verify JWT
-function authenticateToken(req, res, next) {
+async function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
@@ -396,7 +454,7 @@ function authenticateToken(req, res, next) {
     return res.sendStatus(401); // if there isn't any token
   }
 
-  jwt.verify(token, JWT_SECRET || 'dev-insecure-secret', (err, decodedPayload) => { 
+  jwt.verify(token, JWT_SECRET || 'dev-insecure-secret', async (err, decodedPayload) => { 
     if (err) {
       console.error('JWT verification error:', err);
       return res.sendStatus(403); // if token is no longer valid
@@ -405,10 +463,18 @@ function authenticateToken(req, res, next) {
       return res.status(401).json({ message: 'Token version expired. Please re-login.' });
     }
     // Find the full user object to get the most up-to-date status, including developerOverride
-    const fullUser = users.find(u => u.id === decodedPayload.userId);
-    if (!fullUser) {
-      return res.sendStatus(401); // User from token not found in our system
+    let fullUser = users.find(u => u.id === decodedPayload.userId || u.username === decodedPayload.username);
+    if (!fullUser && mongoose.connection.readyState === 1 && UserModel) {
+      const dbUser = await UserModel.findOne({ $or: [ { _id: decodedPayload.userId }, { username: decodedPayload.username } ] }).lean();
+      if (dbUser) {
+        fullUser = {
+          id: dbUser._id.toString(), username: dbUser.username, premiumStatus: !!dbUser.premiumStatus,
+          developerOverride: !!dbUser.developerOverride, activityMetadata: dbUser.activityMetadata || { messageCountToday: 0, lastMessageDate: null },
+          location: dbUser.location || {}, gender: dbUser.gender || 'other', name: dbUser.name || dbUser.username
+        };
+      }
     }
+    if (!fullUser) return res.sendStatus(401);
     req.user = fullUser; // Attach the full, current user object
     next(); // proceed to the protected route
   });
@@ -467,7 +533,7 @@ app.get('/protected', authenticateToken, (req, res) => {
 });
 
 // Message sending endpoint
-app.post('/messages', authenticateToken, (req, res) => {
+app.post('/messages', authenticateToken, async (req, res) => {
   try {
     const { recipientUsername, text } = req.body;
     // req.user.username is the sender's username from the JWT
@@ -477,10 +543,14 @@ app.post('/messages', authenticateToken, (req, res) => {
       return res.status(400).json({ message: 'Recipient username and text are required' });
     }
 
-    const recipientUser = users.find(user => user.username === recipientUsername);
-    if (!recipientUser) {
-      return res.status(404).json({ message: 'Recipient not found' });
+    let recipientUser = users.find(user => user.username === recipientUsername);
+    if (!recipientUser && mongoose.connection.readyState === 1 && UserModel) {
+      const dbUser = await UserModel.findOne({ username: recipientUsername }).lean();
+      if (dbUser) {
+        recipientUser = { id: dbUser._id.toString(), username: dbUser.username, premiumStatus: !!dbUser.premiumStatus, developerOverride: !!dbUser.developerOverride };
+      }
     }
+    if (!recipientUser) return res.status(404).json({ message: 'Recipient not found' });
 
     // req.user is now the full sender object from authenticateToken
     const senderUser = req.user; 
@@ -528,6 +598,10 @@ app.post('/messages', authenticateToken, (req, res) => {
     };
     messages.push(newMessage);
 
+    if (mongoose.connection.readyState === 1 && MessageModel) {
+      await MessageModel.create(newMessage);
+    }
+
     if (!isSenderEffectivelyPremium) {
       senderUser.activityMetadata.messageCountToday += 1;
     }
@@ -554,19 +628,21 @@ function getDistanceInMiles(lat1, lon1, lat2, lon2) {
 }
 
 // Inbox endpoint to fetch messages for the logged-in user
-app.get('/messages/inbox', authenticateToken, (req, res) => {
+app.get('/messages/inbox', authenticateToken, async (req, res) => {
   try {
-    const loggedInUserId = req.user.userId; // This is actually the user ID from the previous implementation
-    // req.user is the full loggedInUser object
     const loggedInUser = req.user; 
     const isUserEffectivelyPremium = loggedInUser.premiumStatus || loggedInUser.developerOverride;
 
-    let allUserRelatedMessages = messages.filter(
-      msg => msg.recipientId === loggedInUser.id || msg.senderId === loggedInUser.id
-    );
+    let allUserRelatedMessages = [];
+    if (mongoose.connection.readyState === 1 && MessageModel) {
+      allUserRelatedMessages = await MessageModel.find({ $or: [ { recipientId: loggedInUser.id }, { senderId: loggedInUser.id } ] }).lean();
+    } else {
+      allUserRelatedMessages = messages.filter(msg => msg.recipientId === loggedInUser.id || msg.senderId === loggedInUser.id);
+    }
 
     // Apply premium visibility rules and categorize messages
-    let processedMessages = allUserRelatedMessages.map(msg => {
+    let processedMessages = [];
+    for (const msg of allUserRelatedMessages) {
       let displayMessage = { ...msg }; // Create a copy to modify for display
 
       // Determine effective premium status of the other party in the conversation
@@ -592,13 +668,14 @@ app.get('/messages/inbox', authenticateToken, (req, res) => {
       // Mark as read if recipient is viewing and it's unread (persisting the change)
       if (msg.recipientId === loggedInUser.id && !msg.read) {
         const originalMessageIndex = messages.findIndex(m => m.id === msg.id);
-        if (originalMessageIndex !== -1) {
-          messages[originalMessageIndex].read = true; 
+        if (originalMessageIndex !== -1) messages[originalMessageIndex].read = true;
+        if (mongoose.connection.readyState === 1 && MessageModel && msg._id) {
+          await MessageModel.updateOne({ _id: msg._id }, { $set: { read: true } });
         }
         displayMessage.read = true; // Reflect in the copy being sent
       }
-      return displayMessage;
-    });
+      processedMessages.push(displayMessage);
+    }
     
     // Filtering by category query parameter
     const queryCategory = req.query.category;
@@ -685,7 +762,7 @@ app.get('/messages/inbox', authenticateToken, (req, res) => {
 });
 
 // Event creation endpoint
-app.post('/events', authenticateToken, (req, res) => {
+app.post('/events', authenticateToken, async (req, res) => {
   try {
     const { name, description, date, location } = req.body;
     const createdByUserId = req.user.userId; // userId from JWT payload
@@ -706,6 +783,9 @@ app.post('/events', authenticateToken, (req, res) => {
       rsvps: [] // To store userIds who RSVPed
     };
     events.push(newEvent);
+    if (mongoose.connection.readyState === 1 && EventModel) {
+      await EventModel.create(newEvent);
+    }
 
     console.log('Events:', events); // For debugging
     res.status(201).json({ message: 'Event created successfully', data: newEvent });
@@ -716,16 +796,17 @@ app.post('/events', authenticateToken, (req, res) => {
 });
 
 // RSVP to an event endpoint
-app.post('/events/:eventId/rsvp', authenticateToken, (req, res) => {
+app.post('/events/:eventId/rsvp', authenticateToken, async (req, res) => {
   try {
     const eventId = parseInt(req.params.eventId, 10);
     const rsvpUserId = req.user.userId; // userId from JWT payload
     const rsvpUsername = req.user.username;
 
-    const event = events.find(e => e.id === eventId);
-    if (!event) {
-      return res.status(404).json({ message: 'Event not found' });
+    let event = events.find(e => e.id === eventId);
+    if (!event && mongoose.connection.readyState === 1 && EventModel) {
+      event = await EventModel.findOne({ id: eventId }).lean();
     }
+    if (!event) return res.status(404).json({ message: 'Event not found' });
 
     // Check if user has already RSVPed
     const existingRsvp = rsvps.find(rsvp => rsvp.eventId === eventId && rsvp.userId === rsvpUserId);
@@ -746,6 +827,9 @@ app.post('/events/:eventId/rsvp', authenticateToken, (req, res) => {
       timestamp: new Date().toISOString(),
     };
     rsvps.push(newRsvp);
+    if (mongoose.connection.readyState === 1 && EventModel) {
+      await EventModel.updateOne({ id: eventId }, { $addToSet: { rsvps: rsvpUserId } }, { upsert: true });
+    }
 
     console.log('RSVPs:', rsvps); // For debugging
     res.status(201).json({ message: 'RSVP successful', data: newRsvp });
@@ -756,14 +840,30 @@ app.post('/events/:eventId/rsvp', authenticateToken, (req, res) => {
 });
 
 // Get all events endpoint
-app.get('/events', (req, res) => {
+app.get('/events', async (req, res) => {
   try {
-    // Optionally, you could populate more user details for 'createdBy' if needed
-    const allEvents = events.map(event => ({
-      ...event,
-      // createdBy: users.find(u => u.username === event.createdBy)?.username || event.createdBy // Example if you want to ensure username is there
-    }));
-    res.json(allEvents);
+    if (mongoose.connection.readyState === 1 && EventModel) {
+      const docs = await EventModel.find({}).lean();
+      // Normalize: prefer id from doc.id or fallback to doc._id
+      const items = docs.map(d => ({
+        id: d.id || (d._id?.toString ? undefined : d._id),
+        title: d.title || d.name,
+        name: d.name || d.title,
+        date: d.date,
+        location: d.location,
+        description: d.description,
+        image: d.image,
+        thumbnail: d.thumbnail,
+        schedule: d.schedule || [],
+        comments: d.comments || [],
+        rsvps: d.rsvps || [],
+        rsvpCount: Array.isArray(d.rsvps) ? d.rsvps.length : (d.rsvpCount || 0),
+        createdByUserId: d.createdByUserId,
+        createdByUsername: d.createdByUsername,
+      }));
+      return res.json(items);
+    }
+    res.json(events);
   } catch (error) {
     console.error('Get events error:', error);
     res.status(500).json({ message: 'Error fetching events' });
@@ -771,10 +871,14 @@ app.get('/events', (req, res) => {
 });
 
 // Get user's RSVPs endpoint
-app.get('/my-rsvps', authenticateToken, (req, res) => {
+app.get('/my-rsvps', authenticateToken, async (req, res) => {
   try {
     const rsvpUserId = req.user.userId;
-    const userRsvps = rsvps.filter(rsvp => rsvp.userId === rsvpUserId);
+    let userRsvps = rsvps.filter(rsvp => rsvp.userId === rsvpUserId);
+    if (mongoose.connection.readyState === 1 && EventModel) {
+      const docs = await EventModel.find({ rsvps: rsvpUserId }, { id: 1 }).lean();
+      userRsvps = docs.map(d => ({ id: 0, eventId: d.id, userId: rsvpUserId, username: req.user.username, timestamp: new Date().toISOString() }));
+    }
     
     // Optionally, enrich RSVP data with event details
     const enrichedRsvps = userRsvps.map(rsvp => {
