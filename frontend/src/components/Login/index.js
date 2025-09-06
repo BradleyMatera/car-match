@@ -35,7 +35,7 @@ const Login = () => { // Removed onLoginSuccess prop
         <h2>Login</h2>
         {error && <p className="error-text">{error}</p>}
         <div className="form-group">
-          <label htmlFor="username">Username</label>
+          <label htmlFor="username">Email or Username</label>
           <input
             type="text"
             id="username"

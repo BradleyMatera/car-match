@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (username, password) => {
-    const userData = await mockApi.loginUser(username, password); // Fetches from backend
+    const userData = await mockApi.loginUser(username, password).catch((e)=>{ throw e; }); // Fetches from backend
     localStorage.setItem('authToken', userData.token);
     localStorage.setItem('currentUser', JSON.stringify(userData));
     setToken(userData.token);
