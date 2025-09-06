@@ -147,6 +147,21 @@ const Forums = () => {
     } catch (e) { alert(e.message || 'Failed to report'); }
   };
 
+  // --- Helpers for forum-like presentation ---
+  const ordinal = (i) => `#${i+1}`;
+  const extractAttachments = (text) => {
+    if (!text) return [];
+    const rgx = /(https?:\/\/\S+?\.(zip|rar|7z|pdf|png|jpg|jpeg|gif))(?!\S)/gi;
+    const out = []; let m;
+    while ((m = rgx.exec(text)) !== null) out.push({ url: m[1], name: m[1].split('/').pop() });
+    return out;
+  };
+  const authorStats = (username) => {
+    const count = threadPosts.filter(p => (p.authorUsername||p.author) === username).length;
+    const stars = Math.max(1, Math.min(5, Math.ceil(count/3)));
+    return { postsInThread: count, stars };
+  };
+
   return (
     <div className="forums-container">
       <aside className="forums-sidebar">
@@ -203,18 +218,57 @@ const Forums = () => {
         {selectedCategory && activeThread && (
           <div className="thread-view">
             <button className="back-link" onClick={()=>{ setActiveThread(null); setThreadPosts([]); }}>← Back to threads</button>
-            <h3>{activeThread.title}</h3>
+            <div className="thread-toolbar">
+              <div className="crumbs">{selectedCategory?.name} ▸ {activeThread.title}</div>
+              <div className="tools">
+                {canModerate && (
+                  <>
+                    <button className="btn btn-small" onClick={()=>pinToggle(activeThread, !activeThread.pinned)}>{activeThread.pinned? 'Unpin' : 'Pin'}</button>
+                    <button className="btn btn-small" onClick={()=>lockToggle(activeThread, !activeThread.locked)}>{activeThread.locked? 'Unlock' : 'Lock'}</button>
+                  </>
+                )}
+              </div>
+            </div>
             <ul className="post-list">
-              {threadPosts.map(p => (
-                <li key={p.id} className="post-item">
-                  <div className="post-meta">{p.author || p.authorUsername} • {new Date(p.createdAt).toLocaleString()}</div>
-                  <div className="post-body">{p.body}</div>
-                  <div style={{marginTop:6, display:'flex', gap:8}}>
-                    <button className="btn btn-small" onClick={()=>{ setNewPostBody(prev => prev + `\n> ${p.body.replaceAll('\n','\n> ')}\n\n`); }}>Quote</button>
-                    <button className="btn btn-small" onClick={()=>reportPost(p)}>Report</button>
-                  </div>
-                </li>
-              ))}
+              {threadPosts.map((p, idx) => {
+                const author = p.authorUsername || p.author || 'user';
+                const stats = authorStats(author);
+                const atts = extractAttachments(p.body);
+                return (
+                  <li key={p.id} className="post-item post-row">
+                    <aside className="post-author">
+                      <div className="avatar" aria-hidden>👤</div>
+                      <div className="author-name">{author}</div>
+                      <div className="rank">Member {'★'.repeat(stats.stars)}</div>
+                      <div className="meta">Posts (thread): {stats.postsInThread}</div>
+                    </aside>
+                    <article className="post-main">
+                      <header className="post-header">
+                        <div className="post-title">{activeThread.title}</div>
+                        <div className="post-index">{ordinal(idx)} • {new Date(p.createdAt).toLocaleString()}</div>
+                      </header>
+                      <div className="post-content">{p.body}</div>
+                      {atts.length>0 && (
+                        <div className="post-attachments">
+                          <div className="label">Attached Files</div>
+                          <ul>
+                            {atts.map(a => (<li key={a.url}><a href={a.url} target="_blank" rel="noreferrer">{a.name}</a></li>))}
+                          </ul>
+                        </div>
+                      )}
+                      <footer className="post-actions">
+                        <button className="btn btn-small" onClick={()=>{ setNewPostBody(prev => prev + `\n> ${p.body.replaceAll('\n','\n> ')}\n\n`); }}>Quote</button>
+                        <button className="btn btn-small" onClick={()=>reportPost(p)}>Report</button>
+                      </footer>
+                    </article>
+                    <aside className="post-side">
+                      <div>Joined: —</div>
+                      <div>Thanks Given: —</div>
+                      <div>Thanks Recv: —</div>
+                    </aside>
+                  </li>
+                );
+              })}
             </ul>
             {currentUser && !activeThread.locked && (
               <form onSubmit={handleAddPost} className="reply-form">
