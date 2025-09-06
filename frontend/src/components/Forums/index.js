@@ -157,7 +157,7 @@ const Forums = () => {
             {threads.length === 0 && <p>No threads yet. Be the first to post!</p>}
             <ul className="thread-list">
               {threads.map(th => (
-                <li key={th.id} className="thread-item">
+                <li key={getThreadId(th)} className="thread-item">
                   <div className="title" onClick={()=>openThread(th)}>
                     {th.pinned ? '📌 ' : ''}{th.title}
                   </div>
