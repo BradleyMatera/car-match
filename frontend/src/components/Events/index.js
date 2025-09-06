@@ -12,7 +12,6 @@ import Section from '../Section';
 const Events = () => {
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [newComment, setNewComment] = useState('');
   const [rsvpStatus, setRsvpStatus] = useState({});
   const { currentUser, token } = React.useContext(AuthContext);
 
@@ -37,7 +36,7 @@ const Events = () => {
       }
     };
     loadEvents();
-  }, []);
+  }, [token]);
 
   const handleRsvpToggle = async (eventId) => {
     try {
