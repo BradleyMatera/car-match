@@ -701,20 +701,20 @@ function getDistanceInMiles(lat1, lon1, lat2, lon2) {
 // --- Helpers: Events ---
 const isObjectIdLike = (v) => typeof v === 'string' && /^[a-fA-F0-9]{24}$/.test(v);
 async function findEventByParam(eventIdParam) {
-  // Try memory first by number
+  // Prefer persistent DB if available
   const n = Number(eventIdParam);
-  if (!Number.isNaN(n)) {
-    let ev = events.find(e => e.id === n);
-    if (ev) return { ev, source: 'mem' };
-    if (mongoose.connection.readyState === 1 && EventModel) {
-      const doc = await EventModel.findOne({ id: n });
-      if (doc) return { ev: doc, source: 'db' };
-    }
+  if (!Number.isNaN(n) && mongoose.connection.readyState === 1 && EventModel) {
+    const doc = await EventModel.findOne({ id: n });
+    if (doc) return { ev: doc, source: 'db' };
   }
-  // Try Mongo _id fallback
   if (mongoose.connection.readyState === 1 && EventModel && isObjectIdLike(eventIdParam)) {
     const doc = await EventModel.findById(eventIdParam);
     if (doc) return { ev: doc, source: 'db' };
+  }
+  // Fallback to in-memory
+  if (!Number.isNaN(n)) {
+    const evMem = events.find(e => e.id === n);
+    if (evMem) return { ev: evMem, source: 'mem' };
   }
   return { ev: null, source: null };
 }
