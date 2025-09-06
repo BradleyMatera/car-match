@@ -207,6 +207,25 @@ app.get('/forums/stats', async (_req, res) => {
   }
 });
 
+// Site-wide snapshot metrics
+app.get('/stats/site', async (_req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.json({ users: 0, threads: 0, posts: 0, events: events.length });
+    }
+    const [users, threads, posts, eventsCount] = await Promise.all([
+      (async ()=> { try { const U = require('./models/user'); return await U.countDocuments({}); } catch { return 0; } })(),
+      ForumThread.countDocuments({}),
+      ForumPost.countDocuments({}),
+      (async ()=> { try { return await EventModel.countDocuments({}); } catch { return 0; } })(),
+    ]);
+    res.json({ users, threads, posts, events: eventsCount });
+  } catch (e) {
+    console.error('Site stats error:', e);
+    res.status(500).json({ message: 'Error computing site stats' });
+  }
+});
+
 app.get('/forums/categories/:categoryId/threads', async (req, res) => {
   const { categoryId } = req.params;
   const { search = '', page = '1', pageSize = '20' } = req.query;

@@ -122,6 +122,7 @@ const api = {
   // --- Forums ---
   getForumCategories: async () => ok(await fetch(`${API_BASE_URL}/forums/categories`)).then(json),
   getForumStats: async () => ok(await fetch(`${API_BASE_URL}/forums/stats`)).then(json),
+  getSiteStats: async () => ok(await fetch(`${API_BASE_URL}/stats/site`)).then(json),
 
   getThreadsByCategory: async (categoryId, { search = '', page = 1, pageSize = 20 } = {}) => {
     const qs = new URLSearchParams({ search, page: String(page), pageSize: String(pageSize) }).toString();

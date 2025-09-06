@@ -1,11 +1,40 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Section from '../Section';
 import Grid from '../Grid';
 import Spacing from '../Spacing';
 import './Home.css';
+import mockApi from '../../api/mockApi';
 
 const Home = () => {
+  const [stats, setStats] = useState({ users: 0, threads: 0, posts: 0, events: 0 });
+  const [forumSections, setForumSections] = useState([]); // {id,name,threads,posts}
+  const [latestThreads, setLatestThreads] = useState([]); // flattened + sorted by lastPostAt
+
+  useEffect(() => {
+    (async () => {
+      try {
+        // Site snapshot
+        try { setStats(await mockApi.getSiteStats()); } catch {}
+        // Forum category stats for the front cards
+        let sections = [];
+        try { sections = await mockApi.getForumStats(); } catch {}
+        setForumSections(sections || []);
+        // Latest threads: pull small page from each category and sort by lastPostAt
+        try {
+          const cats = await mockApi.getForumCategories();
+          const all = await Promise.all((cats||[]).map(c => mockApi.getThreadsByCategory(c.id, { page:1, pageSize:3 })));
+          const flat = [];
+          all.forEach((resp,i) => {
+            const items = Array.isArray(resp)?resp:(resp.items||[]);
+            items.forEach(t => flat.push({ ...t, categoryId:(cats[i]||{}).id, categoryName:(cats[i]||{}).name }));
+          });
+          flat.sort((a,b) => new Date(b.lastPostAt||b.createdAt) - new Date(a.lastPostAt||a.createdAt));
+          setLatestThreads(flat.slice(0,6));
+        } catch {}
+      } catch {}
+    })();
+  }, []);
   return (
     <div className="homepage-container">
       {/* Hero Section */}
@@ -19,6 +48,45 @@ const Home = () => {
           <Link to="/events" className="cta-button">Explore Events</Link>
         </div>
       </section>
+
+      {/* Snapshot */}
+      <Section>
+        <h2 className="section-title">Community Snapshot</h2>
+        <Grid cols={2} mdCols={4} gap="lg">
+          <div className="stat-card"><div className="stat-num">{stats.users}</div><div className="stat-label">Members</div></div>
+          <div className="stat-card"><div className="stat-num">{stats.threads}</div><div className="stat-label">Threads</div></div>
+          <div className="stat-card"><div className="stat-num">{stats.posts}</div><div className="stat-label">Posts</div></div>
+          <div className="stat-card"><div className="stat-num">{stats.events}</div><div className="stat-label">Events</div></div>
+        </Grid>
+      </Section>
+
+      {/* Forum front tiles */}
+      <Section background="light">
+        <h2 className="section-title">Forums</h2>
+        <div className="forum-front-cards">
+          {(forumSections||[]).map(s => (
+            <Link key={s.id} to={`/forums`} className="forum-card" onClick={(e)=>{ /* let user click, they can select category in sidebar */ }}>
+              <div className="forum-card-title">{s.name}</div>
+              <div className="forum-card-desc">{s.description}</div>
+              <div className="forum-card-stats"><span>{s.posts} posts</span><span>{s.threads} threads</span></div>
+            </Link>
+          ))}
+        </div>
+      </Section>
+
+      {/* Latest discussions */}
+      <Section>
+        <h2 className="section-title">Latest Discussions</h2>
+        <ul className="latest-threads">
+          {latestThreads.map(t => (
+            <li key={t.id} className="lt-item">
+              <div className="lt-title"><Link to={`/forums?open=${t.id || t._id}`}>{t.title}</Link></div>
+              <div className="lt-meta">{t.categoryName} • {new Date(t.lastPostAt || t.createdAt).toLocaleString()} • {t.replies||0} replies</div>
+            </li>
+          ))}
+          {latestThreads.length === 0 && (<li className="lt-item">No discussions yet.</li>)}
+        </ul>
+      </Section>
 
       {/* Intro Section */}
       <Section>
