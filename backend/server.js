@@ -1029,6 +1029,31 @@ app.get('/events/:eventId', async (req, res) => {
   }
 });
 
+// Ensure an event has a linked forum thread; create if missing, return normalized event
+app.post('/events/:eventId/ensure-thread', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1 || !EventModel) return res.status(503).json({ message: 'Database not available' });
+    const { ev, source } = await findEventByParam(req.params.eventId);
+    if (!ev || source !== 'db') return res.status(404).json({ message: 'Event not found' });
+    const doc = await EventModel.findById(ev._id);
+    if (!doc.threadId) {
+      const title = doc.name || doc.title || 'Event';
+      const thread = await ForumThread.create({ categoryId: 'cat3', title, authorId: doc.createdByUserId, authorUsername: doc.createdByUsername });
+      doc.threadId = thread._id;
+      await doc.save();
+      // Post intro
+      try {
+        const intro = `Event: ${title}\nDate: ${doc.date}\nLocation: ${doc.location}\n\n${doc.description || ''}`;
+        await ForumPost.create({ threadId: thread._id, authorId: doc.createdByUserId, authorUsername: doc.createdByUsername, body: intro });
+      } catch (e) { console.warn('Intro post failed:', e.message); }
+    }
+    return res.json({ id: doc.id || doc._id.toString(), name: doc.name, title: doc.title || doc.name, date: doc.date, location: doc.location, description: doc.description, image: doc.image, thumbnail: doc.thumbnail, schedule: doc.schedule || [], comments: doc.comments || [], rsvps: doc.rsvps || [], rsvpCount: Array.isArray(doc.rsvps) ? doc.rsvps.length : 0, createdByUserId: doc.createdByUserId, createdByUsername: doc.createdByUsername, threadId: doc.threadId });
+  } catch (e) {
+    console.error('Ensure thread error:', e);
+    res.status(500).json({ message: 'Error ensuring thread' });
+  }
+});
+
 // Get user's RSVPs endpoint
 app.get('/my-rsvps', authenticateToken, async (req, res) => {
   try {

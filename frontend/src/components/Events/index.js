@@ -168,7 +168,9 @@ const Events = () => {
           <Slider {...carouselSettings}>
             {events.slice(0, 10).map(event => (
               <div key={event.id} className="carousel-slide">
-                <div className="carousel-card" onClick={() => setSelectedEvent(event)}>
+                <div className="carousel-card" onClick={async () => {
+                  try { const ev = await mockApi.getEvent(event.id); setSelectedEvent(ev); } catch { setSelectedEvent(event); }
+                }}>
                   <img src={event.image} alt={event.title} className="card-img" />
                   <div className="carousel-content">
                     <h3>{event.title}</h3>
@@ -186,11 +188,17 @@ const Events = () => {
                     <div className="event-meta" style={{marginTop:6}}>
                       <span>Organizer: {event.createdByUsername || 'Unknown'}</span>
                     </div>
-                    {event.threadId && (
-                      <div style={{marginTop:8}}>
-                        <button className="btn btn-small" onClick={(e)=>{ e.stopPropagation(); window.location.hash = `#/forums?open=${event.threadId}`; }}>View Discussion</button>
-                      </div>
-                    )}
+                    <div style={{marginTop:8}}>
+                      <button className="btn btn-small" onClick={async (e)=>{ 
+                        e.stopPropagation(); 
+                        try { 
+                          const ensured = event.threadId ? null : await mockApi.ensureEventThread(event.id);
+                          const tid = (event.threadId) || ensured?.threadId;
+                          if (tid) window.location.hash = `#/forums?open=${tid}`;
+                          else alert('Thread not ready; try again in a moment.');
+                        } catch { alert('Unable to open discussion right now.'); }
+                      }}>View Discussion</button>
+                    </div>
                     <button 
                       className={`rsvp-button small ${rsvpStatus[String(event.id)] ? 'rsvp-confirmed' : ''}`}
                       onClick={(e) => {

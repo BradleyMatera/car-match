@@ -97,6 +97,8 @@ const api = {
   },
   getEvent: async (eventId) =>
     ok(await fetch(`${API_BASE_URL}/events/${encodeURIComponent(eventId)}`)).then(json),
+  ensureEventThread: async (eventId) =>
+    ok(await fetch(`${API_BASE_URL}/events/${encodeURIComponent(eventId)}/ensure-thread`, { method: 'POST' })).then(json),
 
   rsvpToEvent: async (token, eventId) =>
     ok(await fetch(`${API_BASE_URL}/events/${encodeURIComponent(eventId)}/rsvp`, { method: 'POST', headers: { ...jsonHeader, ...authHeader(token) } })).then(json),
