@@ -3,19 +3,24 @@
   max-width: var(--container-xl);
   margin: 0 auto;
   padding: var(--space-xl);
+  position: relative; /* create stacking context for foreground */
+  z-index: 0;
+}
+/* Ensure all foreground content stays above the background layer */
+.events-container > *:not(.events-bg) {
   position: relative;
-  z-index: 1; /* sit above fixed bg */
+  z-index: 1;
 }
 
 /* Full-page, ultra-faded rotating background */
 .events-bg{
   position: fixed;
   inset: 0;
-  z-index: 0;
+  z-index: -1; /* always behind content */
   background-size: cover;
   background-position: center;
-  filter: grayscale(100%);
-  opacity: 1; /* faded but visible */
+  filter: grayscale(50%);
+  opacity: .75; /* faded but visible */
   transition: background-image 1s ease-in-out;
   pointer-events: none;
 }
