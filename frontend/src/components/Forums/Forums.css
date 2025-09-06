@@ -6,11 +6,11 @@
 .forums-sidebar button{background:none;border:none;color:#0d6efd;text-align:left;padding:0;cursor:pointer}
 .cat-desc{font-size:12px;color:#666;margin:4px 0 0}
 .forums-main{flex:1}
-.threads-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.threads-header{display:flex;gap:12px;align-items:center;margin-bottom:12px;position:relative}
 .new-thread-form{display:flex;gap:8px}
 .new-thread-form input{flex:1;padding:8px}
-.thread-list{list-style:none;margin:0;padding:0}
-.thread-item{padding:12px;border:1px solid #eee;border-radius:8px;margin-bottom:8px;cursor:pointer}
+.thread-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.thread-item{padding:12px;border:1px solid #eee;border-radius:8px;cursor:pointer;background:#fff}
 .thread-item .title{font-weight:600}
 .thread-item .meta{font-size:12px;color:#666}
 .thread-view .post-list{list-style:none;margin:0;padding:0}
@@ -19,3 +19,16 @@
 .reply-form{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 .reply-form textarea{min-height:100px;padding:8px}
 .back-link{background:none;border:none;color:#0d6efd;padding:0;margin-bottom:8px;cursor:pointer}
+
+/* Modal */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1000}
+.modal{background:#fff;width:min(680px,92vw);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.2);overflow:hidden}
+.modal header{padding:14px 16px;border-bottom:1px solid #eee;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.modal .content{padding:16px;display:flex;flex-direction:column;gap:10px}
+.modal .row{display:flex;flex-direction:column;gap:6px}
+.modal input,.modal textarea{width:100%;border:1px solid #ddd;border-radius:8px;padding:10px;font-size:14px}
+.modal footer{padding:12px 16px;border-top:1px solid #eee;display:flex;gap:10px;justify-content:flex-end}
+.btn{border:0;border-radius:8px;padding:8px 12px;cursor:pointer;background:#f3f3f3}
+.btn-primary{background:#61c200;color:#fff}
+.btn-warning{background:#ffd4d4}
+.btn-small{padding:6px 10px;font-size:12px}

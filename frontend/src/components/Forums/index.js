@@ -16,6 +16,8 @@ const Forums = () => {
   const [activeThread, setActiveThread] = useState(null);
   const [threadPosts, setThreadPosts] = useState([]);
   const [newThreadTitle, setNewThreadTitle] = useState('');
+  const [showThreadModal, setShowThreadModal] = useState(false);
+  const [newThreadBody, setNewThreadBody] = useState('');
   const [newPostBody, setNewPostBody] = useState('');
   const location = useLocation();
 
@@ -79,7 +81,13 @@ const Forums = () => {
     try {
       if (!token) { alert('Please log in.'); return; }
       newThread = await mockApi.createThread(token, { categoryId: selectedCategory.id, title: newThreadTitle.trim() });
+      // Optionally create first post body if provided
+      if (newThreadBody.trim()) {
+        await mockApi.addPostToThread(token, { threadId: getThreadId(newThread), body: newThreadBody.trim() });
+      }
       setNewThreadTitle('');
+      setNewThreadBody('');
+      setShowThreadModal(false);
       await loadThreads(selectedCategory, { page: 1 });
       openThread(newThread);
     } catch (err) {
@@ -163,10 +171,7 @@ const Forums = () => {
                 <button onClick={()=> loadThreads(selectedCategory, { page: 1, search })}>Search</button>
               </div>
               {currentUser && (
-                <form onSubmit={handleCreateThread} className="new-thread-form">
-                  <input type="text" placeholder="Start a new thread..." value={newThreadTitle} onChange={(e)=>setNewThreadTitle(e.target.value)} />
-                  <button type="submit">Create</button>
-                </form>
+                <button className="btn btn-primary" onClick={()=> setShowThreadModal(true)}>New Thread</button>
               )}
             </div>
             {threads.length === 0 && <p>No threads yet. Be the first to post!</p>}
@@ -204,8 +209,9 @@ const Forums = () => {
                 <li key={p.id} className="post-item">
                   <div className="post-meta">{p.author || p.authorUsername} • {new Date(p.createdAt).toLocaleString()}</div>
                   <div className="post-body">{p.body}</div>
-                  <div style={{marginTop:6}}>
-                    <button onClick={()=>reportPost(p)}>Report</button>
+                  <div style={{marginTop:6, display:'flex', gap:8}}>
+                    <button className="btn btn-small" onClick={()=>{ setNewPostBody(prev => prev + `\n> ${p.body.replaceAll('\n','\n> ')}\n\n`); }}>Quote</button>
+                    <button className="btn btn-small" onClick={()=>reportPost(p)}>Report</button>
                   </div>
                 </li>
               ))}
@@ -220,6 +226,32 @@ const Forums = () => {
           </div>
         )}
       </section>
+      {showThreadModal && (
+        <div className="modal-backdrop" onClick={(e)=>{ if (e.target.classList.contains('modal-backdrop')) setShowThreadModal(false); }}>
+          <div className="modal" role="dialog" aria-modal="true">
+            <header>
+              <span>New Thread — {selectedCategory?.name || ''}</span>
+              <button className="btn" onClick={()=> setShowThreadModal(false)}>✕</button>
+            </header>
+            <form onSubmit={handleCreateThread}>
+              <div className="content">
+                <div className="row">
+                  <label>Title</label>
+                  <input value={newThreadTitle} onChange={e=>setNewThreadTitle(e.target.value)} placeholder="Thread title" required />
+                </div>
+                <div className="row">
+                  <label>Body (optional)</label>
+                  <textarea value={newThreadBody} onChange={e=>setNewThreadBody(e.target.value)} placeholder="Write the first post..." rows={8} />
+                </div>
+              </div>
+              <footer>
+                <button type="button" className="btn" onClick={()=> setShowThreadModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Create Thread</button>
+              </footer>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

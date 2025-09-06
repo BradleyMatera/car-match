@@ -270,6 +270,7 @@ const Events = () => {
                                 <button className="btn btn-small" onClick={()=>{ setEditingCommentId(null); setEditCommentText(''); }}>Cancel</button>
                               </>
                             )}
+                            <button className="btn btn-small btn-warning" onClick={async ()=>{ if (!window.confirm('Delete this comment?')) return; try { await mockApi.deleteEventComment(token, selectedEvent.id, comment.id); await refreshEvents(); } catch(e){ alert(e.message||'Failed to delete'); } }}>Delete</button>
                           </div>
                         )}
                       </div>

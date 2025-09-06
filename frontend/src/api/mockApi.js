@@ -157,6 +157,8 @@ const api = {
     ok(await fetch(`${API_BASE_URL}/events/${encodeURIComponent(eventId)}/comments`, { method: 'POST', headers: { ...jsonHeader, ...authHeader(token) }, body: JSON.stringify({ text }) })).then(json),
   editEventComment: async (token, eventId, commentId, text) =>
     ok(await fetch(`${API_BASE_URL}/events/${encodeURIComponent(eventId)}/comments/${encodeURIComponent(commentId)}`, { method: 'PUT', headers: { ...jsonHeader, ...authHeader(token) }, body: JSON.stringify({ text }) })).then(json),
+  deleteEventComment: async (token, eventId, commentId) =>
+    ok(await fetch(`${API_BASE_URL}/events/${encodeURIComponent(eventId)}/comments/${encodeURIComponent(commentId)}`, { method: 'DELETE', headers: { ...authHeader(token) } })).then(json),
   updateProfile: async (data) => {
     // Persist locally so the UI reflects changes; real backend endpoint not implemented yet
     const cur = getStoredUser() || {};

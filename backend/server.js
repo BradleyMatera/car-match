@@ -142,6 +142,18 @@ if (MONGODB_URI) {
       await EventModel.init().catch(()=>{});
       await MessageModel.init().catch(()=>{});
       await UserModel.init().catch(()=>{});
+
+      // Ensure every event has a forum thread under Events & Meetups (cat3)
+      try {
+        const evs = await EventModel.find({ $or: [ { threadId: { $exists: false } }, { threadId: null } ] }).lean();
+        for (const e of evs) {
+          const title = e.name || e.title || 'Event';
+          const thread = await ForumThread.create({ categoryId: 'cat3', title, authorId: e.createdByUserId, authorUsername: e.createdByUsername });
+          await EventModel.updateOne({ _id: e._id }, { $set: { threadId: thread._id } });
+        }
+      } catch (se) {
+        console.warn('Event-thread sync warning:', se.message);
+      }
     })
     .catch(err => {
       console.error('MongoDB connection failed:', err.message);
@@ -164,6 +176,7 @@ app.get('/forums/categories/:categoryId/threads', async (req, res) => {
     if (mongoose.connection.readyState === 1) {
       const filter = { categoryId };
       if (search) filter.title = { $regex: String(search), $options: 'i' };
+      // Include auto-created event threads in this category (event sync above ensures presence)
       const total = await ForumThread.countDocuments(filter);
       const items = await ForumThread.find(filter)
         .sort({ pinned: -1, lastPostAt: -1 })
@@ -204,7 +217,12 @@ app.get('/forums/threads/:threadId', async (req, res) => {
       const thread = await ForumThread.findById(threadId).lean();
       if (!thread) return res.status(404).json({ message: 'Thread not found' });
       const posts = await ForumPost.find({ threadId: thread._id }).sort({ createdAt: 1 }).lean();
-      return res.json({ thread, posts });
+      // If thread is tied to an event, include a hint for UI
+      let event = null;
+      if (EventModel) {
+        event = await EventModel.findOne({ threadId: thread._id }).lean();
+      }
+      return res.json({ thread, posts, event });
     }
     return res.status(503).json({ message: 'Database not available' });
   } catch (e) {
@@ -240,9 +258,18 @@ app.patch('/forums/threads/:threadId/pin', authenticateToken, async (req, res) =
   const { pinned } = req.body;
   try {
     if (mongoose.connection.readyState === 1) {
-      const thread = await ForumThread.findByIdAndUpdate(threadId, { pinned: !!pinned }, { new: true }).lean();
-      if (!thread) return res.status(404).json({ message: 'Thread not found' });
-      return res.json({ ok: true, thread });
+      const threadDoc = await ForumThread.findById(threadId);
+      if (!threadDoc) return res.status(404).json({ message: 'Thread not found' });
+      // If thread belongs to an event, only event owner or devOverride may pin
+      const ev = await EventModel.findOne({ threadId: threadDoc._id });
+      if (ev) {
+        const uid = String(req.user.id || req.user.userId);
+        const can = String(ev.createdByUserId) === uid || req.user.developerOverride;
+        if (!can) return res.status(403).json({ message: 'Forbidden' });
+      }
+      threadDoc.pinned = !!pinned;
+      await threadDoc.save();
+      return res.json({ ok: true, thread: threadDoc.toObject() });
     }
     return res.status(503).json({ message: 'Database not available' });
   } catch (e) {
@@ -256,9 +283,17 @@ app.patch('/forums/threads/:threadId/lock', authenticateToken, async (req, res) 
   const { locked } = req.body;
   try {
     if (mongoose.connection.readyState === 1) {
-      const thread = await ForumThread.findByIdAndUpdate(threadId, { locked: !!locked }, { new: true }).lean();
-      if (!thread) return res.status(404).json({ message: 'Thread not found' });
-      return res.json({ ok: true, thread });
+      const threadDoc = await ForumThread.findById(threadId);
+      if (!threadDoc) return res.status(404).json({ message: 'Thread not found' });
+      const ev = await EventModel.findOne({ threadId: threadDoc._id });
+      if (ev) {
+        const uid = String(req.user.id || req.user.userId);
+        const can = String(ev.createdByUserId) === uid || req.user.developerOverride;
+        if (!can) return res.status(403).json({ message: 'Forbidden' });
+      }
+      threadDoc.locked = !!locked;
+      await threadDoc.save();
+      return res.json({ ok: true, thread: threadDoc.toObject() });
     }
     return res.status(503).json({ message: 'Database not available' });
   } catch (e) {
@@ -1009,6 +1044,37 @@ app.put('/events/:eventId/comments/:commentId', authenticateToken, async (req, r
   } catch (e) {
     console.error('Edit comment error:', e);
     res.status(500).json({ message: 'Error editing comment' });
+  }
+});
+
+app.delete('/events/:eventId/comments/:commentId', authenticateToken, async (req, res) => {
+  try {
+    const eventIdParam = req.params.eventId;
+    const commentId = parseInt(req.params.commentId, 10);
+    const { ev, source } = await findEventByParam(eventIdParam);
+    if (!ev) return res.status(404).json({ message: 'Event not found' });
+    const userId = String(req.user.id || req.user.userId);
+    if (source === 'db') {
+      const doc = await EventModel.findById(ev._id);
+      const idx = (doc.comments || []).findIndex(x => x.id === commentId);
+      if (idx === -1) return res.status(404).json({ message: 'Comment not found' });
+      const c = doc.comments[idx];
+      const can = String(c.userId) === userId || String(doc.createdByUserId) === userId || req.user.developerOverride;
+      if (!can) return res.status(403).json({ message: 'Forbidden' });
+      doc.comments.splice(idx, 1);
+      await doc.save();
+      return res.json({ ok: true });
+    }
+    const idx = (ev.comments || []).findIndex(x => x.id === commentId);
+    if (idx === -1) return res.status(404).json({ message: 'Comment not found' });
+    const c = ev.comments[idx];
+    const can = String(c.userId) === userId || req.user.developerOverride;
+    if (!can) return res.status(403).json({ message: 'Forbidden' });
+    ev.comments.splice(idx, 1);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('Delete comment error:', e);
+    res.status(500).json({ message: 'Error deleting comment' });
   }
 });
 
