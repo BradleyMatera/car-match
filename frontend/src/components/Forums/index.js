@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useContext, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import './Forums.css';
 import mockApi from '../../api/mockApi';
 import AuthContext from '../../context/AuthContext';
@@ -16,6 +17,7 @@ const Forums = () => {
   const [threadPosts, setThreadPosts] = useState([]);
   const [newThreadTitle, setNewThreadTitle] = useState('');
   const [newPostBody, setNewPostBody] = useState('');
+  const location = useLocation();
 
   const canModerate = useMemo(() => !!currentUser, [currentUser]);
 
@@ -23,8 +25,21 @@ const Forums = () => {
     (async () => {
       const cats = await mockApi.getForumCategories();
       setCategories(cats);
+      const params = new URLSearchParams(location.search);
+      const open = params.get('open');
+      if (open) {
+        try {
+          const data = await mockApi.getThreadById(open);
+          if (data?.thread) {
+            const cat = cats.find(c => c.id === data.thread.categoryId);
+            if (cat) setSelectedCategory(cat);
+            setActiveThread(data.thread);
+            setThreadPosts(data.posts);
+          }
+        } catch {}
+      }
     })();
-  }, []);
+  }, [location.search]);
 
   const loadThreads = async (cat, opts = {}) => {
     setSelectedCategory(cat);

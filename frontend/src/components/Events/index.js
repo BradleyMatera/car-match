@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { Link } from 'react-router-dom';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import './Events.css';
@@ -14,7 +15,15 @@ const Events = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [newComment, setNewComment] = useState('');
   const [rsvpStatus, setRsvpStatus] = useState({});
-  const { currentUser, token } = React.useContext(AuthContext);
+  const { currentUser, token } = useContext(AuthContext);
+  const isOwner = selectedEvent && currentUser && String(selectedEvent.createdByUserId) === String(currentUser.id);
+  const canModerate = isOwner || currentUser?.developerOverride;
+  const [showCreate, setShowCreate] = useState(false);
+  const [createData, setCreateData] = useState({ name: '', description: '', date: '', location: '' });
+  const [editingEvent, setEditingEvent] = useState(false);
+  const [editData, setEditData] = useState({ name: '', description: '', date: '', location: '' });
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editCommentText, setEditCommentText] = useState('');
 
   useEffect(() => {
     const loadEvents = async () => {
@@ -39,6 +48,15 @@ const Events = () => {
     loadEvents();
   }, [token]);
 
+  const refreshEvents = async () => {
+    const refreshed = await mockApi.getEvents();
+    setEvents(refreshed.map(ev => ({ ...ev, start: new Date(ev.date), end: new Date(ev.date) })));
+    if (selectedEvent) {
+      const updated = refreshed.find(e => String(e.id) === String(selectedEvent.id));
+      if (updated) setSelectedEvent(updated);
+    }
+  };
+
   const handleRsvpToggle = async (eventId) => {
     try {
       if (!token || !currentUser) { alert('Please login to RSVP'); return; }
@@ -49,13 +67,7 @@ const Events = () => {
         await mockApi.rsvpToEvent(token, eventId);
         setRsvpStatus(prev => ({ ...prev, [eventId]: true }));
       }
-      // Refresh events to update counts
-      const refreshed = await mockApi.getEvents();
-      setEvents(refreshed.map(ev => ({ ...ev, start: new Date(ev.date), end: new Date(ev.date) })));
-      if (selectedEvent && selectedEvent.id === eventId) {
-        const updated = refreshed.find(e => e.id === eventId);
-        if (updated) setSelectedEvent(updated);
-      }
+      await refreshEvents();
     } catch (error) {
       console.error('Error handling RSVP:', error);
     }
@@ -99,6 +111,20 @@ const Events = () => {
       </header>
 
       <Section>
+        {currentUser && (
+          <div style={{display:'flex',justifyContent:'flex-end',marginBottom:8}}>
+            <button className="btn" onClick={()=> setShowCreate(s=>!s)}>{showCreate? 'Close' : 'New Event'}</button>
+          </div>
+        )}
+        {showCreate && (
+          <form className="event-form" onSubmit={async (e)=>{e.preventDefault(); try { await mockApi.createEvent(token, createData); setShowCreate(false); setCreateData({name:'',description:'',date:'',location:''}); await refreshEvents(); } catch(err){ alert(err.message || 'Failed to create event'); }}}>
+            <input placeholder="Name" value={createData.name} onChange={e=>setCreateData(d=>({...d,name:e.target.value}))} required />
+            <input placeholder="Date (YYYY-MM-DD)" value={createData.date} onChange={e=>setCreateData(d=>({...d,date:e.target.value}))} required />
+            <input placeholder="Location" value={createData.location} onChange={e=>setCreateData(d=>({...d,location:e.target.value}))} required />
+            <textarea placeholder="Description" value={createData.description} onChange={e=>setCreateData(d=>({...d,description:e.target.value}))} required />
+            <button type="submit" className="btn btn-primary">Create</button>
+          </form>
+        )}
         <h2 className="section-title">Upcoming Events</h2>
         <div className="carousel-container">
           <Slider {...carouselSettings}>
@@ -167,6 +193,11 @@ const Events = () => {
               <p>📍 {selectedEvent.location}</p>
               <p>👥 {selectedEvent.rsvpCount} attendees</p>
             </div>
+            {selectedEvent.threadId && (
+              <div style={{marginTop:8}}>
+                <Link to={`/forums?open=${selectedEvent.threadId}`} className="btn btn-secondary">View Discussion</Link>
+              </div>
+            )}
             <div className="rsvp-section">
               <button 
                 className={`rsvp-button ${rsvpStatus[selectedEvent.id] ? 'rsvp-confirmed' : ''}`}
@@ -178,6 +209,24 @@ const Events = () => {
                 <p className="rsvp-confirmation">You are confirmed for this event!</p>
               )}
             </div>
+            {canModerate && !editingEvent && (
+              <div style={{marginTop:8, display:'flex', gap:8}}>
+                <button className="btn" onClick={()=>{ setEditingEvent(true); setEditData({ name: selectedEvent.name, description: selectedEvent.description, date: selectedEvent.date, location: selectedEvent.location }); }}>Edit Event</button>
+                <button className="btn btn-warning" onClick={async ()=>{ if (!window.confirm('Delete this event?')) return; try { await mockApi.deleteEvent(token, selectedEvent.id); setSelectedEvent(null); await refreshEvents(); } catch (e){ alert(e.message||'Failed to delete'); } }}>Delete</button>
+              </div>
+            )}
+            {canModerate && editingEvent && (
+              <form className="event-form" onSubmit={async (e)=>{ e.preventDefault(); try { await mockApi.updateEvent(token, selectedEvent.id, editData); setEditingEvent(false); await refreshEvents(); } catch(err){ alert(err.message||'Failed to update'); } }}>
+                <input placeholder="Name" value={editData.name} onChange={e=>setEditData(d=>({...d,name:e.target.value}))} required />
+                <input placeholder="Date (YYYY-MM-DD)" value={editData.date} onChange={e=>setEditData(d=>({...d,date:e.target.value}))} required />
+                <input placeholder="Location" value={editData.location} onChange={e=>setEditData(d=>({...d,location:e.target.value}))} required />
+                <textarea placeholder="Description" value={editData.description} onChange={e=>setEditData(d=>({...d,description:e.target.value}))} required />
+                <div style={{display:'flex',gap:8}}>
+                  <button type="submit" className="btn btn-primary">Save</button>
+                  <button type="button" className="btn" onClick={()=> setEditingEvent(false)}>Cancel</button>
+                </div>
+              </form>
+            )}
             
             {Array.isArray(selectedEvent.schedule) && selectedEvent.schedule.length > 0 && (
               <>
@@ -197,15 +246,35 @@ const Events = () => {
               <section className="comments-section">
                 <h3>Discussion ({selectedEvent?.comments?.length || 0})</h3>
                 <div className="comments-list">
-                  {(selectedEvent?.comments || []).map(comment => (
-                    <div key={comment.id} className="comment-card">
-                      <div className="comment-header">
-                        <span className="comment-user">{comment.user}</span>
-                        <span className="comment-date">{new Date(comment.timestamp).toLocaleDateString()}</span>
+                  {(selectedEvent?.comments || []).map(comment => {
+                    const canEdit = currentUser && (comment.user === currentUser.username || canModerate || String(comment.userId) === String(currentUser.id));
+                    const isEditing = editingCommentId === comment.id;
+                    return (
+                      <div key={comment.id} className="comment-card">
+                        <div className="comment-header">
+                          <span className="comment-user">{comment.user}</span>
+                          <span className="comment-date">{new Date(comment.timestamp).toLocaleDateString()}</span>
+                        </div>
+                        {!isEditing ? (
+                          <p className="comment-text">{comment.text}</p>
+                        ) : (
+                          <textarea value={editCommentText} onChange={e=>setEditCommentText(e.target.value)} rows={3} />
+                        )}
+                        {canEdit && (
+                          <div style={{display:'flex',gap:8,marginTop:6}}>
+                            {!isEditing ? (
+                              <button className="btn btn-small" onClick={()=>{ setEditingCommentId(comment.id); setEditCommentText(comment.text); }}>Edit</button>
+                            ) : (
+                              <>
+                                <button className="btn btn-small btn-primary" onClick={async ()=>{ try { await mockApi.editEventComment(token, selectedEvent.id, comment.id, editCommentText.trim()); setEditingCommentId(null); setEditCommentText(''); await refreshEvents(); } catch(e){ alert(e.message||'Failed to save'); } }}>Save</button>
+                                <button className="btn btn-small" onClick={()=>{ setEditingCommentId(null); setEditCommentText(''); }}>Cancel</button>
+                              </>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      <p className="comment-text">{comment.text}</p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
             )}
