@@ -1,8 +1,16 @@
 // Thin client for the real backend API (no mock data)
 // Uses REACT_APP_API_BASE_URL; in dev, falls back to http://localhost:3001
 
-const API_BASE_URL = (typeof process !== 'undefined' && process.env && process.env.REACT_APP_API_BASE_URL)
-  || (typeof window !== 'undefined' && window.location?.hostname ? `${window.location.protocol}//${window.location.hostname}:3001` : '');
+const API_BASE_URL = (
+  (typeof process !== 'undefined' && process.env && process.env.REACT_APP_API_BASE_URL)
+  || (typeof window !== 'undefined' && window.location?.hostname && (
+      // If running on GitHub Pages and no env var, default to Render backend
+      /github\.io$/.test(window.location.hostname)
+        ? 'https://car-match-h2gw.onrender.com'
+        : `${window.location.protocol}//${window.location.hostname}:3001`
+     ))
+  || ''
+);
 
 const json = (resp) => resp.json();
 const ok = async (resp) => {
@@ -155,4 +163,3 @@ const api = {
 };
 
 export default api;
-
