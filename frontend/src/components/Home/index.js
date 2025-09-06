@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Section from '../Section';
 import Grid from '../Grid';
-import Spacing from '../Spacing';
 import './Home.css';
 import mockApi from '../../api/mockApi';
 
@@ -45,7 +44,7 @@ const Home = () => {
             Connect with fellow car enthusiasts who share your passion. 
             Discover events, make friends, and find your automotive community.
           </p>
-          <Link to="/events" className="cta-button">Explore Events</Link>
+          {/* Removed Events CTA to simplify hero */}
         </div>
       </section>
 
@@ -95,10 +94,7 @@ const Home = () => {
           Connect with fellow car enthusiasts who share your passion. 
           Meet singles who love muscle cars, JDM tuners, luxury rides, and more.
         </p>
-        <Spacing mt="xl" />
-        <div className="text-center">
-          <Link to="/events" className="btn btn-primary">Browse Events</Link>
-        </div>
+        {/* Removed extra spacing and Events CTA for a cleaner flow */}
       </Section>
 
       {/* Features Section */}
@@ -146,7 +142,7 @@ const Home = () => {
             <div className="card-content">
               <h3 className="card-title">Muscle Cars</h3>
               <p className="card-text">Discover the power and style of American muscle cars.</p>
-              <Link to="/events" className="btn btn-primary">Explore</Link>
+              <Link to="/forums" className="btn btn-primary">Explore</Link>
             </div>
           </div>
           
@@ -160,7 +156,7 @@ const Home = () => {
             <div className="card-content">
               <h3 className="card-title">JDM Imports</h3>
               <p className="card-text">Experience the precision and innovation of Japanese imports.</p>
-              <Link to="/events" className="btn btn-primary">Explore</Link>
+              <Link to="/forums" className="btn btn-primary">Explore</Link>
             </div>
           </div>
           
@@ -174,7 +170,7 @@ const Home = () => {
             <div className="card-content">
               <h3 className="card-title">Classic Cars</h3>
               <p className="card-text">Appreciate the timeless elegance of classic automobiles.</p>
-              <Link to="/events" className="btn btn-primary">Explore</Link>
+              <Link to="/forums" className="btn btn-primary">Explore</Link>
             </div>
           </div>
         </Grid>
@@ -186,10 +182,7 @@ const Home = () => {
         <p className="text-center text-light">
           Connect with car enthusiasts, attend events, and share your passion.
         </p>
-        <Spacing mt="lg" />
-        <div className="text-center">
-          <Link to="/events" className="btn btn-secondary">Browse Events</Link>
-        </div>
+        {/* Removed Events CTA to declutter the footer callout */}
       </Section>
     </div>
   );
