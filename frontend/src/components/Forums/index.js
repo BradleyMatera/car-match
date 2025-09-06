@@ -15,6 +15,7 @@ const Forums = () => {
   const [search, setSearch] = useState('');
   const [activeThread, setActiveThread] = useState(null);
   const [threadPosts, setThreadPosts] = useState([]);
+  const [threadEvent, setThreadEvent] = useState(null);
   const [newThreadTitle, setNewThreadTitle] = useState('');
   const [showThreadModal, setShowThreadModal] = useState(false);
   const [newThreadBody, setNewThreadBody] = useState('');
@@ -75,6 +76,7 @@ const Forums = () => {
     const data = await mockApi.getThreadById(getThreadId(thread));
     setActiveThread(data.thread);
     setThreadPosts(data.posts);
+    setThreadEvent(data.event || null);
   };
 
   const handleCreateThread = async (e) => {
@@ -283,6 +285,9 @@ const Forums = () => {
                     <button className="btn btn-small" onClick={()=>pinToggle(activeThread, !activeThread.pinned)}>{activeThread.pinned? 'Unpin' : 'Pin'}</button>
                     <button className="btn btn-small" onClick={()=>lockToggle(activeThread, !activeThread.locked)}>{activeThread.locked? 'Unlock' : 'Lock'}</button>
                   </>
+                )}
+                {threadEvent && (
+                  <button className="btn btn-small" onClick={()=>{ window.location.hash = `#/events?event=${threadEvent.id || (threadEvent._id && threadEvent._id.toString())}`; }}>View Event</button>
                 )}
               </div>
             </div>

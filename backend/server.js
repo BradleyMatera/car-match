@@ -885,6 +885,9 @@ app.post('/events', authenticateToken, async (req, res) => {
         const thread = await ForumThread.create({ categoryId: 'cat3', title: name, authorId: createdByUserId, authorUsername: createdByUsername });
         await EventModel.updateOne({ _id: saved._id }, { $set: { threadId: thread._id } });
         saved.threadId = thread._id;
+        // Introductory forum post
+        const intro = `Event: ${name}\nDate: ${date}\nLocation: ${newEvent.location}\n\n${newEvent.description || ''}`;
+        await ForumPost.create({ threadId: thread._id, authorId: createdByUserId, authorUsername: createdByUsername, body: intro });
       } catch (e) { console.warn('Auto thread create failed:', e.message); }
     }
 
@@ -1064,6 +1067,13 @@ app.post('/events/:eventId/comments', authenticateToken, async (req, res) => {
     if (source === 'db') {
       const doc = await EventModel.findById(ev._id);
       const comment = { id: Date.now(), user: req.user.username, userId: req.user.id || req.user.userId, text, timestamp: new Date().toISOString() };
+      // Mirror to forum thread if available
+      if (doc.threadId) {
+        try {
+          const fp = await ForumPost.create({ threadId: doc.threadId, authorId: comment.userId, authorUsername: comment.user, body: text });
+          comment.forumPostId = fp._id;
+        } catch (mir) { console.warn('Forum mirror failed:', mir.message); }
+      }
       doc.comments = doc.comments || [];
       doc.comments.push(comment);
       await doc.save();
@@ -1095,6 +1105,10 @@ app.put('/events/:eventId/comments/:commentId', authenticateToken, async (req, r
       const can = String(c.userId) === userId || String(doc.createdByUserId) === userId || req.user.developerOverride;
       if (!can) return res.status(403).json({ message: 'Forbidden' });
       c.text = text;
+      // Mirror to forum post if present
+      if (c.forumPostId) {
+        try { await ForumPost.updateOne({ _id: c.forumPostId }, { $set: { body: text } }); } catch (e) { console.warn('Forum mirror edit failed:', e.message); }
+      }
       await doc.save();
       return res.json(c);
     }
@@ -1124,7 +1138,10 @@ app.delete('/events/:eventId/comments/:commentId', authenticateToken, async (req
       const c = doc.comments[idx];
       const can = String(c.userId) === userId || String(doc.createdByUserId) === userId || req.user.developerOverride;
       if (!can) return res.status(403).json({ message: 'Forbidden' });
-      doc.comments.splice(idx, 1);
+      const removed = doc.comments.splice(idx, 1)[0];
+      if (removed && removed.forumPostId) {
+        try { await ForumPost.deleteOne({ _id: removed.forumPostId }); } catch (e) { console.warn('Forum mirror delete failed:', e.message); }
+      }
       await doc.save();
       return res.json({ ok: true });
     }
@@ -1151,6 +1168,13 @@ app.delete('/events/:eventId', authenticateToken, async (req, res) => {
       const doc = await EventModel.findById(ev._id);
       const can = String(doc.createdByUserId) === userId || req.user.developerOverride;
       if (!can) return res.status(403).json({ message: 'Forbidden' });
+      // Delete associated thread and posts if any
+      if (doc.threadId) {
+        try {
+          await ForumPost.deleteMany({ threadId: doc.threadId });
+          await ForumThread.deleteOne({ _id: doc.threadId });
+        } catch (e) { console.warn('Delete thread cascade failed:', e.message); }
+      }
       await EventModel.deleteOne({ _id: ev._id });
       return res.json({ ok: true });
     }
@@ -1175,8 +1199,21 @@ app.put('/events/:eventId', authenticateToken, async (req, res) => {
       const can = String(doc.createdByUserId) === userId || req.user.developerOverride;
       if (!can) return res.status(403).json({ message: 'Forbidden' });
       const allowed = ((f) => ({ name: f.name, description: f.description, date: f.date, location: f.location, image: f.image, thumbnail: f.thumbnail, schedule: f.schedule, tags: f.tags }))(req.body || {});
+      const oldName = doc.name || doc.title;
       Object.assign(doc, allowed);
       await doc.save();
+      // If name changed, update thread title; if description changed, add a system post
+      if (doc.threadId) {
+        try {
+          if (allowed.name && allowed.name !== oldName) {
+            await ForumThread.updateOne({ _id: doc.threadId }, { $set: { title: allowed.name } });
+          }
+          if (allowed.description) {
+            const body = `Event details updated by organizer.\n\n${allowed.description}`;
+            await ForumPost.create({ threadId: doc.threadId, authorId: userId, authorUsername: req.user.username, body });
+          }
+        } catch (e) { console.warn('Thread update note failed:', e.message); }
+      }
       return res.json(doc.toObject());
     }
     // Memory fallback

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
@@ -24,6 +25,7 @@ const Events = () => {
   const [editData, setEditData] = useState({ name: '', description: '', date: '', location: '' });
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editCommentText, setEditCommentText] = useState('');
+  const routerLocation = useLocation();
 
   useEffect(() => {
     const loadEvents = async () => {
@@ -47,6 +49,19 @@ const Events = () => {
     };
     loadEvents();
   }, [token]);
+
+  // If URL has ?event=<id>, open that event after events load
+  useEffect(() => {
+    const params = new URLSearchParams(routerLocation.search);
+    const eid = params.get('event');
+    if (!eid) return;
+    (async () => {
+      try {
+        const ev = await mockApi.getEvent(eid);
+        if (ev) setSelectedEvent(ev);
+      } catch {}
+    })();
+  }, [routerLocation.search]);
 
   const refreshEvents = async () => {
     const refreshed = await mockApi.getEvents();
