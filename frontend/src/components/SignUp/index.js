@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import mockApi from '../../api/mockApi'; // Assuming this now includes registerUser to backend
 import AuthContext from '../../context/AuthContext';
@@ -23,6 +23,18 @@ const SignUp = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   useContext(AuthContext); // auth was unused
+
+  // Background images (rotates like Events)
+  const bgImages = useMemo(() => ([
+    'https://images.unsplash.com/photo-1514316454349-750a7fd3da3a',
+    'https://images.unsplash.com/photo-1503376780353-7e6692767b70',
+    'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf'
+  ]), []);
+  const [bgIndex, setBgIndex] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setBgIndex(i => (i + 1) % bgImages.length), 8000);
+    return () => clearInterval(id);
+  }, [bgImages]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -62,6 +74,12 @@ const SignUp = () => {
 
   return (
     <div className="signup-container">
+      <div
+        className="page-bg signup-bg"
+        style={{
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url(${bgImages[bgIndex]})`
+        }}
+      />
       <form onSubmit={handleSubmit} className="signup-form">
         <h2>Create Your Account</h2>
         {error && <p className="error-text">{error}</p>}

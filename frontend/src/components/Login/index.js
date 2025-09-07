@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect, useMemo } from 'react';
 // import mockApi from '../../api/mockApi'; // login will be called via context
 import AuthContext from '../../context/AuthContext';
 import './Login.css';
@@ -29,8 +29,26 @@ const Login = () => { // Removed onLoginSuccess prop
     }
   };
 
+  // Background images (rotates like Events)
+  const bgImages = useMemo(() => ([
+    'https://images.unsplash.com/photo-1514316454349-750a7fd3da3a',
+    'https://images.unsplash.com/photo-1503376780353-7e6692767b70',
+    'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf'
+  ]), []);
+  const [bgIndex, setBgIndex] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setBgIndex(i => (i + 1) % bgImages.length), 8000);
+    return () => clearInterval(id);
+  }, [bgImages]);
+
   return (
     <div className="login-container">
+      <div
+        className="page-bg login-bg"
+        style={{
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url(${bgImages[bgIndex]})`
+        }}
+      />
       <form onSubmit={handleSubmit} className="login-form">
         <h2>Login</h2>
         {error && <p className="error-text">{error}</p>}

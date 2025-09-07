@@ -1,6 +1,5 @@
-.homepage-container {
-  width: 100%;
-}
+.homepage-container {width: 100%; position: relative; z-index: 0;}
+.homepage-container > *:not(.page-bg){ position: relative; z-index: 1; }
 
 /* Text utilities */
 .text-light {

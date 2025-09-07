@@ -1,4 +1,5 @@
-.forums-container{display:flex;gap:24px}
+.forums-container{display:flex;gap:24px;position:relative;z-index:0}
+.forums-container > *:not(.page-bg){position:relative;z-index:1}
 .forums-sidebar{width:260px}
 .forums-sidebar ul{list-style:none;padding:0;margin:0}
 .forums-sidebar li{margin-bottom:12px}

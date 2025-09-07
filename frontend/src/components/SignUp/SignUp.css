@@ -1,4 +1,6 @@
-.signup-container {
+.signup-container {position:relative;z-index:0;min-height:80vh;display:flex;align-items:center;justify-content:center;padding:2rem}
+.signup-container > *:not(.page-bg){position:relative;z-index:1}
+.signup-form {
   max-width: 600px;
   margin: 2rem auto;
   padding: 2rem;

@@ -10,6 +10,17 @@ const Home = () => {
   const [forumSections, setForumSections] = useState([]); // {id,name,threads,posts}
   const [latestThreads, setLatestThreads] = useState([]); // flattened + sorted by lastPostAt
   const [events, setEvents] = useState([]); // upcoming events
+  // Background images (rotates like Events)
+  const bgImages = useMemo(() => ([
+    'https://images.unsplash.com/photo-1514316454349-750a7fd3da3a',
+    'https://images.unsplash.com/photo-1503376780353-7e6692767b70',
+    'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf'
+  ]), []);
+  const [bgIndex, setBgIndex] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setBgIndex(i => (i + 1) % bgImages.length), 8000);
+    return () => clearInterval(id);
+  }, [bgImages]);
 
   useEffect(() => {
     (async () => {
@@ -75,6 +86,12 @@ const Home = () => {
   }, [events]);
   return (
     <div className="homepage-container">
+      <div
+        className="page-bg home-bg"
+        style={{
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url(${bgImages[bgIndex]})`
+        }}
+      />
       {/* Hero Section */}
       <section className="hero">
         <div className="hero-content">

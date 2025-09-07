@@ -25,6 +25,17 @@ const Forums = () => {
   const [showEmoji, setShowEmoji] = useState(false);
 
   const canModerate = useMemo(() => !!currentUser, [currentUser]);
+  // Background images (rotates like Events)
+  const bgImages = useMemo(() => ([
+    'https://images.unsplash.com/photo-1514316454349-750a7fd3da3a',
+    'https://images.unsplash.com/photo-1503376780353-7e6692767b70',
+    'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf'
+  ]), []);
+  const [bgIndex, setBgIndex] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setBgIndex(i => (i + 1) % bgImages.length), 8000);
+    return () => clearInterval(id);
+  }, [bgImages]);
 
   useEffect(() => {
     (async () => {
@@ -202,6 +213,12 @@ const Forums = () => {
 
   return (
     <div className="forums-container">
+      <div
+        className="page-bg forums-bg"
+        style={{
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url(${bgImages[bgIndex]})`
+        }}
+      />
       <aside className="forums-sidebar">
         <h2>Forums</h2>
         <ul>
