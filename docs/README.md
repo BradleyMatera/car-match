@@ -18,6 +18,11 @@ Car Match is a community app for car enthusiasts — events, forums, messaging, 
 - Research & Change Orders: `docs/research/` (see `ChangeOrders.md`)
 - Logs: `docs/log.md` (original, May), `docs/log2.md` (September), and monthly snapshot `docs/2025-09.md`
 
+## Project Ops
+
+- Project board helper: `scripts/update_project.sh` (adds issues to Project, helps update Status fields)
+- Roadmap population (dates/status): see Project updates in the repo history; items have Start/End dates based on issue activity and sprint due dates.
+
 ## Status (September 2025)
 
 - Pages deploys only from `main`.

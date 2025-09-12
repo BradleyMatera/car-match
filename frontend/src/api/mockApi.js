@@ -115,8 +115,9 @@ const api = {
       api.getEvents(),
       token ? api.getMyRsvps(token) : Promise.resolve([]),
     ]);
-    const rsvpIds = new Set(mine.map(r => r.eventId));
-    return all.filter(e => e.createdByUserId === userId || rsvpIds.has(e.id));
+    const uid = String(userId);
+    const rsvpIds = new Set((mine || []).map(r => String(r.eventId)));
+    return (all || []).filter(e => String(e.createdByUserId) === uid || rsvpIds.has(String(e.id)));
   },
 
   // --- Forums ---
