@@ -24,6 +24,7 @@ Owner: Bradley Matera — [Log](./docs/log.md)
 - Troubleshooting: [docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)
 - Designs: [docs/designs](./docs/designs)
  - Health: `GET /healthz` on the backend returns service/db readiness
+ - Current Monthly Log: [docs/2025-09.md](./docs/2025-09.md)
 
 ## Quick Start (Local)
 
