@@ -4,7 +4,7 @@ import './App.css';
 import Home from './components/Home';
 import Events from './components/Events';
 import Profile from './components/Profile';
-import Settings from './components/Settings';
+// Settings merged into Profile; route removed
 import Forums from './components/Forums';
 // import EntryModal from './components/EntryModal'; // Replaced by SignUp component for /signup route
 import SignUp from './components/SignUp'; // Import the new SignUp component
@@ -54,7 +54,7 @@ function AppContent() {
               <Route path="/forums" element={<Layout><Forums /></Layout>} />
               {/* Messages page removed; handled within Profile */}
               <Route path="/profile" element={<Layout><Profile /></Layout>} />
-              <Route path="/settings" element={<Layout><Settings /></Layout>} />
+              {/* Settings merged into Profile; route removed */}
               <Route path="/layout-example" element={<Layout><LayoutExample /></Layout>} />
               <Route path="*" element={<Navigate to="/" />} />
             </>

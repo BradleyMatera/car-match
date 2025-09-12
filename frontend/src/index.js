@@ -20,7 +20,7 @@ reportWebVitals();
 // Suppress noisy extension-originated Promise errors in production only.
 // This does NOT mask real app errors; it filters a known Chrome extension message
 // "A listener indicated an asynchronous response by returning true, but the message channel closed..."
-if (process && process.env && process.env.NODE_ENV === 'production') {
+if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'production') {
   window.addEventListener('unhandledrejection', (event) => {
     try {
       const reason = event && event.reason;
