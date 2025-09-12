@@ -29,6 +29,7 @@ const Profile = () => {
   const [profileError, setProfileError] = useState(null);
   const [editing, setEditing] = useState(false);
   const [updatedUser, setUpdatedUser] = useState(currentUser || {});
+  const [prefs, setPrefs] = useState(currentUser?.preferences || { notifications:{}, privacy:{}, display:{}, connections:{} });
 
   const [messages, setMessages] = useState([]);
   const [activeMessageTab, setActiveMessageTab] = useState('inbox');
@@ -45,6 +46,7 @@ const Profile = () => {
   useEffect(() => {
     if (currentUser) {
       setUpdatedUser(currentUser);
+      setPrefs(currentUser.preferences || { notifications:{}, privacy:{}, display:{}, connections:{} });
     } else {
       setLoadingProfileData(false);
     }
@@ -154,12 +156,12 @@ const Profile = () => {
   const handleSave = async () => {
     if (!currentUser || !token) return;
     try {
-      const dataToSave = { ...updatedUser };
+      const dataToSave = { ...updatedUser, preferences: prefs };
       ['id', 'token', 'username', 'password', 'activityMetadata', 'tierSpecificHistory', 'createdAt', 'lastLoginTimestamp'].forEach(key => delete dataToSave[key]);
-      await mockApi.updateProfile(dataToSave); // Assumes mockApi.updateProfile is sufficient
-      updateCurrentUser(dataToSave);
+      const resp = await mockApi.updateUser(token, currentUser.id, dataToSave);
+      updateCurrentUser(resp.user || dataToSave);
       setEditing(false);
-      alert('Profile updated (locally/mock). Full backend update for profile save needed.');
+      alert('Profile updated.');
     } catch (err) {
       alert(`Failed to save changes: ${err.message}`);
     }
@@ -267,11 +269,8 @@ const Profile = () => {
               ))}
             </div>
             <div className="premium-status-display">
-              <p>Status: {isEffectivelyPremium ? <strong>Premium User</strong> : 'Free User'} {currentUser.developerOverride && '(Dev Override ON)'}</p>
-              {!currentUser.premiumStatus && !currentUser.developerOverride && <button onClick={handleUpgradePremium} className="btn btn-success">Upgrade to Premium</button>}
-              <button onClick={handleToggleDevOverride} className="btn btn-warning">
-                Toggle Dev Override ({currentUser.developerOverride ? 'ON' : 'OFF'})
-              </button>
+              <p>Status: {isEffectivelyPremium ? <strong>Premium User</strong> : 'Free User'}</p>
+              {!currentUser.premiumStatus && <button onClick={handleUpgradePremium} className="btn btn-success">Upgrade to Premium</button>}
             </div>
           </div>
         </div>
@@ -353,6 +352,34 @@ const Profile = () => {
                   setUpdatedUser(prev => ({ ...prev, carInterests: interests }));
                 }}/>
             </label>
+            <hr/>
+            <h3>Preferences</h3>
+            <h4>Notifications</h4>
+            <label><input type="checkbox" checked={!!prefs.notifications?.messagesEmail} onChange={e=> setPrefs(p=> ({...p, notifications:{...(p.notifications||{}), messagesEmail:e.target.checked}}))}/> Email me for messages</label>
+            <label><input type="checkbox" checked={!!prefs.notifications?.forumRepliesEmail} onChange={e=> setPrefs(p=> ({...p, notifications:{...(p.notifications||{}), forumRepliesEmail:e.target.checked}}))}/> Email me for forum replies</label>
+            <label><input type="checkbox" checked={!!prefs.notifications?.eventRemindersEmail} onChange={e=> setPrefs(p=> ({...p, notifications:{...(p.notifications||{}), eventRemindersEmail:e.target.checked}}))}/> Email me event reminders</label>
+            <h4>Privacy</h4>
+            <label><input type="checkbox" checked={prefs.privacy?.showProfile !== false} onChange={e=> setPrefs(p=> ({...p, privacy:{...(p.privacy||{}), showProfile:e.target.checked}}))}/> Show my profile</label>
+            <label><input type="checkbox" checked={!!prefs.privacy?.showEmail} onChange={e=> setPrefs(p=> ({...p, privacy:{...(p.privacy||{}), showEmail:e.target.checked}}))}/> Show my email</label>
+            <label><input type="checkbox" checked={prefs.privacy?.searchable !== false} onChange={e=> setPrefs(p=> ({...p, privacy:{...(p.privacy||{}), searchable:e.target.checked}}))}/> Allow search indexing</label>
+            <h4>Display & Accessibility</h4>
+            <label>Theme:
+              <select value={prefs.display?.theme || 'system'} onChange={e=> setPrefs(p=> ({...p, display:{...(p.display||{}), theme:e.target.value}}))}>
+                <option value="system">System</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+              </select>
+            </label>
+            <label>Text Size:
+              <select value={prefs.display?.textSize || 'normal'} onChange={e=> setPrefs(p=> ({...p, display:{...(p.display||{}), textSize:e.target.value}}))}>
+                <option value="normal">Normal</option>
+                <option value="large">Large</option>
+              </select>
+            </label>
+            <h4>Connections</h4>
+            <label>Instagram: <input value={prefs.connections?.instagram || ''} onChange={e=> setPrefs(p=> ({...p, connections:{...(p.connections||{}), instagram:e.target.value}}))}/></label>
+            <label>Twitter: <input value={prefs.connections?.twitter || ''} onChange={e=> setPrefs(p=> ({...p, connections:{...(p.connections||{}), twitter:e.target.value}}))}/></label>
+            <label>Website: <input value={prefs.connections?.website || ''} onChange={e=> setPrefs(p=> ({...p, connections:{...(p.connections||{}), website:e.target.value}}))}/></label>
             <div className="settings-actions">
               <button onClick={handleSave}>Save Changes</button>
               <button onClick={() => { setEditing(false); setUpdatedUser(currentUser); }}>Cancel</button>
@@ -365,9 +392,21 @@ const Profile = () => {
             <p><strong>Display Tag:</strong> {currentUser.displayTag}</p>
             <p><strong>Gender:</strong> {currentUser.gender}</p>
             <p><strong>Location:</strong> {currentUser.location?.city}, {currentUser.location?.state}</p>
+            <p><strong>Theme:</strong> {currentUser.preferences?.display?.theme || 'system'} • <strong>Text Size:</strong> {currentUser.preferences?.display?.textSize || 'normal'}</p>
+            <p><strong>Notifications:</strong> msgs {currentUser.preferences?.notifications?.messagesEmail ? 'on' : 'off'}, replies {currentUser.preferences?.notifications?.forumRepliesEmail ? 'on' : 'off'}, events {currentUser.preferences?.notifications?.eventRemindersEmail ? 'on' : 'off'}</p>
             <button className="btn btn-primary" onClick={() => setEditing(true)}>Edit Settings</button>
           </div>
         )}
+      </Section>
+
+      <Section>
+        <h2>Danger Zone</h2>
+        <p>Delete your account and all associated data. This action cannot be undone.</p>
+        <button className="btn btn-danger" onClick={async ()=>{
+          if (!token) { alert('Please log in.'); return; }
+          if (!window.confirm('Are you sure you want to delete your account? This cannot be undone.')) return;
+          try { await mockApi.deleteUser(token, currentUser.id); alert('Account deleted.'); window.location.href = '#/login'; } catch(e){ alert(e.message||'Failed to delete account'); }
+        }}>Delete Account</button>
       </Section>
 
       <Section>
