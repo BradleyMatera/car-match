@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useContext } from 'react';
 import './Profile.css';
+import './profile.cards.css';
 import mockApi from '../../api/mockApi';
 import AuthContext from '../../context/AuthContext';
 import Section from '../Section';
@@ -250,7 +251,6 @@ const Profile = () => {
       </div>
       <UpgradeModal show={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} onUpgrade={handleUpgradePremium} />
       {activeTab==='profile' && (
-      {activeTab==='messages' && (
       <Section>
         <div className="profile-header">
           <div className="profile-photo-container">
@@ -272,8 +272,8 @@ const Profile = () => {
               ))}
             </div>
             <div className="premium-status-display">
-              <p>Status: {isEffectivelyPremium ? <strong>Premium User</strong> : 'Free User'}</p>
-              {!currentUser.premiumStatus && <button onClick={handleUpgradePremium} className="btn btn-success">Upgrade to Premium</button>}
+              <span className={`badge ${currentUser.premiumStatus ? 'premium' : ''}`}>{currentUser.premiumStatus ? 'Premium' : 'Free'}</span>
+              {!currentUser.premiumStatus && <button onClick={handleUpgradePremium} className="btn btn-primary" style={{marginLeft:8}}>Upgrade</button>}
             </div>
           </div>
         </div>
@@ -298,16 +298,23 @@ const Profile = () => {
       {activeTab==='garage' && (
       <Section>
         <h2>My Garage</h2>
-        <Grid cols={1} mdCols={2} lgCols={3} gap="lg">
-          {(currentUser.cars || []).map((car, index) => (
-            <div key={car.id || index} className="car-card">
-              <img src={car.photos?.[0] || 'https://via.placeholder.com/300x200.png?text=No+Image'} alt={car.name} />
-              <h3>{car.name}</h3>
-              <p>{car.description}</p>
-            </div>
-          ))}
-        </Grid>
-        {editing && (<div className="edit-section"><button className="btn btn-secondary">Add Car</button></div>)}
+        {(currentUser.cars || []).length === 0 ? (
+          <div className="card empty">
+            <div className="h3">No cars yet</div>
+            <p>Add your first vehicle to your garage.</p>
+            <button className="btn btn-primary" style={{marginTop:8}}>Add Vehicle</button>
+          </div>
+        ) : (
+          <Grid cols={1} mdCols={2} lgCols={3} gap="lg">
+            {(currentUser.cars || []).map((car, index) => (
+              <div key={car.id || index} className="card">
+                <img src={car.photos?.[0] || 'https://via.placeholder.com/300x200.png?text=No+Image'} alt={car.name} />
+                <h3>{car.name}</h3>
+                <p>{car.description}</p>
+              </div>
+            ))}
+          </Grid>
+        )}
       </Section>
       )}
 
@@ -321,11 +328,13 @@ const Profile = () => {
               const going = !!myRsvpMap[eid];
               return (
                 <div key={eid} className="event-card">
-                  <h3>{ev.title}</h3>
-                  <p>📅 {ev.date ? new Date(ev.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : 'TBD'}</p>
-                  <p>📍 {ev.location || 'TBD'}</p>
-                  <div style={{display:'flex',gap:8,marginTop:8}}>
-                    <button className={`btn btn-small ${going ? 'rsvp-confirmed' : ''}`} onClick={()=> toggleRsvp(eid)}>
+                  <div className="title">{ev.title}</div>
+                  <div className="meta">
+                    <span>📅 {ev.date ? new Date(ev.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : 'TBD'}</span>
+                    <span>📍 {ev.location || 'TBD'}</span>
+                  </div>
+                  <div className="actions">
+                    <button className={`btn btn-small ${going ? 'btn-primary' : ''}`} onClick={()=> toggleRsvp(eid)}>
                       {going ? '✅ Going (Cancel)' : 'RSVP'}
                     </button>
                     <a className="btn btn-small" href={`#/events?event=${encodeURIComponent(eid)}`}>View</a>
@@ -334,7 +343,12 @@ const Profile = () => {
               );
             })}
           </Grid>
-        ) : (<p>No events registered or created yet.</p>)}
+        ) : (
+          <div className="card empty">
+            <div className="h3">No upcoming events</div>
+            <p>Browse events and join ones that interest you.</p>
+          </div>
+        )}
       </Section>
       )}
 
