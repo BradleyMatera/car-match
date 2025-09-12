@@ -33,7 +33,7 @@ function AppContent() {
               <li><Link to="/forums">Forums</Link></li>
               {/* Messages moved under Profile; remove header link */}
               <li><Link to="/profile">Profile</Link></li>
-              <li><Link to="/settings">Settings</Link></li>
+              {/* Settings merged into Profile */}
               <li><button onClick={logout} className="logout-button">Logout</button></li>
             </ul>
           </nav>

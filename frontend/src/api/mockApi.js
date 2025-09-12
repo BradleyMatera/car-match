@@ -168,6 +168,13 @@ const api = {
   toggleDevOverride: async (token, userId) =>
     ok(await fetch(`${API_BASE_URL}/users/${userId}/toggle-dev-override`, { method: 'PUT', headers: { ...jsonHeader, ...authHeader(token) } })).then(json),
 
+  // --- Account / Settings ---
+  getMe: async (token) => ok(await fetch(`${API_BASE_URL}/users/me`, { headers: { ...authHeader(token) } })).then(json),
+  updateUser: async (token, userId, data) =>
+    ok(await fetch(`${API_BASE_URL}/users/${encodeURIComponent(userId)}`, { method: 'PATCH', headers: { ...jsonHeader, ...authHeader(token) }, body: JSON.stringify(data) })).then(json),
+  deleteUser: async (token, userId) =>
+    ok(await fetch(`${API_BASE_URL}/users/${encodeURIComponent(userId)}`, { method: 'DELETE', headers: { ...authHeader(token) } })).then(json),
+
   // --- Legacy shims (no mocks) ---
   initMockData: () => Promise.resolve(),
   getMessages: async () => [],

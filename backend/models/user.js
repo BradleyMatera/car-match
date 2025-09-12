@@ -21,6 +21,36 @@ const CarSchema = new mongoose.Schema({
   photos: [String],
 }, { _id: false });
 
+const PreferencesNotificationsSchema = new mongoose.Schema({
+  messagesEmail: { type: Boolean, default: true },
+  forumRepliesEmail: { type: Boolean, default: true },
+  eventRemindersEmail: { type: Boolean, default: true },
+}, { _id: false });
+
+const PreferencesPrivacySchema = new mongoose.Schema({
+  showProfile: { type: Boolean, default: true },
+  showEmail: { type: Boolean, default: false },
+  searchable: { type: Boolean, default: true },
+}, { _id: false });
+
+const PreferencesDisplaySchema = new mongoose.Schema({
+  theme: { type: String, enum: ['light','dark','system'], default: 'system' },
+  textSize: { type: String, enum: ['normal','large'], default: 'normal' },
+}, { _id: false });
+
+const ConnectionsSchema = new mongoose.Schema({
+  instagram: String,
+  twitter: String,
+  website: String,
+}, { _id: false });
+
+const PreferencesSchema = new mongoose.Schema({
+  notifications: { type: PreferencesNotificationsSchema, default: () => ({}) },
+  privacy: { type: PreferencesPrivacySchema, default: () => ({}) },
+  display: { type: PreferencesDisplaySchema, default: () => ({}) },
+  connections: { type: ConnectionsSchema, default: () => ({}) },
+}, { _id: false });
+
 const UserSchema = new mongoose.Schema({
   mockId: String, // e.g., 'user1' from mock data
   username: { type: String, index: true, unique: true },
@@ -39,6 +69,7 @@ const UserSchema = new mongoose.Schema({
   cars: [CarSchema],
   role: { type: String, default: 'user' },
   createdAt: { type: Date, default: Date.now },
+  preferences: { type: PreferencesSchema, default: () => ({}) },
 });
 
 // Enforce email uniqueness only when email exists

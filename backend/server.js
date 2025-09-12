@@ -700,6 +700,80 @@ app.get('/protected', authenticateToken, (req, res) => {
   res.json({ message: 'This is a protected route', user: { id: req.user.id, username: req.user.username, premium: req.user.premiumStatus, devOverride: req.user.developerOverride } });
 });
 
+// Get current user (normalized) with preferences
+app.get('/users/me', authenticateToken, async (req, res) => {
+  try {
+    let user = req.user;
+    if (mongoose.connection.readyState === 1 && UserModel) {
+      const dbUser = await UserModel.findOne({ _id: req.user.id }).lean();
+      if (dbUser) user = { ...user, ...dbUser, id: dbUser._id.toString() };
+    }
+    res.json({ user });
+  } catch (e) {
+    res.status(500).json({ message: 'Error fetching user' });
+  }
+});
+
+// Update user profile/settings
+app.patch('/users/:userId', authenticateToken, async (req, res) => {
+  try {
+    const userId = String(req.params.userId);
+    const acting = String(req.user.id || req.user.userId);
+    if (acting !== userId && !req.user.developerOverride) return res.status(403).json({ message: 'Forbidden' });
+
+    // Whitelist fields
+    const b = req.body || {};
+    const set = {};
+    const allow = ['name','displayTag','gender','biography','profileImage'];
+    allow.forEach(k => { if (b[k] !== undefined) set[k] = b[k]; });
+    if (b.carInterests) set.carInterests = Array.isArray(b.carInterests) ? b.carInterests : [];
+    if (b.location) {
+      set.location = { ...req.user.location, ...b.location };
+    }
+    if (b.preferences) {
+      const p = b.preferences;
+      if (p.notifications) set['preferences.notifications'] = p.notifications;
+      if (p.privacy) set['preferences.privacy'] = p.privacy;
+      if (p.display) set['preferences.display'] = p.display;
+      if (p.connections) set['preferences.connections'] = p.connections;
+    }
+
+    // Update in-memory if exists
+    const memIdx = users.findIndex(u => String(u.id) === userId);
+    if (memIdx > -1) {
+      users[memIdx] = { ...users[memIdx], ...set, preferences: { ...(users[memIdx].preferences||{}), ...(set.preferences||{}) } };
+    }
+    // Update Mongo if connected
+    let updated;
+    if (mongoose.connection.readyState === 1 && UserModel) {
+      await UserModel.updateOne({ _id: userId }, { $set: set });
+      updated = await UserModel.findById(userId).lean();
+    }
+    res.json({ ok: true, user: updated ? { ...updated, id: updated._id.toString() } : users[memIdx] || { id: userId, ...set } });
+  } catch (e) {
+    console.error('Update user error:', e);
+    res.status(500).json({ message: 'Error updating user' });
+  }
+});
+
+// Delete account (danger zone)
+app.delete('/users/:userId', authenticateToken, async (req, res) => {
+  try {
+    const userId = String(req.params.userId);
+    const acting = String(req.user.id || req.user.userId);
+    if (acting !== userId && !req.user.developerOverride) return res.status(403).json({ message: 'Forbidden' });
+    // Remove from memory
+    const idx = users.findIndex(u => String(u.id) === userId);
+    if (idx > -1) users.splice(idx, 1);
+    // Remove from DB
+    if (mongoose.connection.readyState === 1 && UserModel) await UserModel.deleteOne({ _id: userId });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('Delete user error:', e);
+    res.status(500).json({ message: 'Error deleting user' });
+  }
+});
+
 // Message sending endpoint
 app.post('/messages', authenticateToken, async (req, res) => {
   try {
