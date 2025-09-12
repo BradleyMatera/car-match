@@ -2,13 +2,17 @@ name: Deploy Frontend to GitHub Pages
 
 on:
   push:
-    branches: [ main, prod, stage ]
+    branches: [ main ]
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   build-and-deploy:
+    concurrency:
+      group: pages-deploy
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     defaults:
       run:
