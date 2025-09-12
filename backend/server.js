@@ -171,6 +171,75 @@ if (MONGODB_URI) {
   console.warn('MONGODB_URI not set; forums will not persist across restarts.');
 }
 
+// --- Maintenance: backfill helpers ---
+async function backfillEventsUsers({ dryRun = false } = {}) {
+  if (mongoose.connection.readyState !== 1 || !EventModel || !UserModel) {
+    throw new Error('Database not connected or models unavailable');
+  }
+  const byId = new Map();
+  const byUsername = new Map();
+  const users = await UserModel.find({}, { username: 1 }).lean();
+  users.forEach(u => { byId.set(String(u._id), u); if (u.username) byUsername.set(String(u.username), u); });
+
+  const events = await EventModel.find({}).lean();
+  let updated = 0; let rsvpFixed = 0;
+  for (const e of events) {
+    const set = {}; const pushOps = {};
+    // createdByUserId / createdByUsername
+    let ownerId = e.createdByUserId != null ? String(e.createdByUserId) : null;
+    let ownerUser = ownerId ? byId.get(ownerId) : null;
+    if (!ownerUser && e.organizerId) { ownerId = String(e.organizerId); ownerUser = byId.get(ownerId); }
+    if (!ownerUser && e.createdByUsername) { ownerUser = byUsername.get(String(e.createdByUsername)); ownerId = ownerUser ? String(ownerUser._id) : ownerId; }
+    if (!ownerUser && e.organizerUsername) { ownerUser = byUsername.get(String(e.organizerUsername)); ownerId = ownerUser ? String(ownerUser._id) : ownerId; }
+    // If still missing, pick a stable fallback (first user) to satisfy invariant
+    if (!ownerUser && users[0]) { ownerUser = users[0]; ownerId = String(ownerUser._id); }
+    if (ownerUser) {
+      if (String(e.createdByUserId || '') !== ownerId) set.createdByUserId = ownerId;
+      if ((e.createdByUsername || '') !== String(ownerUser.username || '')) set.createdByUsername = ownerUser.username || undefined;
+    }
+
+    // Normalize event id field (keep numeric id if present, else ensure .id mirrors string _id for frontend)
+    if (e.id == null && e._id) set.id = e.id || undefined; // leave as-is to avoid collisions
+
+    // Normalize RSVP list to user _id strings
+    const newRsvps = [];
+    const orig = Array.isArray(e.rsvps) ? e.rsvps : [];
+    for (const v of orig) {
+      let uid = null;
+      if (v == null) continue;
+      if (typeof v === 'object' && v.userId) uid = String(v.userId);
+      else if (typeof v === 'string') uid = v;
+      else if (typeof v === 'number') uid = String(v);
+      // map username/mockId to _id if needed
+      if (uid && !byId.has(uid)) {
+        const maybeUser = byUsername.get(uid);
+        if (maybeUser) uid = String(maybeUser._id);
+      }
+      if (uid && byId.has(uid)) newRsvps.push(uid);
+    }
+    const needRsvpUpdate = JSON.stringify(newRsvps) !== JSON.stringify(orig);
+    if (needRsvpUpdate) set.rsvps = newRsvps, rsvpFixed++;
+
+    if (Object.keys(set).length) {
+      updated++;
+      if (!dryRun) await EventModel.updateOne({ _id: e._id }, { $set: set });
+    }
+  }
+  return { eventsChecked: events.length, eventsUpdated: updated, rsvpsNormalized: rsvpFixed };
+}
+
+// Admin endpoint: run backfill (requires developerOverride on user)
+app.post('/admin/backfill-events-users', authenticateToken, async (req, res) => {
+  try {
+    if (!req.user?.developerOverride) return res.status(403).json({ message: 'Forbidden' });
+    const result = await backfillEventsUsers({ dryRun: Boolean(req.query.dry) });
+    res.json({ ok: true, ...result });
+  } catch (e) {
+    console.error('Backfill error:', e);
+    res.status(500).json({ message: e.message || 'Backfill failed' });
+  }
+});
+
 // --- Forums API ---
 app.get('/forums/categories', (req, res) => {
   res.json(forumCategories);
@@ -586,15 +655,15 @@ app.put('/users/:userId/upgrade-to-premium', authenticateToken, (req, res) => {
   // For simplicity here, we'll allow an admin (or dev override user) to upgrade anyone.
   // Or a user to upgrade themselves.
   
-  const targetUserId = parseInt(req.params.userId, 10);
+  const targetUserId = String(req.params.userId);
   const actingUser = req.user; // User performing the action
 
   // Basic check: allow self-upgrade or admin/dev override to upgrade others
-  if (actingUser.id !== targetUserId && !(actingUser.premiumStatus || actingUser.developerOverride)) {
+  if (String(actingUser.id || actingUser.userId) !== targetUserId && !(actingUser.premiumStatus || actingUser.developerOverride)) {
       return res.status(403).json({ message: "Forbidden: You can only upgrade yourself or an admin/dev can upgrade others." });
   }
 
-  const userToUpgrade = users.find(u => u.id === targetUserId);
+  const userToUpgrade = users.find(u => String(u.id) === targetUserId);
   if (!userToUpgrade) {
     return res.status(404).json({ message: 'User to upgrade not found' });
   }
@@ -607,14 +676,14 @@ app.put('/users/:userId/upgrade-to-premium', authenticateToken, (req, res) => {
 // Endpoint to toggle developer override for a user
 app.put('/users/:userId/toggle-dev-override', authenticateToken, (req, res) => {
   // Similar authorization logic as above, typically admin-only
-  const targetUserId = parseInt(req.params.userId, 10);
+  const targetUserId = String(req.params.userId);
   const actingUser = req.user;
 
-  if (actingUser.id !== targetUserId && !(actingUser.premiumStatus || actingUser.developerOverride)) { // Simplistic admin check
+  if (String(actingUser.id || actingUser.userId) !== targetUserId && !(actingUser.premiumStatus || actingUser.developerOverride)) { // Simplistic admin check
       return res.status(403).json({ message: "Forbidden: Only admins/devs can toggle override for others." });
   }
 
-  const userToToggle = users.find(u => u.id === targetUserId);
+  const userToToggle = users.find(u => String(u.id) === targetUserId);
   if (!userToToggle) {
     return res.status(404).json({ message: 'User to toggle not found' });
   }
