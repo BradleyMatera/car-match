@@ -197,16 +197,7 @@ const Profile = () => {
     }
   };
 
-  const handleToggleDevOverride = async () => {
-    if (!currentUser || !token) return;
-    try {
-      const updatedUserData = await mockApi.toggleDevOverride(token, currentUser.id);
-      updateCurrentUser(updatedUserData.user);
-      alert(`Developer override set to: ${updatedUserData.user.developerOverride}.`);
-    } catch (error) {
-      alert(`Failed to toggle dev override: ${error.message}`);
-    }
-  };
+  // Dev override removed from UI; no handler needed.
 
   const handleReply = (messageToReplyTo) => {
     if (!isEffectivelyPremium && messageToReplyTo.isLocked) {
