@@ -250,6 +250,7 @@ const Profile = () => {
       </div>
       <UpgradeModal show={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} onUpgrade={handleUpgradePremium} />
       {activeTab==='profile' && (
+      {activeTab==='messages' && (
       <Section>
         <div className="profile-header">
           <div className="profile-photo-container">
@@ -277,6 +278,7 @@ const Profile = () => {
           </div>
         </div>
       </Section>
+      )}
       )}
 
       {activeTab==='profile' && (
@@ -410,7 +412,7 @@ const Profile = () => {
       </Section>
       )}
 
-      {activeTab==='messages' && (
+      {activeTab==='settings' && (
       <Section>
         <h2>Danger Zone</h2>
         <p>Delete your account and all associated data. This action cannot be undone.</p>
@@ -422,6 +424,7 @@ const Profile = () => {
       </Section>
       )}
 
+      {activeTab==='messages' && (
       <Section>
         <h2>My Messages</h2>
         <div className="message-tabs">
@@ -494,6 +497,7 @@ const Profile = () => {
           <button type="submit" disabled={loadingMessages}>{loadingMessages ? "Sending..." : "Send Message"}</button>
         </form>
       </Section>
+      )}
     </div>
   );
 };
