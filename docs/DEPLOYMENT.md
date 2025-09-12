@@ -9,7 +9,7 @@ Frontend (GitHub Pages)
 - Repo Variables (Settings → Secrets and variables → Actions → Variables):
   - `REACT_APP_API_BASE_URL`: your backend base URL (Render)
   - `REACT_APP_USE_REAL_EVENTS=true`: fetch events from backend (mock kept for demo richness otherwise)
-- On push to `main`, `prod`, or `stage`, the workflow builds `frontend` and deploys `frontend/build`.
+- Deploys from `main` only. You can also trigger a manual run via Actions (workflow_dispatch).
 - App URL: `https://bradleymatera.github.io/car-match/`
 
 Backend (Render example)
