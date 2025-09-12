@@ -79,21 +79,24 @@ const api = {
   getEvents: async () => {
     const events = await ok(await fetch(`${API_BASE_URL}/events`)).then(json);
     // Normalize shape for existing UI
-    return events.map(e => ({
-      id: e.id,
-      title: e.name || e.title,
-      date: e.date,
-      location: e.location,
-      description: e.description,
-      rsvpCount: Array.isArray(e.rsvps) ? e.rsvps.length : (e.rsvpCount || 0),
-      schedule: e.schedule || [],
-      comments: e.comments || [],
-      image: e.image || e.thumbnail || 'https://via.placeholder.com/600x300.png?text=Event',
-      thumbnail: e.thumbnail,
-      createdByUserId: e.createdByUserId,
-      createdByUsername: e.createdByUsername,
-      rsvps: e.rsvps || [],
-    }));
+    return (events || []).map(e => {
+      const normId = e.id != null ? String(e.id) : (e._id ? String(e._id) : undefined);
+      return {
+        id: normId,
+        title: e.name || e.title,
+        date: e.date,
+        location: e.location,
+        description: e.description,
+        rsvpCount: Array.isArray(e.rsvps) ? e.rsvps.length : (e.rsvpCount || 0),
+        schedule: e.schedule || [],
+        comments: e.comments || [],
+        image: e.image || e.thumbnail || 'https://via.placeholder.com/600x300.png?text=Event',
+        thumbnail: e.thumbnail,
+        createdByUserId: e.createdByUserId != null ? String(e.createdByUserId) : (e.organizerId != null ? String(e.organizerId) : undefined),
+        createdByUsername: e.createdByUsername || e.organizerUsername,
+        rsvps: e.rsvps || [],
+      };
+    });
   },
   getEvent: async (eventId) =>
     ok(await fetch(`${API_BASE_URL}/events/${encodeURIComponent(eventId)}`)).then(json),
@@ -111,13 +114,21 @@ const api = {
   // For profile page convenience
   getUserEvents: async (userId) => {
     const token = getStoredToken();
+    // Fallback: if userId is missing, query /protected to resolve it
+    let uid = userId != null ? String(userId) : undefined;
+    if (!uid && token) {
+      try { const me = await ok(await fetch(`${API_BASE_URL}/protected`, { headers: authHeader(token) })).then(json); uid = String(me?.user?.id ?? me?.user?.userId); } catch {}
+    }
     const [all, mine] = await Promise.all([
       api.getEvents(),
       token ? api.getMyRsvps(token) : Promise.resolve([]),
     ]);
-    const uid = String(userId);
     const rsvpIds = new Set((mine || []).map(r => String(r.eventId)));
-    return (all || []).filter(e => String(e.createdByUserId) === uid || rsvpIds.has(String(e.id)));
+    return (all || []).filter(e => {
+      const eid = String(e.id);
+      const createdBy = e.createdByUserId != null ? String(e.createdByUserId) : undefined;
+      return (uid && createdBy && createdBy === uid) || rsvpIds.has(eid);
+    });
   },
 
   // --- Forums ---
