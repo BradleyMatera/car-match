@@ -42,6 +42,7 @@ const Profile = () => {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const isEffectivelyPremium = currentUser?.premiumStatus || currentUser?.developerOverride;
+  const [activeTab, setActiveTab] = useState('profile'); // profile|garage|events|settings|messages
 
   useEffect(() => {
     if (currentUser) {
@@ -238,7 +239,17 @@ const Profile = () => {
 
   return (
     <div className="profile-container">
+      <div className="subnav" role="navigation" aria-label="Profile sections">
+        <div className="tabs">
+          {['profile','garage','events','settings','messages'].map(t => (
+            <button key={t} className={`tab ${activeTab===t?'active':''}`} onClick={()=>setActiveTab(t)} aria-current={activeTab===t?'page':undefined}>
+              {t.charAt(0).toUpperCase()+t.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
       <UpgradeModal show={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} onUpgrade={handleUpgradePremium} />
+      {activeTab==='profile' && (
       <Section>
         <div className="profile-header">
           <div className="profile-photo-container">
@@ -266,7 +277,9 @@ const Profile = () => {
           </div>
         </div>
       </Section>
+      )}
 
+      {activeTab==='profile' && (
       <Section>
         <h2>About Me</h2>
         <p className="bio">{currentUser.bio || 'No bio yet.'}</p>
@@ -278,7 +291,9 @@ const Profile = () => {
           </div>
         )}
       </Section>
+      )}
 
+      {activeTab==='garage' && (
       <Section>
         <h2>My Garage</h2>
         <Grid cols={1} mdCols={2} lgCols={3} gap="lg">
@@ -292,7 +307,9 @@ const Profile = () => {
         </Grid>
         {editing && (<div className="edit-section"><button className="btn btn-secondary">Add Car</button></div>)}
       </Section>
+      )}
 
+      {activeTab==='events' && (
       <Section>
         <h2>My Events</h2>
         {userEvents.length > 0 ? (
@@ -317,7 +334,9 @@ const Profile = () => {
           </Grid>
         ) : (<p>No events registered or created yet.</p>)}
       </Section>
+      )}
 
+      {activeTab==='settings' && (
       <Section background="light">
         <h2>Account Settings</h2>
         {editing ? (
@@ -389,7 +408,9 @@ const Profile = () => {
           </div>
         )}
       </Section>
+      )}
 
+      {activeTab==='messages' && (
       <Section>
         <h2>Danger Zone</h2>
         <p>Delete your account and all associated data. This action cannot be undone.</p>
@@ -399,6 +420,7 @@ const Profile = () => {
           try { await mockApi.deleteUser(token, currentUser.id); alert('Account deleted.'); window.location.href = '#/login'; } catch(e){ alert(e.message||'Failed to delete account'); }
         }}>Delete Account</button>
       </Section>
+      )}
 
       <Section>
         <h2>My Messages</h2>
