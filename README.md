@@ -6,7 +6,7 @@ Live, working MVP for a car‑enthusiast community: profiles, events, forums, an
 
 Frontend‑first build with mock interaction logic and seamless backend integration. Supports real auth/messages/events via backend; forums persist when a MongoDB URI is configured.
 
-Owner: Bradley Matera — [Log](./docs/log.md)
+Owner: Bradley Matera — [Log](./docs/log.md) · New: [log2.md](./docs/log2.md)
 
 ## Community Features
 
@@ -24,7 +24,7 @@ Owner: Bradley Matera — [Log](./docs/log.md)
 - Troubleshooting: [docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)
 - Designs: [docs/designs](./docs/designs)
  - Health: `GET /healthz` on the backend returns service/db readiness
- - Current Monthly Log: [docs/2025-09.md](./docs/2025-09.md)
+ - Current Monthly Log: [docs/2025-09.md](./docs/2025-09.md) and [docs/log2.md](./docs/log2.md)
 
 ## Quick Start (Local)
 

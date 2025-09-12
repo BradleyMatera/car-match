@@ -16,7 +16,7 @@ Car Match is a community app for car enthusiasts — events, forums, messaging, 
 - Deployment: `docs/DEPLOYMENT.md` (Pages + Render)
 - Troubleshooting: `docs/TROUBLESHOOTING.md`
 - Research & Change Orders: `docs/research/` (see `ChangeOrders.md`)
-- Monthly Log (September 2025): `docs/2025-09.md`
+- Logs: `docs/log.md` (original, May), `docs/log2.md` (September), and monthly snapshot `docs/2025-09.md`
 
 ## Status (September 2025)
 
