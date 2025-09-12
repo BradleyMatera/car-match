@@ -24,6 +24,7 @@ const Profile = () => {
   const { currentUser, token, updateCurrentUser } = useContext(AuthContext);
 
   const [userEvents, setUserEvents] = useState([]);
+  const [myRsvpMap, setMyRsvpMap] = useState({});
   const [loadingProfileData, setLoadingProfileData] = useState(true);
   const [profileError, setProfileError] = useState(null);
   const [editing, setEditing] = useState(false);
@@ -87,6 +88,12 @@ const Profile = () => {
         if (token) {
           const events = await mockApi.getUserEvents(currentUser.id);
           setUserEvents(events);
+          try {
+            const mine = await mockApi.getMyRsvps(token);
+            const map = {};
+            (mine || []).forEach(r => { map[String(r.eventId)] = true; });
+            setMyRsvpMap(map);
+          } catch {}
         }
         // Initial fetch for the default tab
         fetchMessagesForTab(activeMessageTab, messageFilters);
@@ -167,6 +174,24 @@ const Profile = () => {
       alert('Successfully upgraded to premium!');
     } catch (error) {
       alert(`Failed to upgrade: ${error.message}`);
+    }
+  };
+
+  const toggleRsvp = async (eventId) => {
+    if (!token) { alert('Please log in.'); return; }
+    try {
+      const eid = String(eventId);
+      if (myRsvpMap[eid]) {
+        await mockApi.cancelRsvp(token, eid);
+        setMyRsvpMap(prev => ({ ...prev, [eid]: false }));
+      } else {
+        await mockApi.rsvpToEvent(token, eid);
+        setMyRsvpMap(prev => ({ ...prev, [eid]: true }));
+      }
+      // Refresh user events after RSVP change
+      try { const events = await mockApi.getUserEvents(currentUser.id); setUserEvents(events); } catch {}
+    } catch (e) {
+      alert(e.message || 'Failed to toggle RSVP');
     }
   };
 
@@ -282,13 +307,23 @@ const Profile = () => {
         <h2>My Events</h2>
         {userEvents.length > 0 ? (
           <Grid cols={1} mdCols={2} gap="md">
-            {userEvents.map(event => (
-              <div key={event.id} className="event-card">
-                <h3>{event.title}</h3>
-                <p>📅 {new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
-                <p>📍 {event.location}</p>
-              </div>
-            ))}
+            {userEvents.map(ev => {
+              const eid = String(ev.id);
+              const going = !!myRsvpMap[eid];
+              return (
+                <div key={eid} className="event-card">
+                  <h3>{ev.title}</h3>
+                  <p>📅 {ev.date ? new Date(ev.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : 'TBD'}</p>
+                  <p>📍 {ev.location || 'TBD'}</p>
+                  <div style={{display:'flex',gap:8,marginTop:8}}>
+                    <button className={`btn btn-small ${going ? 'rsvp-confirmed' : ''}`} onClick={()=> toggleRsvp(eid)}>
+                      {going ? '✅ Going (Cancel)' : 'RSVP'}
+                    </button>
+                    <a className="btn btn-small" href={`#/events?event=${encodeURIComponent(eid)}`}>View</a>
+                  </div>
+                </div>
+              );
+            })}
           </Grid>
         ) : (<p>No events registered or created yet.</p>)}
       </Section>
