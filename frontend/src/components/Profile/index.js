@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useContext } from 'react';
 import './Profile.css';
+import './profile.cards.css';
 import mockApi from '../../api/mockApi';
 import AuthContext from '../../context/AuthContext';
 import Section from '../Section';
@@ -24,10 +25,12 @@ const Profile = () => {
   const { currentUser, token, updateCurrentUser } = useContext(AuthContext);
 
   const [userEvents, setUserEvents] = useState([]);
+  const [myRsvpMap, setMyRsvpMap] = useState({});
   const [loadingProfileData, setLoadingProfileData] = useState(true);
   const [profileError, setProfileError] = useState(null);
   const [editing, setEditing] = useState(false);
   const [updatedUser, setUpdatedUser] = useState(currentUser || {});
+  const [prefs, setPrefs] = useState(currentUser?.preferences || { notifications:{}, privacy:{}, display:{}, connections:{} });
 
   const [messages, setMessages] = useState([]);
   const [activeMessageTab, setActiveMessageTab] = useState('inbox');
@@ -40,10 +43,12 @@ const Profile = () => {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const isEffectivelyPremium = currentUser?.premiumStatus || currentUser?.developerOverride;
+  const [activeTab, setActiveTab] = useState('profile'); // profile|garage|events|settings|messages
 
   useEffect(() => {
     if (currentUser) {
       setUpdatedUser(currentUser);
+      setPrefs(currentUser.preferences || { notifications:{}, privacy:{}, display:{}, connections:{} });
     } else {
       setLoadingProfileData(false);
     }
@@ -87,6 +92,12 @@ const Profile = () => {
         if (token) {
           const events = await mockApi.getUserEvents(currentUser.id);
           setUserEvents(events);
+          try {
+            const mine = await mockApi.getMyRsvps(token);
+            const map = {};
+            (mine || []).forEach(r => { map[String(r.eventId)] = true; });
+            setMyRsvpMap(map);
+          } catch {}
         }
         // Initial fetch for the default tab
         fetchMessagesForTab(activeMessageTab, messageFilters);
@@ -147,12 +158,12 @@ const Profile = () => {
   const handleSave = async () => {
     if (!currentUser || !token) return;
     try {
-      const dataToSave = { ...updatedUser };
+      const dataToSave = { ...updatedUser, preferences: prefs };
       ['id', 'token', 'username', 'password', 'activityMetadata', 'tierSpecificHistory', 'createdAt', 'lastLoginTimestamp'].forEach(key => delete dataToSave[key]);
-      await mockApi.updateProfile(dataToSave); // Assumes mockApi.updateProfile is sufficient
-      updateCurrentUser(dataToSave);
+      const resp = await mockApi.updateUser(token, currentUser.id, dataToSave);
+      updateCurrentUser(resp.user || dataToSave);
       setEditing(false);
-      alert('Profile updated (locally/mock). Full backend update for profile save needed.');
+      alert('Profile updated.');
     } catch (err) {
       alert(`Failed to save changes: ${err.message}`);
     }
@@ -170,16 +181,25 @@ const Profile = () => {
     }
   };
 
-  const handleToggleDevOverride = async () => {
-    if (!currentUser || !token) return;
+  const toggleRsvp = async (eventId) => {
+    if (!token) { alert('Please log in.'); return; }
     try {
-      const updatedUserData = await mockApi.toggleDevOverride(token, currentUser.id);
-      updateCurrentUser(updatedUserData.user);
-      alert(`Developer override set to: ${updatedUserData.user.developerOverride}.`);
-    } catch (error) {
-      alert(`Failed to toggle dev override: ${error.message}`);
+      const eid = String(eventId);
+      if (myRsvpMap[eid]) {
+        await mockApi.cancelRsvp(token, eid);
+        setMyRsvpMap(prev => ({ ...prev, [eid]: false }));
+      } else {
+        await mockApi.rsvpToEvent(token, eid);
+        setMyRsvpMap(prev => ({ ...prev, [eid]: true }));
+      }
+      // Refresh user events after RSVP change
+      try { const events = await mockApi.getUserEvents(currentUser.id); setUserEvents(events); } catch {}
+    } catch (e) {
+      alert(e.message || 'Failed to toggle RSVP');
     }
   };
+
+  // Dev override removed from UI; no handler needed.
 
   const handleReply = (messageToReplyTo) => {
     if (!isEffectivelyPremium && messageToReplyTo.isLocked) {
@@ -220,7 +240,17 @@ const Profile = () => {
 
   return (
     <div className="profile-container">
+      <div className="subnav" role="navigation" aria-label="Profile sections">
+        <div className="tabs">
+          {['profile','garage','events','settings','messages'].map(t => (
+            <button key={t} className={`tab ${activeTab===t?'active':''}`} onClick={()=>setActiveTab(t)} aria-current={activeTab===t?'page':undefined}>
+              {t.charAt(0).toUpperCase()+t.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
       <UpgradeModal show={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} onUpgrade={handleUpgradePremium} />
+      {activeTab==='profile' && (
       <Section>
         <div className="profile-header">
           <div className="profile-photo-container">
@@ -242,16 +272,16 @@ const Profile = () => {
               ))}
             </div>
             <div className="premium-status-display">
-              <p>Status: {isEffectivelyPremium ? <strong>Premium User</strong> : 'Free User'} {currentUser.developerOverride && '(Dev Override ON)'}</p>
-              {!currentUser.premiumStatus && !currentUser.developerOverride && <button onClick={handleUpgradePremium} className="btn btn-success">Upgrade to Premium</button>}
-              <button onClick={handleToggleDevOverride} className="btn btn-warning">
-                Toggle Dev Override ({currentUser.developerOverride ? 'ON' : 'OFF'})
-              </button>
+              <span className={`badge ${currentUser.premiumStatus ? 'premium' : ''}`}>{currentUser.premiumStatus ? 'Premium' : 'Free'}</span>
+              {!currentUser.premiumStatus && <button onClick={handleUpgradePremium} className="btn btn-primary" style={{marginLeft:8}}>Upgrade</button>}
             </div>
           </div>
         </div>
       </Section>
+      )}
+      )}
 
+      {activeTab==='profile' && (
       <Section>
         <h2>About Me</h2>
         <p className="bio">{currentUser.bio || 'No bio yet.'}</p>
@@ -263,36 +293,66 @@ const Profile = () => {
           </div>
         )}
       </Section>
+      )}
 
+      {activeTab==='garage' && (
       <Section>
         <h2>My Garage</h2>
-        <Grid cols={1} mdCols={2} lgCols={3} gap="lg">
-          {(currentUser.cars || []).map((car, index) => (
-            <div key={car.id || index} className="car-card">
-              <img src={car.photos?.[0] || 'https://via.placeholder.com/300x200.png?text=No+Image'} alt={car.name} />
-              <h3>{car.name}</h3>
-              <p>{car.description}</p>
-            </div>
-          ))}
-        </Grid>
-        {editing && (<div className="edit-section"><button className="btn btn-secondary">Add Car</button></div>)}
+        {(currentUser.cars || []).length === 0 ? (
+          <div className="card empty">
+            <div className="h3">No cars yet</div>
+            <p>Add your first vehicle to your garage.</p>
+            <button className="btn btn-primary" style={{marginTop:8}}>Add Vehicle</button>
+          </div>
+        ) : (
+          <Grid cols={1} mdCols={2} lgCols={3} gap="lg">
+            {(currentUser.cars || []).map((car, index) => (
+              <div key={car.id || index} className="card">
+                <img src={car.photos?.[0] || 'https://via.placeholder.com/300x200.png?text=No+Image'} alt={car.name} />
+                <h3>{car.name}</h3>
+                <p>{car.description}</p>
+              </div>
+            ))}
+          </Grid>
+        )}
       </Section>
+      )}
 
+      {activeTab==='events' && (
       <Section>
         <h2>My Events</h2>
         {userEvents.length > 0 ? (
           <Grid cols={1} mdCols={2} gap="md">
-            {userEvents.map(event => (
-              <div key={event.id} className="event-card">
-                <h3>{event.title}</h3>
-                <p>📅 {new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
-                <p>📍 {event.location}</p>
-              </div>
-            ))}
+            {userEvents.map(ev => {
+              const eid = String(ev.id);
+              const going = !!myRsvpMap[eid];
+              return (
+                <div key={eid} className="event-card">
+                  <div className="title">{ev.title}</div>
+                  <div className="meta">
+                    <span>📅 {ev.date ? new Date(ev.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : 'TBD'}</span>
+                    <span>📍 {ev.location || 'TBD'}</span>
+                  </div>
+                  <div className="actions">
+                    <button className={`btn btn-small ${going ? 'btn-primary' : ''}`} onClick={()=> toggleRsvp(eid)}>
+                      {going ? '✅ Going (Cancel)' : 'RSVP'}
+                    </button>
+                    <a className="btn btn-small" href={`#/events?event=${encodeURIComponent(eid)}`}>View</a>
+                  </div>
+                </div>
+              );
+            })}
           </Grid>
-        ) : (<p>No events registered or created yet.</p>)}
+        ) : (
+          <div className="card empty">
+            <div className="h3">No upcoming events</div>
+            <p>Browse events and join ones that interest you.</p>
+          </div>
+        )}
       </Section>
+      )}
 
+      {activeTab==='settings' && (
       <Section background="light">
         <h2>Account Settings</h2>
         {editing ? (
@@ -318,6 +378,34 @@ const Profile = () => {
                   setUpdatedUser(prev => ({ ...prev, carInterests: interests }));
                 }}/>
             </label>
+            <hr/>
+            <h3>Preferences</h3>
+            <h4>Notifications</h4>
+            <label><input type="checkbox" checked={!!prefs.notifications?.messagesEmail} onChange={e=> setPrefs(p=> ({...p, notifications:{...(p.notifications||{}), messagesEmail:e.target.checked}}))}/> Email me for messages</label>
+            <label><input type="checkbox" checked={!!prefs.notifications?.forumRepliesEmail} onChange={e=> setPrefs(p=> ({...p, notifications:{...(p.notifications||{}), forumRepliesEmail:e.target.checked}}))}/> Email me for forum replies</label>
+            <label><input type="checkbox" checked={!!prefs.notifications?.eventRemindersEmail} onChange={e=> setPrefs(p=> ({...p, notifications:{...(p.notifications||{}), eventRemindersEmail:e.target.checked}}))}/> Email me event reminders</label>
+            <h4>Privacy</h4>
+            <label><input type="checkbox" checked={prefs.privacy?.showProfile !== false} onChange={e=> setPrefs(p=> ({...p, privacy:{...(p.privacy||{}), showProfile:e.target.checked}}))}/> Show my profile</label>
+            <label><input type="checkbox" checked={!!prefs.privacy?.showEmail} onChange={e=> setPrefs(p=> ({...p, privacy:{...(p.privacy||{}), showEmail:e.target.checked}}))}/> Show my email</label>
+            <label><input type="checkbox" checked={prefs.privacy?.searchable !== false} onChange={e=> setPrefs(p=> ({...p, privacy:{...(p.privacy||{}), searchable:e.target.checked}}))}/> Allow search indexing</label>
+            <h4>Display & Accessibility</h4>
+            <label>Theme:
+              <select value={prefs.display?.theme || 'system'} onChange={e=> setPrefs(p=> ({...p, display:{...(p.display||{}), theme:e.target.value}}))}>
+                <option value="system">System</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+              </select>
+            </label>
+            <label>Text Size:
+              <select value={prefs.display?.textSize || 'normal'} onChange={e=> setPrefs(p=> ({...p, display:{...(p.display||{}), textSize:e.target.value}}))}>
+                <option value="normal">Normal</option>
+                <option value="large">Large</option>
+              </select>
+            </label>
+            <h4>Connections</h4>
+            <label>Instagram: <input value={prefs.connections?.instagram || ''} onChange={e=> setPrefs(p=> ({...p, connections:{...(p.connections||{}), instagram:e.target.value}}))}/></label>
+            <label>Twitter: <input value={prefs.connections?.twitter || ''} onChange={e=> setPrefs(p=> ({...p, connections:{...(p.connections||{}), twitter:e.target.value}}))}/></label>
+            <label>Website: <input value={prefs.connections?.website || ''} onChange={e=> setPrefs(p=> ({...p, connections:{...(p.connections||{}), website:e.target.value}}))}/></label>
             <div className="settings-actions">
               <button onClick={handleSave}>Save Changes</button>
               <button onClick={() => { setEditing(false); setUpdatedUser(currentUser); }}>Cancel</button>
@@ -330,11 +418,27 @@ const Profile = () => {
             <p><strong>Display Tag:</strong> {currentUser.displayTag}</p>
             <p><strong>Gender:</strong> {currentUser.gender}</p>
             <p><strong>Location:</strong> {currentUser.location?.city}, {currentUser.location?.state}</p>
+            <p><strong>Theme:</strong> {currentUser.preferences?.display?.theme || 'system'} • <strong>Text Size:</strong> {currentUser.preferences?.display?.textSize || 'normal'}</p>
+            <p><strong>Notifications:</strong> msgs {currentUser.preferences?.notifications?.messagesEmail ? 'on' : 'off'}, replies {currentUser.preferences?.notifications?.forumRepliesEmail ? 'on' : 'off'}, events {currentUser.preferences?.notifications?.eventRemindersEmail ? 'on' : 'off'}</p>
             <button className="btn btn-primary" onClick={() => setEditing(true)}>Edit Settings</button>
           </div>
         )}
       </Section>
+      )}
 
+      {activeTab==='settings' && (
+      <Section>
+        <h2>Danger Zone</h2>
+        <p>Delete your account and all associated data. This action cannot be undone.</p>
+        <button className="btn btn-danger" onClick={async ()=>{
+          if (!token) { alert('Please log in.'); return; }
+          if (!window.confirm('Are you sure you want to delete your account? This cannot be undone.')) return;
+          try { await mockApi.deleteUser(token, currentUser.id); alert('Account deleted.'); window.location.href = '#/login'; } catch(e){ alert(e.message||'Failed to delete account'); }
+        }}>Delete Account</button>
+      </Section>
+      )}
+
+      {activeTab==='messages' && (
       <Section>
         <h2>My Messages</h2>
         <div className="message-tabs">
@@ -407,6 +511,7 @@ const Profile = () => {
           <button type="submit" disabled={loadingMessages}>{loadingMessages ? "Sending..." : "Send Message"}</button>
         </form>
       </Section>
+      )}
     </div>
   );
 };

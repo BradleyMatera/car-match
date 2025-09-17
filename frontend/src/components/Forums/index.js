@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useContext, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import './Forums.css';
 import mockApi from '../../api/mockApi';
 import AuthContext from '../../context/AuthContext';
@@ -14,17 +15,49 @@ const Forums = () => {
   const [search, setSearch] = useState('');
   const [activeThread, setActiveThread] = useState(null);
   const [threadPosts, setThreadPosts] = useState([]);
+  const [threadEvent, setThreadEvent] = useState(null);
   const [newThreadTitle, setNewThreadTitle] = useState('');
+  const [showThreadModal, setShowThreadModal] = useState(false);
+  const [newThreadBody, setNewThreadBody] = useState('');
   const [newPostBody, setNewPostBody] = useState('');
+  const location = useLocation();
+  const [frontStats, setFrontStats] = useState([]);
+  const [showEmoji, setShowEmoji] = useState(false);
 
   const canModerate = useMemo(() => !!currentUser, [currentUser]);
+  // Background images (rotates like Events)
+  const bgImages = useMemo(() => ([
+    'https://images.unsplash.com/photo-1514316454349-750a7fd3da3a',
+    'https://images.unsplash.com/photo-1503376780353-7e6692767b70',
+    'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf'
+  ]), []);
+  const [bgIndex, setBgIndex] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setBgIndex(i => (i + 1) % bgImages.length), 8000);
+    return () => clearInterval(id);
+  }, [bgImages]);
 
   useEffect(() => {
-    mockApi.initMockData().then(async () => {
+    (async () => {
       const cats = await mockApi.getForumCategories();
       setCategories(cats);
-    });
-  }, []);
+      // Load front-page stats for category tiles
+      try { const stats = await mockApi.getForumStats(); setFrontStats(stats); } catch {}
+      const params = new URLSearchParams(location.search);
+      const open = params.get('open');
+      if (open) {
+        try {
+          const data = await mockApi.getThreadById(open);
+          if (data?.thread) {
+            const cat = cats.find(c => c.id === data.thread.categoryId);
+            if (cat) setSelectedCategory(cat);
+            setActiveThread(data.thread);
+            setThreadPosts(data.posts);
+          }
+        } catch {}
+      }
+    })();
+  }, [location.search]);
 
   const loadThreads = async (cat, opts = {}) => {
     setSelectedCategory(cat);
@@ -48,11 +81,27 @@ const Forums = () => {
     }
   };
 
+  const getThreadId = (t) => t?.id || t?._id || t?.threadId;
+
   const openThread = async (thread) => {
-    const data = await mockApi.getThreadById(thread.id);
+    const data = await mockApi.getThreadById(getThreadId(thread));
     setActiveThread(data.thread);
     setThreadPosts(data.posts);
+    setThreadEvent(data.event || null);
   };
+
+  // Scroll to a specific post if ?post=<id>
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const postId = params.get('post');
+    if (!postId || !activeThread || threadPosts.length === 0) return;
+    const el = document.getElementById(`post-${postId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('highlight');
+      setTimeout(()=> el.classList.remove('highlight'), 1500);
+    }
+  }, [location.search, activeThread, threadPosts]);
 
   const handleCreateThread = async (e) => {
     e.preventDefault();
@@ -60,12 +109,15 @@ const Forums = () => {
     if (!selectedCategory || !newThreadTitle.trim()) return;
     let newThread;
     try {
-      if (token) {
-        newThread = await mockApi.createThread(token, { categoryId: selectedCategory.id, title: newThreadTitle.trim() });
-      } else {
-        newThread = await mockApi.createThread({ categoryId: selectedCategory.id, title: newThreadTitle.trim(), author: currentUser.username || currentUser.name || 'user' });
+      if (!token) { alert('Please log in.'); return; }
+      newThread = await mockApi.createThread(token, { categoryId: selectedCategory.id, title: newThreadTitle.trim() });
+      // Optionally create first post body if provided
+      if (newThreadBody.trim()) {
+        await mockApi.addPostToThread(token, { threadId: getThreadId(newThread), body: newThreadBody.trim() });
       }
       setNewThreadTitle('');
+      setNewThreadBody('');
+      setShowThreadModal(false);
       await loadThreads(selectedCategory, { page: 1 });
       openThread(newThread);
     } catch (err) {
@@ -78,13 +130,10 @@ const Forums = () => {
     if (!currentUser) { alert('Please log in to reply.'); return; }
     if (!activeThread || !newPostBody.trim()) return;
     try {
-      if (token) {
-        await mockApi.addPostToThread(token, { threadId: activeThread.id, body: newPostBody.trim() });
-      } else {
-        await mockApi.addPostToThread({ threadId: activeThread.id, author: currentUser.username || currentUser.name || 'user', body: newPostBody.trim() });
-      }
+      if (!token) { alert('Please log in.'); return; }
+      await mockApi.addPostToThread(token, { threadId: getThreadId(activeThread), body: newPostBody.trim() });
       setNewPostBody('');
-      const data = await mockApi.getThreadById(activeThread.id);
+      const data = await mockApi.getThreadById(getThreadId(activeThread));
       setActiveThread(data.thread);
       setThreadPosts(data.posts);
     } catch (err) {
@@ -94,17 +143,17 @@ const Forums = () => {
 
   const pinToggle = async (thread, pinned) => {
     try {
-      if (token) await mockApi.pinThread(token, thread.id, pinned);
-      else await mockApi.pinThread(thread.id, pinned);
+      if (!token) { alert('Please log in.'); return; }
+      await mockApi.pinThread(token, getThreadId(thread), pinned);
       await loadThreads(selectedCategory, { page });
     } catch (e) { alert(e.message || 'Failed to pin'); }
   };
 
   const lockToggle = async (thread, locked) => {
     try {
-      if (token) await mockApi.lockThread(token, thread.id, locked);
-      else await mockApi.lockThread(thread.id, locked);
-      const data = await mockApi.getThreadById(thread.id);
+      if (!token) { alert('Please log in.'); return; }
+      await mockApi.lockThread(token, getThreadId(thread), locked);
+      const data = await mockApi.getThreadById(getThreadId(thread));
       setActiveThread(data.thread);
       setThreadPosts(data.posts);
     } catch (e) { alert(e.message || 'Failed to lock'); }
@@ -113,8 +162,8 @@ const Forums = () => {
   const deleteThread = async (thread) => {
     if (!window.confirm('Delete this thread?')) return;
     try {
-      if (token) await mockApi.deleteThread(token, thread.id);
-      else await mockApi.deleteThread(thread.id);
+      if (!token) { alert('Please log in.'); return; }
+      await mockApi.deleteThread(token, getThreadId(thread));
       setActiveThread(null);
       await loadThreads(selectedCategory, { page: 1 });
     } catch (e) { alert(e.message || 'Failed to delete'); }
@@ -122,14 +171,54 @@ const Forums = () => {
 
   const reportPost = async (post) => {
     try {
-      if (token) await mockApi.reportPost(token, post.id, 'inappropriate');
-      else await mockApi.reportPost(post.id, 'inappropriate');
+      if (!token) { alert('Please log in.'); return; }
+      await mockApi.reportPost(token, post.id, 'inappropriate');
       alert('Reported');
     } catch (e) { alert(e.message || 'Failed to report'); }
   };
 
+  // --- Helpers for forum-like presentation ---
+  const ordinal = (i) => `#${i+1}`;
+  const extractAttachments = (text) => {
+    if (!text) return [];
+    const rgx = /(https?:\/\/\S+?\.(zip|rar|7z|pdf|png|jpg|jpeg|gif))(?!\S)/gi;
+    const out = []; let m;
+    while ((m = rgx.exec(text)) !== null) out.push({ url: m[1], name: m[1].split('/').pop() });
+    return out;
+  };
+  const authorStats = (username) => {
+    const count = threadPosts.filter(p => (p.authorUsername||p.author) === username).length;
+    const stars = Math.max(1, Math.min(5, Math.ceil(count/3)));
+    return { postsInThread: count, stars };
+  };
+
+  // Formatting helpers (safe construction of limited HTML from plain text)
+  const escapeHTML = (s) => s.replace(/[&<>"']/g, (c)=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+  const safeUrl = (u) => (/^https?:\/\//i.test(u) ? u : null);
+  const formatPost = (raw) => {
+    if (!raw) return '';
+    const esc = escapeHTML(raw);
+    // blockquote: lines starting with "> "
+    let html = esc.split('\n').map(l => l.startsWith('&gt; ') ? `<blockquote>${l.slice(5)}</blockquote>` : l).join('\n');
+    // simple bold/italic
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/_(.+?)_/g, '<em>$1</em>');
+    // [img](url)
+    html = html.replace(/\[img\]\((https?:[^\s)]+)\)/gi, (m, u) => safeUrl(u) ? `<img src="${u}" alt="image" />` : m);
+    // autolink
+    html = html.replace(/(https?:\/\/[^\s<]+)/g, (m)=>`<a href="${m}" target="_blank" rel="noreferrer">${m}</a>`);
+    // line breaks
+    html = html.replace(/\n/g,'<br/>');
+    return html;
+  };
+
   return (
     <div className="forums-container">
+      <div
+        className="page-bg forums-bg"
+        style={{
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url(${bgImages[bgIndex]})`
+        }}
+      />
       <aside className="forums-sidebar">
         <h2>Forums</h2>
         <ul>
@@ -142,7 +231,41 @@ const Forums = () => {
         </ul>
       </aside>
       <section className="forums-main">
-        {!selectedCategory && <p>Select a forum category to view threads.</p>}
+        <div className="forum-subnav">
+          <button className="btn btn-small">Guidelines</button>
+          <button className="btn btn-small">Staff</button>
+          <button className="btn btn-small">Online Users</button>
+          <div style={{marginLeft:'auto', display:'flex', gap:8}}>
+            <input type="search" placeholder="Search" value={search} onChange={e=>setSearch(e.target.value)} />
+            {selectedCategory ? (
+              <button className="btn" onClick={()=> loadThreads(selectedCategory, { page: 1, search })}>Search</button>
+            ) : (
+              <button className="btn" onClick={()=> { if (categories[0]) loadThreads(categories[0], { page:1, search }); }}>Go</button>
+            )}
+          </div>
+        </div>
+        {!selectedCategory && (
+          <div className="forum-front">
+            <h1 className="forum-title">CarMatch Forums</h1>
+            <div className="forum-sections">
+              {categories.map(cat => {
+                const s = frontStats.find(x => x.id === cat.id) || { threads: 0, posts: 0 };
+                return (
+                  <div key={cat.id} className="forum-card" onClick={()=> loadThreads(cat, { page: 1 })}>
+                    <div className="forum-card-left">
+                      <div className="forum-card-title">{cat.name}</div>
+                      <div className="forum-card-desc">{cat.description}</div>
+                    </div>
+                    <div className="forum-card-right">
+                      <div className="forum-count"><strong>{s.posts}</strong><span>posts</span></div>
+                      <div className="forum-count"><strong>{s.threads}</strong><span>threads</span></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
         {selectedCategory && !activeThread && (
           <div className="threads-view">
             <div className="threads-header">
@@ -152,16 +275,13 @@ const Forums = () => {
                 <button onClick={()=> loadThreads(selectedCategory, { page: 1, search })}>Search</button>
               </div>
               {currentUser && (
-                <form onSubmit={handleCreateThread} className="new-thread-form">
-                  <input type="text" placeholder="Start a new thread..." value={newThreadTitle} onChange={(e)=>setNewThreadTitle(e.target.value)} />
-                  <button type="submit">Create</button>
-                </form>
+                <button className="btn btn-primary" onClick={()=> setShowThreadModal(true)}>New Thread</button>
               )}
             </div>
             {threads.length === 0 && <p>No threads yet. Be the first to post!</p>}
             <ul className="thread-list">
               {threads.map(th => (
-                <li key={th.id} className="thread-item">
+                <li key={getThreadId(th)} className="thread-item">
                   <div className="title" onClick={()=>openThread(th)}>
                     {th.pinned ? '📌 ' : ''}{th.title}
                   </div>
@@ -187,21 +307,81 @@ const Forums = () => {
         {selectedCategory && activeThread && (
           <div className="thread-view">
             <button className="back-link" onClick={()=>{ setActiveThread(null); setThreadPosts([]); }}>← Back to threads</button>
-            <h3>{activeThread.title}</h3>
+            <div className="thread-toolbar">
+              <div className="crumbs">{selectedCategory?.name} ▸ {activeThread.title}</div>
+              <div className="tools">
+                {canModerate && (
+                  <>
+                    <button className="btn btn-small" onClick={()=>pinToggle(activeThread, !activeThread.pinned)}>{activeThread.pinned? 'Unpin' : 'Pin'}</button>
+                    <button className="btn btn-small" onClick={()=>lockToggle(activeThread, !activeThread.locked)}>{activeThread.locked? 'Unlock' : 'Lock'}</button>
+                  </>
+                )}
+                {threadEvent && (
+                  <button className="btn btn-small" onClick={()=>{ window.location.hash = `#/events?event=${threadEvent.id || (threadEvent._id && threadEvent._id.toString())}`; }}>View Event</button>
+                )}
+              </div>
+            </div>
             <ul className="post-list">
-              {threadPosts.map(p => (
-                <li key={p.id} className="post-item">
-                  <div className="post-meta">{p.author || p.authorUsername} • {new Date(p.createdAt).toLocaleString()}</div>
-                  <div className="post-body">{p.body}</div>
-                  <div style={{marginTop:6}}>
-                    <button onClick={()=>reportPost(p)}>Report</button>
-                  </div>
-                </li>
-              ))}
+              {threadPosts.map((p, idx) => {
+                const author = p.authorUsername || p.author || 'user';
+                const stats = authorStats(author);
+                const atts = extractAttachments(p.body);
+                return (
+                  <li key={p.id} id={`post-${p._id || p.id}`} className="post-item post-row">
+                    <aside className="post-author">
+                      <div className="avatar" aria-hidden>👤</div>
+                      <div className="author-name">{author}</div>
+                      <div className="rank">Member {'★'.repeat(stats.stars)}</div>
+                      <div className="meta">Posts (thread): {stats.postsInThread}</div>
+                    </aside>
+                    <article className="post-main">
+                      <header className="post-header">
+                        <div className="post-title">{activeThread.title}</div>
+                        <div className="post-index">{ordinal(idx)} • {new Date(p.createdAt).toLocaleString()}</div>
+                      </header>
+                      <div className="post-content" dangerouslySetInnerHTML={{__html: formatPost(p.body)}} />
+                      {atts.length>0 && (
+                        <div className="post-attachments">
+                          <div className="label">Attached Files</div>
+                          <ul>
+                            {atts.map(a => (<li key={a.url}><a href={a.url} target="_blank" rel="noreferrer">{a.name}</a></li>))}
+                          </ul>
+                        </div>
+                      )}
+                      <footer className="post-actions">
+                        <button className="btn btn-small" onClick={()=>{ setNewPostBody(prev => prev + `\n> ${p.body.replaceAll('\n','\n> ')}\n\n`); }}>Quote</button>
+                        <button className="btn btn-small" onClick={()=>reportPost(p)}>Report</button>
+                      </footer>
+                    </article>
+                    <aside className="post-side">
+                      <div>Joined: —</div>
+                      <div>Thanks Given: —</div>
+                      <div>Thanks Recv: —</div>
+                    </aside>
+                  </li>
+                );
+              })}
             </ul>
             {currentUser && !activeThread.locked && (
               <form onSubmit={handleAddPost} className="reply-form">
+                <div className="editor-toolbar">
+                  <button type="button" className="btn btn-small" onClick={()=> setNewPostBody(b=> b + '**bold**')}>B</button>
+                  <button type="button" className="btn btn-small" onClick={()=> setNewPostBody(b=> b + '_italic_')}>I</button>
+                  <button type="button" className="btn btn-small" onClick={()=> setNewPostBody(b=> b + '\n> quote')}>Quote</button>
+                  <button type="button" className="btn btn-small" onClick={()=> {
+                    const url = prompt('Image URL (https://...)'); if (url) setNewPostBody(b=> b + `\n[img](${url})\n`);
+                  }}>Image</button>
+                  <button type="button" className="btn btn-small" onClick={()=> setShowEmoji(s=>!s)}>😊</button>
+                </div>
+                {showEmoji && (
+                  <div className="emoji-palette">
+                    {['😀','😁','😂','😍','😎','🤙','👍','🔥','🚗','🏁'].map(e => (
+                      <button type="button" key={e} onClick={()=> setNewPostBody(b=> b + e)}>{e}</button>
+                    ))}
+                  </div>
+                )}
                 <textarea placeholder="Write a reply..." value={newPostBody} onChange={(e)=>setNewPostBody(e.target.value)} />
+                <small>Tip: use **bold**, _italic_, [img](url), and &gt; quote.</small>
                 <button type="submit">Post Reply</button>
               </form>
             )}
@@ -209,6 +389,32 @@ const Forums = () => {
           </div>
         )}
       </section>
+      {showThreadModal && (
+        <div className="modal-backdrop" onClick={(e)=>{ if (e.target.classList.contains('modal-backdrop')) setShowThreadModal(false); }}>
+          <div className="modal" role="dialog" aria-modal="true">
+            <header>
+              <span>New Thread — {selectedCategory?.name || ''}</span>
+              <button className="btn" onClick={()=> setShowThreadModal(false)}>✕</button>
+            </header>
+            <form onSubmit={handleCreateThread}>
+              <div className="content">
+                <div className="row">
+                  <label>Title</label>
+                  <input value={newThreadTitle} onChange={e=>setNewThreadTitle(e.target.value)} placeholder="Thread title" required />
+                </div>
+                <div className="row">
+                  <label>Body (optional)</label>
+                  <textarea value={newThreadBody} onChange={e=>setNewThreadBody(e.target.value)} placeholder="Write the first post..." rows={8} />
+                </div>
+              </div>
+              <footer>
+                <button type="button" className="btn" onClick={()=> setShowThreadModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Create Thread</button>
+              </footer>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

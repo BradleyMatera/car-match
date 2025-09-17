@@ -1,3 +1,18 @@
+Car Match — Frontend (React)
+
+Quick start
+- Node 18 recommended (`nvm use`)
+- `npm i`
+- `npm start`
+
+Environment (at build time)
+- `REACT_APP_API_BASE_URL` — backend base URL (Render)
+- `REACT_APP_USE_REAL_EVENTS=true` — use backend `/events` (otherwise mock)
+
+Deploy
+- GitHub Pages via workflow in `.github/workflows/deploy-frontend.yml`
+- Pages picks up repo variables above on build
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).

@@ -1,4 +1,5 @@
-.forums-container{display:flex;gap:24px}
+.forums-container{display:flex;gap:24px;position:relative;z-index:0}
+.forums-container > *:not(.page-bg){position:relative;z-index:1}
 .forums-sidebar{width:260px}
 .forums-sidebar ul{list-style:none;padding:0;margin:0}
 .forums-sidebar li{margin-bottom:12px}
@@ -6,16 +7,62 @@
 .forums-sidebar button{background:none;border:none;color:#0d6efd;text-align:left;padding:0;cursor:pointer}
 .cat-desc{font-size:12px;color:#666;margin:4px 0 0}
 .forums-main{flex:1}
-.threads-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.forum-front{display:flex;flex-direction:column;gap:16px}
+.forum-subnav{display:flex;gap:8px;align-items:center;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:8px;padding:8px}
+.forum-title{font-size:24px;margin:4px 0}
+.forum-sections{display:flex;flex-direction:column;gap:10px}
+.forum-card{display:flex;justify-content:space-between;align-items:center;background:#fff;border:1px solid #ddd;border-radius:10px;padding:14px;cursor:pointer}
+.forum-card:hover{background:#fafafa}
+.forum-card-title{font-weight:700;font-size:16px;margin-bottom:4px}
+.forum-card-desc{color:#555}
+.forum-card-right{display:flex;gap:14px;align-items:center}
+.forum-count{display:flex;flex-direction:column;align-items:center;min-width:70px}
+.forum-count strong{font-size:18px}
+.forum-count span{font-size:11px;color:#666}
+.threads-header{display:flex;gap:12px;align-items:center;margin-bottom:12px;position:relative}
 .new-thread-form{display:flex;gap:8px}
 .new-thread-form input{flex:1;padding:8px}
-.thread-list{list-style:none;margin:0;padding:0}
-.thread-item{padding:12px;border:1px solid #eee;border-radius:8px;margin-bottom:8px;cursor:pointer}
+.thread-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.thread-item{padding:12px;border:1px solid #eee;border-radius:8px;cursor:pointer;background:#fff}
 .thread-item .title{font-weight:600}
 .thread-item .meta{font-size:12px;color:#666}
 .thread-view .post-list{list-style:none;margin:0;padding:0}
 .post-item{padding:12px;border:1px solid #eee;border-radius:8px;margin-bottom:8px}
+.post-item.highlight{box-shadow:0 0 0 3px rgba(97,194,0,0.35)}
+.post-row{display:grid;grid-template-columns:180px 1fr 220px;gap:12px}
+.post-author{background:#f8f9fb;border:1px solid #eee;border-radius:8px;padding:10px;text-align:center}
+.post-author .avatar{font-size:32px;margin-bottom:6px}
+.post-author .author-name{font-weight:700}
+.post-author .rank{color:#555;font-size:12px}
+.post-main{border:1px solid #eee;border-radius:8px;padding:10px;background:#fff}
+.post-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.post-title{font-weight:600}
+.post-index{font-size:12px;color:#666}
+.post-content{white-space:pre-wrap;line-height:1.5}
+.post-attachments{margin-top:8px;border-top:1px dashed #ddd;padding-top:6px}
+.post-attachments .label{font-weight:600;font-size:12px;margin-bottom:4px}
+.post-actions{display:flex;gap:8px;margin-top:8px}
+.post-side{background:#fdfdfd;border:1px solid #eee;border-radius:8px;padding:10px;font-size:12px;color:#444}
+.thread-toolbar{display:flex;justify-content:space-between;align-items:center;margin:8px 0}
+.crumbs{font-weight:600}
+.tools{display:flex;gap:8px}
 .post-meta{font-size:12px;color:#666;margin-bottom:6px}
 .reply-form{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 .reply-form textarea{min-height:100px;padding:8px}
 .back-link{background:none;border:none;color:#0d6efd;padding:0;margin-bottom:8px;cursor:pointer}
+.editor-toolbar{display:flex;gap:6px}
+.emoji-palette{display:flex;gap:6px;flex-wrap:wrap}
+.emoji-palette button{border:1px solid #eee;background:#fff;border-radius:6px;padding:4px 6px;cursor:pointer}
+
+/* Modal */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1000}
+.modal{background:#fff;width:min(680px,92vw);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.2);overflow:hidden}
+.modal header{padding:14px 16px;border-bottom:1px solid #eee;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.modal .content{padding:16px;display:flex;flex-direction:column;gap:10px}
+.modal .row{display:flex;flex-direction:column;gap:6px}
+.modal input,.modal textarea{width:100%;border:1px solid #ddd;border-radius:8px;padding:10px;font-size:14px}
+.modal footer{padding:12px 16px;border-top:1px solid #eee;display:flex;gap:10px;justify-content:flex-end}
+.btn{border:0;border-radius:8px;padding:8px 12px;cursor:pointer;background:#f3f3f3}
+.btn-primary{background:#61c200;color:#fff}
+.btn-warning{background:#ffd4d4}
+.btn-small{padding:6px 10px;font-size:12px}

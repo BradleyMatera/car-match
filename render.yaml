@@ -3,10 +3,17 @@ services:
     name: car-match-backend
     env: node
     rootDir: backend
-    buildCommand: npm install
+    buildCommand: npm ci
     startCommand: npm start
+    healthCheckPath: /healthz
     plan: free
     envVars:
       - key: JWT_SECRET
         generateValue: true
+      - key: TOKEN_VERSION
+        value: "1"
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: MONGODB_URI
+        sync: false
     autoDeploy: true

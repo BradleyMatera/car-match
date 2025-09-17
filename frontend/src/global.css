@@ -54,6 +54,19 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Shared full-viewport faded background layer for pages */
+.page-bg{
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-size: cover;
+  background-position: center;
+  filter: grayscale(50%);
+  opacity: .75;
+  transition: background-image 1s ease-in-out;
+  pointer-events: none;
+}
+
 img, picture, video, canvas, svg {
   display: block;
   max-width: 100%;

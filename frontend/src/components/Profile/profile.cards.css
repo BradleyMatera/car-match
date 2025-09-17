@@ -1,0 +1,35 @@
+.profile-container { max-width: 1200px; margin: 0 auto; }
+
+.card { background: #fff; border: 1px solid #e3e8ef; border-radius: 10px; padding: 24px; box-shadow: 0 1px 2px rgba(15,23,42,.06); }
+.card.danger { background: #fff5f5; border-color: rgba(220,38,38,.25); }
+.empty { text-align:center; color:#475569; padding:24px; }
+
+.btn { border: 1px solid #e3e8ef; background: #fff; color: var(--text-dark); padding: 8px 12px; border-radius: 6px; cursor: pointer; }
+.btn:hover { box-shadow: 0 1px 2px rgba(15,23,42,.06); }
+.btn-primary { background: var(--primary-color); border-color: var(--primary-color); color: #fff; }
+.btn-danger { background: var(--error-color); border-color: var(--error-color); color: #fff; }
+.btn-small { padding: 6px 10px; font-size: 12px; }
+
+.badge { display:inline-block; padding:2px 8px; border-radius:999px; border:1px solid #e3e8ef; background:#f7f9fc; color:#475569; font-size:12px; }
+.badge.premium { background:#fff7ed; border-color:#fed7aa; color:#9a3412; }
+
+.subnav { position: sticky; top: 56px; background: #fff; border-bottom:1px solid #e3e8ef; z-index:5; margin-bottom:24px; }
+.subnav .tabs { display:flex; gap:8px; padding:8px 16px; }
+.subnav .tab { padding:8px 12px; border-radius:6px; border:1px solid transparent; background:transparent; color:#475569; cursor:pointer; }
+.subnav .tab:hover { background:#f7f9fc; }
+.subnav .tab:focus-visible { outline:2px solid rgba(37,99,235,.35); }
+.subnav .tab.active { color:#0f172a; border-color:#e3e8ef; background:#f0f4ff; font-weight:600; }
+
+.input, .select, .textarea { width:100%; padding:10px 12px; border:1px solid #e3e8ef; border-radius:6px; }
+.input:focus, .select:focus, .textarea:focus { outline:2px solid rgba(37,99,235,.25); }
+
+.event-card { display:flex; flex-direction:column; gap:8px; border:1px solid #e3e8ef; border-radius:10px; padding:16px; background:#fff; }
+.event-card .title { font-weight:600; }
+.event-card .meta { font-size:13px; color:#475569; display:flex; gap:16px; }
+.event-card .actions { display:flex; gap:8px; }
+
+.msg-card { border: 1px solid #e3e8ef; background:#fff; border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:6px; }
+.msg-card .head { display:flex; justify-content:space-between; color:#475569; font-size:12px; }
+.msg-card .body { font-size:14px; color:var(--text-dark); }
+.composer { border:1px solid #e3e8ef; border-radius:10px; padding:12px; background:#fff; display:flex; flex-direction:column; gap:8px; }
+

@@ -1,36 +1,34 @@
-# Car Match – A Dating Platform for Car Enthusiasts
+# Car Match — Documentation
 
-Car Match is a concept-first dating platform designed specifically for car lovers of all kinds—muscle cars, JDM, luxury vehicles, and more. This is not just a frontend mockup. The entire structure is built as a real MVP that simulates full app behavior using mocked data and realistic frontend logic, ready to plug into a real backend.
+Car Match is a community app for car enthusiasts — events, forums, messaging, and profiles. This repo contains a working React frontend (deployed to GitHub Pages) and a Node/Express backend (deployable on Render) with optional MongoDB persistence for forums and other data.
 
 ## Tech Stack
 
-- **Frontend**: HTML, CSS, JavaScript (Vanilla, planning React or framework later)
-- **Layout System**: Custom responsive grid using Flexbox/Grid with media queries
-- **State**: Vanilla JS with `localStorage` for simulated login/session handling
-- **Repository**: [GitHub - BradleyMatera/car-match](https://github.com/BradleyMatera/car-match)
-- **Deployment**: Coming soon (Netlify or Vercel after MVP polish)
+- Frontend: React (CRA), React Router (HashRouter for Pages), plain CSS.
+- Backend: Node.js + Express 5, JWT auth, CORS hardening.
+- Database: MongoDB Atlas via Mongoose (forums persist when `MONGODB_URI` is set; otherwise in-memory).
+- CI/CD: GitHub Actions deploys frontend to Pages; Render blueprint for backend.
 
-## MVP Overview
+## Key Links
 
-- Homepage modal intro (gated access flow)
-- Full form-based onboarding
-- Mock data for users, events, and interactions
-- Structured like a real production-ready frontend
-- Focus on UI/UX, accessibility, and mobile-first design
-- Reorganizing editable controls into settings for proper flow
-- Calendar, RSVP simulation, discussion feed on Events page
-- All layouts tested for real responsiveness
+- Live App: https://bradleymatera.github.io/car-match/
+- API/Backend: see `docs/API.md`
+- Deployment: `docs/DEPLOYMENT.md` (Pages + Render)
+- Troubleshooting: `docs/TROUBLESHOOTING.md`
+- Research & Change Orders: `docs/research/` (see `ChangeOrders.md`)
+- Logs: `docs/log.md` (original, May), `docs/log2.md` (September), and monthly snapshot `docs/2025-09.md`
 
-## In Progress
+## Project Ops
 
-- Conversion of `designdoc.md` into GitHub markdown files inside `/docs/research`
-- Full migration of weekly standups into Issues/Milestones
-- MVP UI polishing and error handling
-- Research 1 being documented actively (due Sunday)
-- Issue and project automation planned per Full Sail course structure
+- Project board helper: `scripts/update_project.sh` (adds issues to Project, helps update Status fields)
+- Roadmap population (dates/status): see Project updates in the repo history; items have Start/End dates based on issue activity and sprint due dates.
+
+## Status (September 2025)
+
+- Pages deploys only from `main`.
+- Forums persist in prod when MongoDB URI is correctly URL‑encoded and configured on Render.
+- Week 2 focus: consolidate Settings into the Profile page; Profile UX polish; finalize forum persistence checks in prod.
 
 ## Notes
 
-This repo uses a proper feature branch workflow per class instructions. Feature branches will merge into `dev`, then into `stage`, and only into `main` with approval or final submissions.
-
-If you're reviewing this for grading or feedback, please check the `/docs/research` folder and the active design work inside `designdoc.md`.
+Standard workflow uses PRs into `dev` and promotion to `main`. GitHub Pages publishes from `main` only.
