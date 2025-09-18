@@ -31,7 +31,7 @@ Pages deploy is running; Render blueprint set up with health checks; refreshed r
 🔮 Next Steps:  
 Fix the MongoDB connection string on Render, redeploy, and confirm `/healthz` shows `connected: true` with forum threads/posts persisting in production.
 
-### Week 2 (in progress — Friday)
+### Week 2
 
 ⚙️ Overview:  
 Combine and ship Settings as real features integrated into the Profile page (remove separate header tab). Clean up Profile UI/UX; “My Events” should only show events I created or RSVP’d to.
@@ -64,7 +64,7 @@ Some vulnerabilities in dev dependencies (webpack-dev-server) could not be fully
 🔮 Next Steps:  
 Monitor for upstream fixes to dev dependencies, continue to polish security, and maintain documentation.
 
-### Week 4 (planned)
+### Week 4
 
 ⚙️ Overview:  
 Stabilization and demo readiness: performance touch-ups, error handling, and final docs pass.
