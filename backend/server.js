@@ -47,7 +47,22 @@ const corsOptions = {
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
 };
 app.use(cors(corsOptions));
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "https:", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'", ...allowedOrigins],
+        fontSrc: ["'self'", "https:"],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: [],
+      },
+    },
+  })
+);
 app.use(express.json());
 
 // In-memory store for users
