@@ -35,12 +35,6 @@
     "webpack-dev-server": "^4.15.2",
     "html-webpack-plugin": "^5.6.4"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
-  },
   "browserslist": {
     "production": [
       ">0.2%",
