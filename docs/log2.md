@@ -71,13 +71,5 @@ Stabilization and demo readiness: performance touch-ups, error handling, and fin
 
 🔮 Next Steps:  
 Finalize release notes; backlog triage; prepare next-month roadmap.
+_______
 
-### Week 4 (planned)
-
-⚙️ Overview:  
-Stabilization and demo readiness: performance touch-ups, error handling, and final docs pass.
-
-🔮 Next Steps:  
-Finalize release notes; backlog triage; prepare next-month roadmap.
-
-<br>
