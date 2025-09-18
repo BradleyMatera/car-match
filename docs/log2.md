@@ -45,13 +45,32 @@ Locked Pages deploy to main-only and redeployed; cleaned up repo branches and st
 🔮 Next Steps:  
 Finish Settings→Profile integration; validate MongoDB persistence in prod; begin moderation roles + event ownership work; continue docs polish and add change orders as needed.
 
-### Week 3 (planned)
+### Week 3
 
 ⚙️ Overview:  
-Introduce moderator/admin roles and enforce permissions for pin/lock/delete; complete event ownership linkage; polish Profile flows.
+This week was focused on security hardening and deployment. Implemented ESLint security plugin, resolved all high-severity vulnerabilities, updated dependencies, and documented remaining moderate dev-only vulnerabilities. Enabled security scanning in CI/CD, hardened frontend and backend security (CSP, headers, input validation), and deployed the production build to GitHub Pages with all security features enabled. Documented security status in `SECURITY-NOTES.md`.
+
+🌵 Challenges:  
+Some vulnerabilities in dev dependencies (webpack-dev-server) could not be fully resolved due to upstream limitations in react-scripts. These do not affect production, but are documented for future tracking.
+
+🏆 Accomplishments:  
+- ESLint security plugin active and working
+- All high-severity vulnerabilities fixed
+- Security scanning and CI/CD integration complete
+- Hardened input validation and security headers
+- Production deployment to GitHub Pages with all security features enabled
+- Security documentation added
 
 🔮 Next Steps:  
-Ship moderation MVP; add minimal UI affordances; expand tests and tighten endpoints.
+Monitor for upstream fixes to dev dependencies, continue to polish security, and maintain documentation.
+
+### Week 4 (planned)
+
+⚙️ Overview:  
+Stabilization and demo readiness: performance touch-ups, error handling, and final docs pass.
+
+🔮 Next Steps:  
+Finalize release notes; backlog triage; prepare next-month roadmap.
 
 ### Week 4 (planned)
 
