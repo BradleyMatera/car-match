@@ -17,8 +17,35 @@ const Login = () => { // Removed onLoginSuccess prop
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    // --- Start Validation ---
+    const trimmedUsername = username.trim();
+    const trimmedPassword = password.trim();
+
+    // Basic presence check
+    if (!trimmedUsername || !trimmedPassword) {
+      setError("Username and password are required.");
+      setLoading(false);
+      return;
+    }
+
+    // Username format validation (allow email or username)
+    if (trimmedUsername.length < 3) {
+      setError("Username must be at least 3 characters long.");
+      setLoading(false);
+      return;
+    }
+
+    // Password length validation
+    if (trimmedPassword.length < 6) {
+      setError("Password must be at least 6 characters long.");
+      setLoading(false);
+      return;
+    }
+    // --- End Validation ---
+
     try {
-      await auth.login(username, password);
+      await auth.login(trimmedUsername, trimmedPassword);
       // Login successful, AuthContext will update state. App.js will re-render.
       // Navigate to home page or dashboard after successful login
       navigate('/'); 

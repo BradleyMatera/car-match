@@ -46,18 +46,52 @@ const SignUp = () => {
     setLoading(true);
     setError(null);
 
-    // Use email as username if username field is not separate
+    // --- Start Validation ---
+    const { username, password, name, displayTag, gender, city, state } = formData;
+
+    // Basic presence check
+    if (!username || !password || !name || !displayTag || !gender || !city || !state) {
+      setError("All fields are required.");
+      setLoading(false);
+      return;
+    }
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(username)) {
+      setError("Please enter a valid email address for the username.");
+      setLoading(false);
+      return;
+    }
+
+    // Password strength validation
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters long.");
+      setLoading(false);
+      return;
+    }
+
+    // Display Tag validation
+    const tagRegex = /^[a-zA-Z0-9_]{3,15}$/;
+    if (!tagRegex.test(displayTag)) {
+      setError("Display Tag must be 3-15 characters and contain only letters, numbers, and underscores.");
+      setLoading(false);
+      return;
+    }
+    
+    // State abbreviation validation
+    const stateRegex = /^[A-Z]{2}$/;
+    if (!stateRegex.test(state)) {
+      setError("Please enter a valid 2-letter state abbreviation (e.g., CA).");
+      setLoading(false);
+      return;
+    }
+    // --- End Validation ---
+
     const registrationData = {
       ...formData,
-      username: formData.username || formData.email, // Assuming email can be username
+      username: formData.username,
     };
-    
-    // Validate required fields for backend
-    if (!registrationData.username || !registrationData.password || !registrationData.name || !registrationData.displayTag || !registrationData.gender || !registrationData.city || !registrationData.state) {
-        setError("All fields are required: Username (or Email), Password, Name, Display Tag, Gender, City, State.");
-        setLoading(false);
-        return;
-    }
 
     try {
       const response = await mockApi.registerUser(registrationData); // Calls backend /register
