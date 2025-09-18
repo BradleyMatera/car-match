@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const helmet = require('helmet');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const cors = require('cors'); // Import cors
@@ -46,6 +47,7 @@ const corsOptions = {
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
 };
 app.use(cors(corsOptions));
+app.use(helmet());
 app.use(express.json());
 
 // In-memory store for users
