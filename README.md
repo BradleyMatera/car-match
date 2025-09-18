@@ -26,6 +26,21 @@ Owner: Bradley Matera — [Log](./docs/log.md) · New: [log2.md](./docs/log2.md)
  - Health: `GET /healthz` on the backend returns service/db readiness
  - Current Monthly Log: [docs/2025-09.md](./docs/2025-09.md) and [docs/log2.md](./docs/log2.md)
 
+## Project Management
+
+I am actively using the GitHub Projects Kanban board to manage my work. While I may not use all available views (Backlog, Priority Board, etc.), the main Kanban board is the single source of truth for my current tasks and priorities. All work for a given milestone will be reflected in the project board.
+
+## Git Workflow
+
+My Git workflow is as follows:
+
+1.  **Feature Branches:** All new work is done on a feature branch, branched off of `dev`.
+2.  **Pull Requests:** When a feature is complete, I open a pull request to merge the feature branch into `dev`.
+3.  **Merging:** Once the pull request is reviewed and approved, it is merged into `dev`.
+4.  **Main Branch:** The `main` branch is reserved for stable, production-ready code. I merge `dev` into `main` when I am ready to deploy a new version of the application.
+
+Any merges directly to `main` from feature branches are exceptions and are typically for hotfixes or minor documentation updates that do not affect the application's functionality.
+
 ## Quick Start (Local)
 
 Prereqs: Node 18 (use `.nvmrc`).

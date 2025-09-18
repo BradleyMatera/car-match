@@ -84,3 +84,39 @@ Direct competitors are traditional dating apps like Tinder, Bumble, and Match. N
 - **Visual Assets**  
   Using real car imagery pulled from Unsplash or Pexels API (license OK)  
 - All integrations follow TOS and are used to simulate production logic for now — I’ll swap in real backend endpoints later.
+
+## Project Scope & Beta Deliverables (Change Order)
+
+This section serves as a change order to the original project proposal, refining the scope and deliverables for the upcoming beta release.
+
+### Current Scope
+
+The current scope of the CarMatch application is to deliver a functional Minimum Viable Product (MVP) that allows users to:
+
+*   Create a user profile with a garage showcase.
+*   Discover and RSVP to local car events.
+*   View other user profiles.
+*   Basic messaging functionality between users.
+
+The focus is on creating a stable and usable platform that demonstrates the core value proposition of the application.
+
+### Sidelined Features (Post-Beta)
+
+The following features have been sidelined for the post-beta release to ensure a focused and achievable scope for the initial launch:
+
+*   **Advanced Match Filtering:** While basic filtering will be available, advanced filtering options (e.g., by specific car models, modification types) will be implemented later.
+*   **Payment Integration:** Any features requiring payment processing are out of scope for the beta.
+*   **Google Calendar/EmailJS Integrations:** These integrations will be added in a future release to enhance the user experience.
+
+### Beta Deliverables
+
+The expected deliverables for the end-of-month beta are:
+
+*   A deployed and publicly accessible frontend application.
+*   A functional backend with a database to store user and event data.
+*   The ability for users to register, log in, create a profile, and RSVP to events.
+*   A presentation demonstrating the core features of the application.
+
+### Registration & Login
+
+The application will feature a user registration and login system. For the beta, this will be a simple email/password-based authentication system. There will not be a temporary test login; users will be required to create an account to access the application. This is to simulate a real-world user experience and gather feedback on the onboarding process.
