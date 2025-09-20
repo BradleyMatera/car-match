@@ -28,6 +28,8 @@ Backend (Render example)
        - IMPORTANT: URL‑encode special characters in the password (e.g., `!` -> `%21`).
 3) Deploy. Note the generated URL, e.g., `https://car-match-h2gw.onrender.com`.
 4) In your GitHub repo, set `REACT_APP_API_BASE_URL` variable to this URL to wire the frontend.
+5) Configure security secrets:
+   - Set `SNYK_TOKEN` under repository secrets so the Snyk workflow (`.github/workflows/snyk-security.yml`) can scan backend/frontend dependencies on every PR/push.
 
 Local Development
 - Backend: `cd backend && npm i && node server.js`

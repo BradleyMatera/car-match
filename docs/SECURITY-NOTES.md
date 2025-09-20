@@ -14,4 +14,5 @@ As of 2025-09-17, the following moderate vulnerabilities remain in the project:
 - Local development now mirrors production transport security via optional HTTPS (issue #101).
 - API rate limiting active across auth, messaging, forums, and events endpoints (issue #103).
 - Structured security logging with daily rotation captures auth failures, admin changes, rate-limit hits, and comment/event mutations (issue #105 in progress).
+- Automated dependency scanning with Snyk is configured (issue #106): CI workflow plus local `npm run snyk:test`/`snyk:monitor` scripts for both packages.
 - Monitor for updates to react-scripts to fully resolve dev dependency issues.

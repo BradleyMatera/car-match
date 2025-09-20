@@ -23,12 +23,15 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d build"
+    "deploy": "gh-pages -d build",
+    "snyk:test": "snyk test --severity-threshold=medium",
+    "snyk:monitor": "snyk monitor --severity-threshold=medium --project-name=car-match-frontend"
   },
   "devDependencies": {
     "core-js-pure": "^3.38.1",
     "eslint-plugin-security": "^3.0.1",
-    "gh-pages": "^6.1.1"
+    "gh-pages": "^6.1.1",
+    "snyk": "^1.1299.0"
   },
   "overrides": {
     "core-js-pure": "^3.38.1",

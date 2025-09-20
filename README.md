@@ -75,6 +75,10 @@ Prereqs: Node 18 (use `.nvmrc`).
   - `LOG_RETENTION_DAYS` (defaults to 14)
   - `LOG_DIR` (optional override for log output; defaults to `backend/logger/logs/`)
 
+## Security Tooling
+- **Snyk CI** — `.github/workflows/snyk-security.yml` runs on PRs/pushes to `dev`/`main`, on demand, and weekly. Add a `SNYK_TOKEN` repository secret to enable it. The workflow performs `snyk test` and `snyk monitor` for both `backend` and `frontend` packages.
+- **Local scanning** — After `npm install`, run `npm run snyk:test` / `npm run snyk:monitor` inside `backend/` or `frontend/` (requires `snyk auth` with the same token).
+
 ## Deploy Backend (Render)
 [Docs](./docs/DEPLOYMENT.md) — or click:
 
