@@ -71,6 +71,9 @@ Prereqs: Node 18 (use `.nvmrc`).
   - `MONGODB_URI` (optional; enables forum persistence). Example:
     `mongodb+srv://USERNAME:PASSWORD@car-match.ehzw3qa.mongodb.net/car-match?retryWrites=true&w=majority&appName=car-match`.
     Remember to URL‑encode passwords (`!` becomes `%21`).
+  - `LOG_LEVEL` (default `info` in prod, `debug` locally)
+  - `LOG_RETENTION_DAYS` (defaults to 14)
+  - `LOG_DIR` (optional override for log output; defaults to `backend/logger/logs/`)
 
 ## Deploy Backend (Render)
 [Docs](./docs/DEPLOYMENT.md) — or click:

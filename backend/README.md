@@ -18,6 +18,9 @@ Environment variables
 - `DISABLE_RATE_LIMIT` (booly string, default `false`): set to `true` only when intentionally disabling rate limiting for local testing
 - `MONGODB_URI` (string, optional): Atlas URI including db name and URL‑encoded password, e.g.
   `mongodb+srv://user:ENCODED_PASS@cluster.mongodb.net/car-match?retryWrites=true&w=majority&appName=car-match`
+- `LOG_LEVEL` (string): logger verbosity (`info` in prod, `debug` locally)
+- `LOG_RETENTION_DAYS` (number): rotate & keep daily logs for N days (default 14)
+- `LOG_DIR` (string): where to write rotating logs; default `backend/logger/logs`
 
 Key endpoints
 - Auth: `POST /register`, `POST /login`, `GET /protected`
@@ -30,3 +33,4 @@ Key endpoints
 Security notes
 - CORS restricted via `ALLOWED_ORIGINS`
 - JWT secret required in production; token payload includes `tokenVersion`
+- Structured app/security logs emitted via Winston (daily rotating `app-*.log` + `security-*.log`); tails with `npm run start` then `tail -f backend/logger/logs/security-*.log`

@@ -13,4 +13,5 @@ As of 2025-09-17, the following moderate vulnerabilities remain in the project:
 - Security scanning and ESLint security plugin are active.
 - Local development now mirrors production transport security via optional HTTPS (issue #101).
 - API rate limiting active across auth, messaging, forums, and events endpoints (issue #103).
+- Structured security logging with daily rotation captures auth failures, admin changes, rate-limit hits, and comment/event mutations (issue #105 in progress).
 - Monitor for updates to react-scripts to fully resolve dev dependency issues.

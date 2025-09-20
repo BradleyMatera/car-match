@@ -8,10 +8,14 @@ const mongoose = require('mongoose');
 const fs = require('fs');
 const http = require('http');
 const https = require('https');
+const { randomUUID } = require('crypto');
+const { logger, securityEvent } = require('./logger');
 const { createRateLimits } = require('./middleware/rateLimits');
 const { ForumThread, ForumPost } = require('./models/forum');
 let UserModel, EventModel, MessageModel; // loaded only when Mongo is configured
 const app = express();
+app.set('trust proxy', true);
+app.disable('x-powered-by');
 const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 const devHttpsEnabled = /^true|1|yes$/i.test(String(process.env.DEV_HTTPS || '')) && process.env.NODE_ENV !== 'production';
 const parsedDevHttpsPort = parseInt(process.env.DEV_HTTPS_PORT, 10);
@@ -67,10 +71,10 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const TOKEN_VERSION = process.env.TOKEN_VERSION || '1';
 if (!JWT_SECRET) {
   if (process.env.NODE_ENV !== 'development') {
-    console.error('FATAL: JWT_SECRET is required in production.');
+    logger.fatal('JWT_SECRET is required in production.');
     process.exit(1);
   } else {
-    console.warn('WARNING: Using insecure development JWT secret');
+    logger.warn('Using insecure development JWT secret');
   }
 }
 
@@ -107,6 +111,35 @@ if (devHttpsEnabled) {
   devConnectSources.push(`https://localhost:${devHttpsPort}`);
 }
 const cspConnectSrc = Array.from(new Set([...allowedOrigins, ...devConnectSources]));
+
+const requestContextMiddleware = (req, res, next) => {
+  const requestId = randomUUID();
+  req.requestId = requestId;
+  const start = process.hrtime.bigint();
+
+  res.on('finish', () => {
+    if (req.originalUrl === '/healthz') return;
+    const durationMs = Number(process.hrtime.bigint() - start) / 1e6;
+    const meta = {
+      requestId,
+      method: req.method,
+      path: req.originalUrl,
+      status: res.statusCode,
+      durationMs: Number(durationMs.toFixed(2)),
+      ip: req.ip,
+    };
+    if (req.user?.id) meta.userId = String(req.user.id);
+    const level = res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'http';
+    logger.log(level, 'Request completed', meta);
+    if (res.statusCode === 401 || res.statusCode === 403) {
+      securityEvent('Unauthorized request', meta);
+    }
+  });
+
+  next();
+};
+
+app.use(requestContextMiddleware);
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -201,7 +234,7 @@ const seedDemoData = () => {
       { id: 2, name: 'Track Day Intro', description: 'Beginner-friendly track event.', date: fmt(new Date(now.getTime()+14*86400000)), location: 'San Francisco, CA', createdByUserId: 2, createdByUsername: 'jane', rsvps: [] }
     );
   } catch (e) {
-    console.error('Seeding error:', e);
+    logger.error('Seed demo data failed', { error: e });
   }
 };
 seedDemoData();
@@ -212,7 +245,7 @@ if (MONGODB_URI) {
   mongoose
     .connect(MONGODB_URI, { serverSelectionTimeoutMS: 5000 })
     .then(async () => {
-      console.log('Connected to MongoDB');
+      logger.info('Connected to MongoDB');
       // Load additional models now that a connection exists
       UserModel = require('./models/user');
       EventModel = require('./models/event');
@@ -239,14 +272,14 @@ if (MONGODB_URI) {
           await EventModel.updateOne({ _id: e._id }, { $set: { threadId: thread._id } });
         }
       } catch (se) {
-        console.warn('Event-thread sync warning:', se.message);
+        logger.warn('Event-thread sync warning', { error: se });
       }
     })
     .catch(err => {
-      console.error('MongoDB connection failed:', err.message);
+      logger.error('MongoDB connection failed', { error: err });
     });
 } else {
-  console.warn('MONGODB_URI not set; forums will not persist across restarts.');
+  logger.warn('MONGODB_URI not set; forums will not persist across restarts.');
 }
 
 // --- Maintenance: backfill helpers ---
@@ -313,7 +346,7 @@ app.post('/admin/backfill-events-users', adminLimiterMiddleware, authenticateTok
     const result = await backfillEventsUsers({ dryRun: Boolean(req.query.dry) });
     res.json({ ok: true, ...result });
   } catch (e) {
-    console.error('Backfill error:', e);
+    logger.error('Backfill events/users failed', { error: e, requestId: req.requestId, userId: req.user?.id });
     res.status(500).json({ message: e.message || 'Backfill failed' });
   }
 });
@@ -324,7 +357,7 @@ app.get('/forums/categories', (req, res) => {
 });
 
 // Forum stats per category (threads/posts/latest)
-app.get('/forums/stats', async (_req, res) => {
+app.get('/forums/stats', async (req, res) => {
   try {
     if (mongoose.connection.readyState !== 1) {
       // No DB: return categories with zero counts
@@ -349,13 +382,13 @@ app.get('/forums/stats', async (_req, res) => {
     }
     res.json(results);
   } catch (e) {
-    console.error('Forum stats error:', e);
+    logger.error('Forum stats error', { error: e, requestId: req.requestId });
     res.status(500).json({ message: 'Error computing forum stats' });
   }
 });
 
 // Site-wide snapshot metrics
-app.get('/stats/site', async (_req, res) => {
+app.get('/stats/site', async (req, res) => {
   try {
     if (mongoose.connection.readyState !== 1) {
       return res.json({ users: 0, threads: 0, posts: 0, events: events.length });
@@ -368,7 +401,7 @@ app.get('/stats/site', async (_req, res) => {
     ]);
     res.json({ users, threads, posts, events: eventsCount });
   } catch (e) {
-    console.error('Site stats error:', e);
+    logger.error('Site stats error', { error: e, requestId: req.requestId });
     res.status(500).json({ message: 'Error computing site stats' });
   }
 });
@@ -394,7 +427,7 @@ app.get('/forums/categories/:categoryId/threads', async (req, res) => {
     // Fallback (no DB): empty list
     return res.json({ items: [], page: p, pageSize: ps, total: 0 });
   } catch (e) {
-    console.error('List threads error:', e);
+    logger.error('List threads error', { error: e, requestId: req.requestId, params: { categoryId } });
     res.status(500).json({ message: 'Error fetching threads' });
   }
 });
@@ -411,7 +444,7 @@ app.post('/forums/threads', forumWriteLimiter, authenticateToken, async (req, re
     }
     return res.status(503).json({ message: 'Database not available' });
   } catch (e) {
-    console.error('Create thread error:', e);
+    logger.error('Create thread error', { error: e, requestId: req.requestId, userId: req.user?.id, body: { categoryId } });
     res.status(500).json({ message: 'Error creating thread' });
   }
 });
@@ -432,7 +465,7 @@ app.get('/forums/threads/:threadId', async (req, res) => {
     }
     return res.status(503).json({ message: 'Database not available' });
   } catch (e) {
-    console.error('Get thread error:', e);
+    logger.error('Get thread error', { error: e, requestId: req.requestId, params: { threadId } });
     res.status(500).json({ message: 'Error fetching thread' });
   }
 });
@@ -454,7 +487,7 @@ app.post('/forums/threads/:threadId/posts', forumWriteLimiter, authenticateToken
     }
     return res.status(503).json({ message: 'Database not available' });
   } catch (e) {
-    console.error('Add post error:', e);
+    logger.error('Add post error', { error: e, requestId: req.requestId, params: { threadId } });
     res.status(500).json({ message: 'Error adding post' });
   }
 });
@@ -479,7 +512,7 @@ app.patch('/forums/threads/:threadId/pin', authenticateToken, async (req, res) =
     }
     return res.status(503).json({ message: 'Database not available' });
   } catch (e) {
-    console.error('Pin thread error:', e);
+    logger.error('Pin thread error', { error: e, requestId: req.requestId, params: { threadId } });
     res.status(500).json({ message: 'Error pinning thread' });
   }
 });
@@ -503,7 +536,7 @@ app.patch('/forums/threads/:threadId/lock', authenticateToken, async (req, res) 
     }
     return res.status(503).json({ message: 'Database not available' });
   } catch (e) {
-    console.error('Lock thread error:', e);
+    logger.error('Lock thread error', { error: e, requestId: req.requestId, params: { threadId } });
     res.status(500).json({ message: 'Error locking thread' });
   }
 });
@@ -519,7 +552,7 @@ app.delete('/forums/threads/:threadId', authenticateToken, async (req, res) => {
     }
     return res.status(503).json({ message: 'Database not available' });
   } catch (e) {
-    console.error('Delete thread error:', e);
+    logger.error('Delete thread error', { error: e, requestId: req.requestId, params: { threadId } });
     res.status(500).json({ message: 'Error deleting thread' });
   }
 });
@@ -605,10 +638,10 @@ app.post('/register', authLimiterMiddleware, async (req, res) => {
       });
     }
 
-    console.log('Registered User:', newUser); // For debugging
+    logger.info('User registered', { requestId: req.requestId, userId: newUser.id, username: newUser.username });
     res.status(201).json({ message: 'User registered successfully', userId: newUser.id });
   } catch (error) {
-    console.error('Registration error:', error);
+    logger.error('Registration error', { error, requestId: req.requestId, body: { username: req.body?.username } });
     res.status(500).json({ message: 'Error registering user' });
   }
 });
@@ -631,7 +664,10 @@ app.post('/login', authLimiterMiddleware, async (req, res) => {
       const dbUser = await UserModel.findOne(query).lean();
       if (dbUser) {
         const ok = await bcrypt.compare(password, dbUser.password);
-        if (!ok) return res.status(401).json({ message: 'Invalid credentials (password mismatch)' });
+        if (!ok) {
+          securityEvent('Login failed (password mismatch)', { username: loginId, requestId: req.requestId, ip: req.ip });
+          return res.status(401).json({ message: 'Invalid credentials (password mismatch)' });
+        }
         user = {
           id: dbUser._id.toString(),
           username: dbUser.username,
@@ -652,11 +688,13 @@ app.post('/login', authLimiterMiddleware, async (req, res) => {
       }
     }
     if (!user) {
+      securityEvent('Login failed (user not found)', { username, requestId: req.requestId, ip: req.ip });
       return res.status(401).json({ message: 'Invalid credentials (user not found)' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      securityEvent('Login failed (password mismatch)', { username: user.username, requestId: req.requestId, ip: req.ip });
       return res.status(401).json({ message: 'Invalid credentials (password mismatch)' });
     }
 
@@ -675,7 +713,8 @@ app.post('/login', authLimiterMiddleware, async (req, res) => {
     };
     tokenPayload.tokenVersion = TOKEN_VERSION;
     const token = jwt.sign(tokenPayload, JWT_SECRET || 'dev-insecure-secret', { expiresIn: '1h' });
-    
+
+    securityEvent('Login success', { userId: user.id, username: user.username, requestId: req.requestId, ip: req.ip });
     res.json({ 
       token, 
       userId: user.id, 
@@ -686,7 +725,7 @@ app.post('/login', authLimiterMiddleware, async (req, res) => {
       developerOverride: user.developerOverride
     });
   } catch (error) {
-    console.error('Login error:', error);
+    logger.error('Login error', { error, requestId: req.requestId, username: req.body?.username });
     res.status(500).json({ message: 'Error logging in' });
   }
 });
@@ -697,15 +736,17 @@ async function authenticateToken(req, res, next) {
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
   if (token == null) {
+    securityEvent('Missing bearer token', { requestId: req.requestId, path: req.originalUrl, ip: req.ip });
     return res.sendStatus(401); // if there isn't any token
   }
 
   jwt.verify(token, JWT_SECRET || 'dev-insecure-secret', async (err, decodedPayload) => { 
     if (err) {
-      console.error('JWT verification error:', err);
+      securityEvent('JWT verification error', { error: err.message, requestId: req.requestId, path: req.originalUrl, ip: req.ip });
       return res.sendStatus(403); // if token is no longer valid
     }
     if (decodedPayload && decodedPayload.tokenVersion && decodedPayload.tokenVersion !== TOKEN_VERSION) {
+      securityEvent('Token version mismatch', { requestId: req.requestId, tokenVersion: decodedPayload.tokenVersion, expected: TOKEN_VERSION, ip: req.ip });
       return res.status(401).json({ message: 'Token version expired. Please re-login.' });
     }
     // Find the full user object to get the most up-to-date status, including developerOverride
@@ -720,7 +761,10 @@ async function authenticateToken(req, res, next) {
         };
       }
     }
-    if (!fullUser) return res.sendStatus(401);
+    if (!fullUser) {
+      securityEvent('Authenticated user not found', { requestId: req.requestId, userId: decodedPayload.userId, username: decodedPayload.username });
+      return res.sendStatus(401);
+    }
     req.user = fullUser; // Attach the full, current user object
     next(); // proceed to the protected route
   });
@@ -747,7 +791,12 @@ app.put('/users/:userId/upgrade-to-premium', authenticateToken, (req, res) => {
   }
 
   userToUpgrade.premiumStatus = true;
-  console.log(`User ${userToUpgrade.username} upgraded to premium.`);
+  securityEvent('User upgraded to premium', {
+    requestId: req.requestId,
+    targetUserId,
+    actingUserId: actingUser.id,
+    actingUsername: actingUser.username,
+  });
   res.json({ message: `User ${userToUpgrade.username} is now premium. Please re-login to update JWT if needed.`, user: {id: userToUpgrade.id, username: userToUpgrade.username, premiumStatus: userToUpgrade.premiumStatus} });
 });
 
@@ -767,7 +816,13 @@ app.put('/users/:userId/toggle-dev-override', authenticateToken, (req, res) => {
   }
 
   userToToggle.developerOverride = !userToToggle.developerOverride;
-  console.log(`User ${userToToggle.username} developer override set to ${userToToggle.developerOverride}.`);
+  securityEvent('Developer override toggled', {
+    requestId: req.requestId,
+    targetUserId,
+    actingUserId: actingUser.id,
+    actingUsername: actingUser.username,
+    newValue: userToToggle.developerOverride,
+  });
   res.json({ message: `User ${userToToggle.username} developer override is now ${userToToggle.developerOverride}. Please re-login to update JWT.`, user: {id: userToToggle.id, username: userToToggle.username, developerOverride: userToToggle.developerOverride }});
 });
 
@@ -827,9 +882,11 @@ app.patch('/users/:userId', authenticateToken, async (req, res) => {
       await UserModel.updateOne({ _id: userId }, { $set: set });
       updated = await UserModel.findById(userId).lean();
     }
-    res.json({ ok: true, user: updated ? { ...updated, id: updated._id.toString() } : users[memIdx] || { id: userId, ...set } });
+    const responseUser = updated ? { ...updated, id: updated._id.toString() } : users[memIdx] || { id: userId, ...set };
+    securityEvent('User profile updated', { requestId: req.requestId, userId, actingUserId: acting });
+    res.json({ ok: true, user: responseUser });
   } catch (e) {
-    console.error('Update user error:', e);
+    logger.error('Update user error', { error: e, requestId: req.requestId, params: { userId } });
     res.status(500).json({ message: 'Error updating user' });
   }
 });
@@ -845,9 +902,10 @@ app.delete('/users/:userId', authenticateToken, async (req, res) => {
     if (idx > -1) users.splice(idx, 1);
     // Remove from DB
     if (mongoose.connection.readyState === 1 && UserModel) await UserModel.deleteOne({ _id: userId });
+    securityEvent('User account deleted', { requestId: req.requestId, userId, actingUserId: acting });
     res.json({ ok: true });
   } catch (e) {
-    console.error('Delete user error:', e);
+    logger.error('Delete user error', { error: e, requestId: req.requestId, params: { userId } });
     res.status(500).json({ message: 'Error deleting user' });
   }
 });
@@ -926,10 +984,16 @@ app.post('/messages', messageWriteLimiter, authenticateToken, async (req, res) =
       senderUser.activityMetadata.messageCountToday += 1;
     }
 
-    console.log('Messages:', messages); // For debugging
+    securityEvent('Direct message sent', {
+      requestId: req.requestId,
+      fromUserId: senderUser.id,
+      toUserId: recipientUser.id,
+      toUsername: recipientUser.username,
+    });
+    logger.debug('Message queue size', { count: messages.length });
     res.status(201).json({ message: 'Message sent successfully', data: newMessage });
   } catch (error) {
-    console.error('Send message error:', error);
+    logger.error('Send message error', { error, requestId: req.requestId, recipient: req.body?.recipientUsername });
     res.status(500).json({ message: 'Error sending message' });
   }
 });
@@ -1097,7 +1161,7 @@ app.get('/messages/inbox', authenticateToken, async (req, res) => {
     
     res.json(processedMessages);
   } catch (error) {
-    console.error('Inbox error:', error);
+    logger.error('Inbox error', { error: error, requestId: req.requestId });
     res.status(500).json({ message: 'Error fetching messages' });
   }
 });
@@ -1137,12 +1201,14 @@ app.post('/events', eventWriteLimiter, authenticateToken, async (req, res) => {
         // Introductory forum post
         const intro = `Event: ${name}\nDate: ${date}\nLocation: ${newEvent.location}\n\n${newEvent.description || ''}`;
         await ForumPost.create({ threadId: thread._id, authorId: createdByUserId, authorUsername: createdByUsername, body: intro });
-      } catch (e) { console.warn('Auto thread create failed:', e.message); }
+      } catch (e) {
+        logger.warn('Auto thread create failed', { error: e, requestId: req.requestId, eventId: saved?._id || newEvent.id });
+      }
     }
-
+    securityEvent('Event created', { requestId: req.requestId, eventId: saved?._id || newEvent.id, createdByUserId });
     res.status(201).json({ message: 'Event created successfully', data: saved });
   } catch (error) {
-    console.error('Create event error:', error);
+    logger.error('Create event error', { error, requestId: req.requestId });
     res.status(500).json({ message: 'Error creating event' });
   }
 });
@@ -1181,11 +1247,15 @@ app.post('/events/:eventId/rsvp', rsvpLimiter, authenticateToken, async (req, re
       if (source === 'db') await EventModel.updateOne({ _id: ev._id }, { $addToSet: { rsvps: rsvpUserId } });
       else await EventModel.updateOne({ id: Number(eventIdParam) }, { $addToSet: { rsvps: rsvpUserId } }, { upsert: true });
     }
-
-    console.log('RSVPs:', rsvps); // For debugging
+    securityEvent('Event RSVP added', {
+      requestId: req.requestId,
+      eventId: eid,
+      userId: rsvpUserId,
+    });
+    logger.debug('RSVP pool size', { count: rsvps.length });
     res.status(201).json({ message: 'RSVP successful', data: newRsvp });
   } catch (error) {
-    console.error('RSVP error:', error);
+    logger.error('RSVP error', { error, requestId: req.requestId, eventId: req.params.eventId });
     res.status(500).json({ message: 'Error RSVPing to event' });
   }
 });
@@ -1209,9 +1279,14 @@ app.delete('/events/:eventId/rsvp', authenticateToken, async (req, res) => {
     const eid = event.id || (event._id?.toString ? event._id.toString() : undefined);
     const i2 = rsvps.findIndex(r => String(r.eventId) === String(eid) && String(r.userId) === String(rsvpUserId));
     if (i2 > -1) rsvps.splice(i2, 1);
+    securityEvent('Event RSVP removed', {
+      requestId: req.requestId,
+      eventId: eid,
+      userId: rsvpUserId,
+    });
     res.json({ message: 'RSVP removed', eventId });
   } catch (error) {
-    console.error('Cancel RSVP error:', error);
+    logger.error('Cancel RSVP error', { error, requestId: req.requestId, eventId: req.params.eventId });
     res.status(500).json({ message: 'Error cancelling RSVP' });
   }
 });
@@ -1243,7 +1318,7 @@ app.get('/events', async (req, res) => {
     }
     res.json(events);
   } catch (error) {
-    console.error('Get events error:', error);
+    logger.error('Get events error', { error, requestId: req.requestId });
     res.status(500).json({ message: 'Error fetching events' });
   }
 });
@@ -1273,7 +1348,7 @@ app.get('/events/:eventId', async (req, res) => {
     };
     res.json(item);
   } catch (e) {
-    console.error('Get event error:', e);
+    logger.error('Get event error', { error: e, requestId: req.requestId, eventId: req.params.eventId });
     res.status(500).json({ message: 'Error fetching event' });
   }
 });
@@ -1294,11 +1369,13 @@ app.post('/events/:eventId/ensure-thread', eventWriteLimiter, async (req, res) =
       try {
         const intro = `Event: ${title}\nDate: ${doc.date}\nLocation: ${doc.location}\n\n${doc.description || ''}`;
         await ForumPost.create({ threadId: thread._id, authorId: doc.createdByUserId, authorUsername: doc.createdByUsername, body: intro });
-      } catch (e) { console.warn('Intro post failed:', e.message); }
+      } catch (e) {
+        logger.warn('Intro post failed', { error: e, requestId: req.requestId, eventId: req.params.eventId });
+      }
     }
     return res.json({ id: doc.id || doc._id.toString(), name: doc.name, title: doc.title || doc.name, date: doc.date, location: doc.location, description: doc.description, image: doc.image, thumbnail: doc.thumbnail, schedule: doc.schedule || [], comments: doc.comments || [], rsvps: doc.rsvps || [], rsvpCount: Array.isArray(doc.rsvps) ? doc.rsvps.length : 0, createdByUserId: doc.createdByUserId, createdByUsername: doc.createdByUsername, threadId: doc.threadId });
   } catch (e) {
-    console.error('Ensure thread error:', e);
+    logger.error('Ensure thread error', { error: e, requestId: req.requestId, eventId: req.params.eventId });
     res.status(500).json({ message: 'Error ensuring thread' });
   }
 });
@@ -1325,7 +1402,7 @@ app.get('/my-rsvps', authenticateToken, async (req, res) => {
 
     res.json(enrichedRsvps);
   } catch (error) {
-    console.error('Get my RSVPs error:', error);
+    logger.error('Get my RSVPs error', { error, requestId: req.requestId });
     res.status(500).json({ message: 'Error fetching your RSVPs' });
   }
 });
@@ -1346,7 +1423,9 @@ app.post('/events/:eventId/comments', eventWriteLimiter, authenticateToken, asyn
         try {
           const fp = await ForumPost.create({ threadId: doc.threadId, authorId: comment.userId, authorUsername: comment.user, body: text });
           comment.forumPostId = fp._id;
-        } catch (mir) { console.warn('Forum mirror failed:', mir.message); }
+        } catch (mir) {
+          logger.warn('Forum mirror failed', { error: mir, requestId: req.requestId, eventId: eventIdParam });
+        }
       }
       doc.comments = doc.comments || [];
       doc.comments.push(comment);
@@ -1356,9 +1435,10 @@ app.post('/events/:eventId/comments', eventWriteLimiter, authenticateToken, asyn
     const comment = { id: Date.now(), user: req.user.username, userId: req.user.id || req.user.userId, text, timestamp: new Date().toISOString() };
     ev.comments = ev.comments || [];
     ev.comments.push(comment);
+    securityEvent('Event comment added', { requestId: req.requestId, eventId: eventIdParam, userId: comment.userId });
     res.status(201).json(comment);
   } catch (e) {
-    console.error('Add comment error:', e);
+    logger.error('Add comment error', { error: e, requestId: req.requestId, eventId: req.params.eventId });
     res.status(500).json({ message: 'Error adding comment' });
   }
 });
@@ -1381,9 +1461,10 @@ app.put('/events/:eventId/comments/:commentId', authenticateToken, async (req, r
       c.text = text;
       // Mirror to forum post if present
       if (c.forumPostId) {
-        try { await ForumPost.updateOne({ _id: c.forumPostId }, { $set: { body: text } }); } catch (e) { console.warn('Forum mirror edit failed:', e.message); }
+        try { await ForumPost.updateOne({ _id: c.forumPostId }, { $set: { body: text } }); } catch (e) { logger.warn('Forum mirror edit failed', { error: e, requestId: req.requestId, eventId: eventIdParam }); }
       }
       await doc.save();
+      securityEvent('Event comment edited', { requestId: req.requestId, eventId: eventIdParam, commentId, userId });
       return res.json(c);
     }
     const c = (ev.comments || []).find(x => x.id === commentId);
@@ -1391,9 +1472,10 @@ app.put('/events/:eventId/comments/:commentId', authenticateToken, async (req, r
     const can = String(c.userId) === userId || req.user.developerOverride;
     if (!can) return res.status(403).json({ message: 'Forbidden' });
     c.text = text;
+    securityEvent('Event comment edited', { requestId: req.requestId, eventId: eventIdParam, commentId, userId });
     res.json(c);
   } catch (e) {
-    console.error('Edit comment error:', e);
+    logger.error('Edit comment error', { error: e, requestId: req.requestId, eventId: req.params.eventId, commentId: req.params.commentId });
     res.status(500).json({ message: 'Error editing comment' });
   }
 });
@@ -1414,9 +1496,10 @@ app.delete('/events/:eventId/comments/:commentId', authenticateToken, async (req
       if (!can) return res.status(403).json({ message: 'Forbidden' });
       const removed = doc.comments.splice(idx, 1)[0];
       if (removed && removed.forumPostId) {
-        try { await ForumPost.deleteOne({ _id: removed.forumPostId }); } catch (e) { console.warn('Forum mirror delete failed:', e.message); }
+        try { await ForumPost.deleteOne({ _id: removed.forumPostId }); } catch (e) { logger.warn('Forum mirror delete failed', { error: e, requestId: req.requestId, eventId: eventIdParam }); }
       }
       await doc.save();
+      securityEvent('Event comment deleted', { requestId: req.requestId, eventId: eventIdParam, commentId, userId });
       return res.json({ ok: true });
     }
     const idx = (ev.comments || []).findIndex(x => x.id === commentId);
@@ -1425,9 +1508,10 @@ app.delete('/events/:eventId/comments/:commentId', authenticateToken, async (req
     const can = String(c.userId) === userId || req.user.developerOverride;
     if (!can) return res.status(403).json({ message: 'Forbidden' });
     ev.comments.splice(idx, 1);
+    securityEvent('Event comment deleted', { requestId: req.requestId, eventId: eventIdParam, commentId, userId });
     res.json({ ok: true });
   } catch (e) {
-    console.error('Delete comment error:', e);
+    logger.error('Delete comment error', { error: e, requestId: req.requestId, eventId: req.params.eventId, commentId: req.params.commentId });
     res.status(500).json({ message: 'Error deleting comment' });
   }
 });
@@ -1447,17 +1531,21 @@ app.delete('/events/:eventId', authenticateToken, async (req, res) => {
         try {
           await ForumPost.deleteMany({ threadId: doc.threadId });
           await ForumThread.deleteOne({ _id: doc.threadId });
-        } catch (e) { console.warn('Delete thread cascade failed:', e.message); }
+        } catch (e) {
+          logger.warn('Delete thread cascade failed', { error: e, requestId: req.requestId, eventId: eventIdParam });
+        }
       }
       await EventModel.deleteOne({ _id: ev._id });
+      securityEvent('Event deleted', { requestId: req.requestId, eventId: eventIdParam, userId });
       return res.json({ ok: true });
     }
     // Memory fallback
     const idx = events.findIndex(e => String(e.id) === String(eventIdParam));
     if (idx > -1) events.splice(idx, 1);
+    securityEvent('Event deleted', { requestId: req.requestId, eventId: eventIdParam, userId });
     res.json({ ok: true });
   } catch (e) {
-    console.error('Delete event error:', e);
+    logger.error('Delete event error', { error: e, requestId: req.requestId, eventId: req.params.eventId });
     res.status(500).json({ message: 'Error deleting event' });
   }
 });
@@ -1486,29 +1574,33 @@ app.put('/events/:eventId', authenticateToken, async (req, res) => {
             const body = `Event details updated by organizer.\n\n${allowed.description}`;
             await ForumPost.create({ threadId: doc.threadId, authorId: userId, authorUsername: req.user.username, body });
           }
-        } catch (e) { console.warn('Thread update note failed:', e.message); }
+        } catch (e) {
+          logger.warn('Thread update note failed', { error: e, requestId: req.requestId, eventId: eventIdParam });
+        }
       }
+      securityEvent('Event updated', { requestId: req.requestId, eventId: eventIdParam, userId });
       return res.json(doc.toObject());
     }
     // Memory fallback
     const idx = events.findIndex(e => String(e.id) === String(eventIdParam));
     if (idx === -1) return res.status(404).json({ message: 'Event not found' });
     Object.assign(events[idx], req.body || {});
+    securityEvent('Event updated', { requestId: req.requestId, eventId: eventIdParam, userId });
     res.json(events[idx]);
   } catch (e) {
-    console.error('Update event error:', e);
+    logger.error('Update event error', { error: e, requestId: req.requestId, eventId: req.params.eventId });
     res.status(500).json({ message: 'Error updating event' });
   }
 });
 
 const httpServer = http.createServer(app);
 httpServer.listen(port, () => {
-  console.log(`HTTP server running on port ${port}`);
+  logger.info('HTTP server listening', { port });
 });
 
 if (devHttpsEnabled) {
   if (!devHttpsCertPath || !devHttpsKeyPath) {
-    console.warn('DEV_HTTPS enabled but DEV_HTTPS_CERT/DEV_HTTPS_KEY not provided. HTTPS server not started.');
+    logger.warn('DEV_HTTPS enabled but DEV_HTTPS_CERT/DEV_HTTPS_KEY not provided. HTTPS server not started.');
   } else {
     try {
       const httpsOptions = {
@@ -1517,10 +1609,10 @@ if (devHttpsEnabled) {
       };
       const httpsServer = https.createServer(httpsOptions, app);
       httpsServer.listen(devHttpsPort, () => {
-        console.log(`HTTPS server running on port ${devHttpsPort}`);
+        logger.info('HTTPS server listening', { port: devHttpsPort });
       });
     } catch (err) {
-      console.error('Failed to start HTTPS server:', err.message);
+      logger.error('Failed to start HTTPS server', { error: err });
     }
   }
 }

@@ -1,4 +1,5 @@
 const rateLimit = require('express-rate-limit');
+const { logger, securityEvent } = require('../logger');
 
 const DEFAULT_MESSAGE = 'Too many requests. Please try again later.';
 
@@ -15,9 +16,16 @@ const buildLimiter = ({ windowMs, max, message = DEFAULT_MESSAGE, skip, keyGener
       const limit = options?.limit ?? max;
       const windowSeconds = Math.ceil((options?.windowMs ?? windowMs) / 1000);
       const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
-      console.warn(
-        `[rate-limit] ${req.method} ${req.originalUrl} from ${ip} blocked (limit ${limit}/${windowSeconds}s)`
-      );
+      const meta = {
+        requestId: req.requestId,
+        ip,
+        method: req.method,
+        path: req.originalUrl,
+        limit,
+        windowSeconds,
+      };
+      logger.warn('Request rate limited', meta);
+      securityEvent('Rate limit triggered', meta);
       res.status(options.statusCode).json({ message });
     },
   });

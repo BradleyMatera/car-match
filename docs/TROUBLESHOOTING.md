@@ -11,6 +11,7 @@ Backend (Render)
 - Forums → "Database not available": Missing/invalid `MONGODB_URI`. Use a proper Atlas URI with db name and URL‑encoded password.
 - Atlas auth: DB user must have `readWrite` on `car-match`; network access must allow your host (use `0.0.0.0/0` to verify first).
 - HTTP 429 "Too Many Requests": You tripped rate limiting—slow down requests or (for local testing only) export `DISABLE_RATE_LIMIT=1` before running `node server.js`.
+- Structured logs live under `backend/logger/logs/` (or `LOG_DIR`); tail security events with `tail -f backend/logger/logs/security-$(date +%F).log`.
 
 Zsh: "event not found" when encoding passwords
 - In zsh, `!` triggers history expansion inside double quotes. Solutions:
