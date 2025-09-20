@@ -76,8 +76,8 @@ Prereqs: Node 18 (use `.nvmrc`).
   - `LOG_DIR` (optional override for log output; defaults to `backend/logger/logs/`)
 
 ## Security Tooling
-- **Snyk CI** — `.github/workflows/snyk-security.yml` runs on PRs/pushes to `dev`/`main`, on demand, and weekly. Add a `SNYK_TOKEN` repository secret to enable it. The workflow performs `snyk test` and `snyk monitor` for both `backend` and `frontend` packages.
-- **Local scanning** — After `npm install`, run `npm run snyk:test` / `npm run snyk:monitor` inside `backend/` or `frontend/` (requires `snyk auth` with the same token).
+- **npm audit CI** — `.github/workflows/npm-audit.yml` runs on PRs/pushes to `dev`/`main`, on demand, and weekly. It performs `npm run audit` in both `backend/` and `frontend/`, failing the build on high-severity issues. No additional services required beyond GitHub Actions.
+- **Local scanning** — After installing dependencies, run `npm run audit` inside `backend/` or `frontend/` to check for known vulnerabilities.
 
 ## Deploy Backend (Render)
 [Docs](./docs/DEPLOYMENT.md) — or click:

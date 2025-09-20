@@ -5,8 +5,7 @@
   "scripts": {
     "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "snyk:test": "snyk test --severity-threshold=medium",
-    "snyk:monitor": "snyk monitor --severity-threshold=medium --project-name=car-match-backend"
+    "audit": "npm audit --omit=dev --audit-level=critical"
   },
   "keywords": [],
   "author": "",
@@ -23,8 +22,5 @@
     "mongoose": "^8.6.1",
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0"
-  },
-  "devDependencies": {
-    "snyk": "^1.1299.0"
   }
 }

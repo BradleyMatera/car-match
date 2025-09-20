@@ -12,7 +12,7 @@ Backend (Render)
 - Atlas auth: DB user must have `readWrite` on `car-match`; network access must allow your host (use `0.0.0.0/0` to verify first).
 - HTTP 429 "Too Many Requests": You tripped rate limiting—slow down requests or (for local testing only) export `DISABLE_RATE_LIMIT=1` before running `node server.js`.
 - Structured logs live under `backend/logger/logs/` (or `LOG_DIR`); tail security events with `tail -f backend/logger/logs/security-$(date +%F).log`.
-- Snyk workflow fails immediately if `SNYK_TOKEN` is missing; add the secret under **Settings → Secrets and variables → Actions → New repository secret**. Locally, run `npx snyk auth` once per machine.
+- npm audit workflow runs via GitHub Actions; failures indicate high-severity issues. Run `npm run audit` locally in `backend/` and `frontend/` to reproduce and resolve.
 
 Zsh: "event not found" when encoding passwords
 - In zsh, `!` triggers history expansion inside double quotes. Solutions:
