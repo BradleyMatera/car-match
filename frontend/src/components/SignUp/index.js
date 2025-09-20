@@ -36,9 +36,42 @@ const SignUp = () => {
     return () => clearInterval(id);
   }, [bgImages]);
 
+  const currentBackground = useMemo(
+    () => (Array.isArray(bgImages) ? bgImages.at(bgIndex) ?? '' : ''),
+    [bgImages, bgIndex]
+  );
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const next = { ...prev };
+      switch (name) {
+        case 'username':
+          next.username = value;
+          break;
+        case 'password':
+          next.password = value;
+          break;
+        case 'name':
+          next.name = value;
+          break;
+        case 'displayTag':
+          next.displayTag = value;
+          break;
+        case 'gender':
+          next.gender = value;
+          break;
+        case 'city':
+          next.city = value;
+          break;
+        case 'state':
+          next.state = value;
+          break;
+        default:
+          return prev;
+      }
+      return next;
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -111,7 +144,7 @@ const SignUp = () => {
       <div
         className="page-bg signup-bg"
         style={{
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url(${bgImages[bgIndex]})`
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url(${currentBackground})`
         }}
       />
       <form onSubmit={handleSubmit} className="signup-form">

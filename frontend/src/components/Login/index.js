@@ -68,12 +68,17 @@ const Login = () => { // Removed onLoginSuccess prop
     return () => clearInterval(id);
   }, [bgImages]);
 
+  const currentBackground = useMemo(
+    () => (Array.isArray(bgImages) ? bgImages.at(bgIndex) ?? '' : ''),
+    [bgImages, bgIndex]
+  );
+
   return (
     <div className="login-container">
       <div
         className="page-bg login-bg"
         style={{
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url(${bgImages[bgIndex]})`
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url(${currentBackground})`
         }}
       />
       <form onSubmit={handleSubmit} className="login-form">

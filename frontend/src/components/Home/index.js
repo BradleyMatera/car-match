@@ -22,6 +22,11 @@ const Home = () => {
     return () => clearInterval(id);
   }, [bgImages]);
 
+  const currentBackground = useMemo(
+    () => (Array.isArray(bgImages) ? bgImages.at(bgIndex) ?? '' : ''),
+    [bgImages, bgIndex]
+  );
+
   useEffect(() => {
     (async () => {
       try {
@@ -34,11 +39,18 @@ const Home = () => {
         // Latest threads: pull small page from each category and sort by lastPostAt
         try {
           const cats = await mockApi.getForumCategories();
-          const all = await Promise.all((cats||[]).map(c => mockApi.getThreadsByCategory(c.id, { page:1, pageSize:3 })));
+          const all = await Promise.all((cats || []).map(async (cat) => ({
+            cat,
+            resp: await mockApi.getThreadsByCategory(cat.id, { page: 1, pageSize: 3 })
+          })));
           const flat = [];
-          all.forEach((resp,i) => {
-            const items = Array.isArray(resp)?resp:(resp.items||[]);
-            items.forEach(t => flat.push({ ...t, categoryId:(cats[i]||{}).id, categoryName:(cats[i]||{}).name }));
+          all.forEach(({ cat, resp }) => {
+            const items = Array.isArray(resp) ? resp : resp?.items || [];
+            items.forEach((thread) => flat.push({
+              ...thread,
+              categoryId: cat?.id,
+              categoryName: cat?.name
+            }));
           });
           flat.sort((a,b) => new Date(b.lastPostAt||b.createdAt) - new Date(a.lastPostAt||a.createdAt));
           setLatestThreads(flat.slice(0,6));
@@ -80,7 +92,7 @@ const Home = () => {
         const text = `${e.title||e.name||''} ${e.description||''}`.toLowerCase();
         return keywords.some(k => text.includes(k));
       });
-      return match || events[0];
+      return match || events.at(0);
     };
     return categories.map(c => ({ ...c, event: findMatch(c.keywords) }));
   }, [events]);
@@ -89,7 +101,7 @@ const Home = () => {
       <div
         className="page-bg home-bg"
         style={{
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url(${bgImages[bgIndex]})`
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url(${currentBackground})`
         }}
       />
       {/* Hero Section */}

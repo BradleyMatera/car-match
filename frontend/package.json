@@ -38,9 +38,14 @@
   "eslintConfig": {
     "extends": [
       "react-app",
-      "react-app/jest",
-      "plugin:security/recommended"
-    ]
+      "react-app/jest"
+    ],
+    "plugins": [
+      "security"
+    ],
+    "rules": {
+      "security/detect-object-injection": "error"
+    }
   },
   "browserslist": {
     "production": [

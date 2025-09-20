@@ -25,7 +25,7 @@ const Profile = () => {
   const { currentUser, token, updateCurrentUser } = useContext(AuthContext);
 
   const [userEvents, setUserEvents] = useState([]);
-  const [myRsvpMap, setMyRsvpMap] = useState({});
+  const [myRsvpMap, setMyRsvpMap] = useState(() => new Map());
   const [loadingProfileData, setLoadingProfileData] = useState(true);
   const [profileError, setProfileError] = useState(null);
   const [editing, setEditing] = useState(false);
@@ -94,9 +94,9 @@ const Profile = () => {
           setUserEvents(events);
           try {
             const mine = await mockApi.getMyRsvps(token);
-            const map = {};
-            (mine || []).forEach(r => { map[String(r.eventId)] = true; });
-            setMyRsvpMap(map);
+            const map = new Map();
+            (mine || []).forEach(r => map.set(String(r.eventId), true));
+            setMyRsvpMap(new Map(map));
           } catch {}
         }
         // Initial fetch for the default tab
@@ -152,14 +152,51 @@ const Profile = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setUpdatedUser((prev) => ({ ...prev, [name]: value }));
+    setUpdatedUser((prev) => {
+      const next = { ...prev };
+      switch (name) {
+        case 'name':
+          next.name = value;
+          break;
+        case 'displayTag':
+          next.displayTag = value;
+          break;
+        case 'gender':
+          next.gender = value;
+          break;
+        case 'bio':
+          next.bio = value;
+          next.biography = value;
+          break;
+        case 'email':
+          next.email = value;
+          break;
+        case 'age':
+          next.age = value;
+          break;
+        case 'biography':
+          next.biography = value;
+          break;
+        case 'profileImage':
+          next.profileImage = value;
+          break;
+        default:
+          return prev;
+      }
+      return next;
+    });
   };
 
   const handleSave = async () => {
     if (!currentUser || !token) return;
     try {
-      const dataToSave = { ...updatedUser, preferences: prefs };
-      ['id', 'token', 'username', 'password', 'activityMetadata', 'tierSpecificHistory', 'createdAt', 'lastLoginTimestamp'].forEach(key => delete dataToSave[key]);
+      const dataToSave = { preferences: prefs };
+      if (typeof updatedUser.name === 'string') dataToSave.name = updatedUser.name;
+      if (typeof updatedUser.displayTag === 'string') dataToSave.displayTag = updatedUser.displayTag;
+      if (typeof updatedUser.gender === 'string') dataToSave.gender = updatedUser.gender;
+      if (typeof updatedUser.biography === 'string') dataToSave.biography = updatedUser.biography;
+      if (typeof updatedUser.profileImage === 'string') dataToSave.profileImage = updatedUser.profileImage;
+      if (updatedUser.location && typeof updatedUser.location === 'object') dataToSave.location = updatedUser.location;
       const resp = await mockApi.updateUser(token, currentUser.id, dataToSave);
       updateCurrentUser(resp.user || dataToSave);
       setEditing(false);
@@ -185,12 +222,21 @@ const Profile = () => {
     if (!token) { alert('Please log in.'); return; }
     try {
       const eid = String(eventId);
-      if (myRsvpMap[eid]) {
+      const currentlyGoing = myRsvpMap instanceof Map && myRsvpMap.get(eid) === true;
+      if (currentlyGoing) {
         await mockApi.cancelRsvp(token, eid);
-        setMyRsvpMap(prev => ({ ...prev, [eid]: false }));
+        setMyRsvpMap(prev => {
+          const next = new Map(prev);
+          next.set(eid, false);
+          return next;
+        });
       } else {
         await mockApi.rsvpToEvent(token, eid);
-        setMyRsvpMap(prev => ({ ...prev, [eid]: true }));
+        setMyRsvpMap(prev => {
+          const next = new Map(prev);
+          next.set(eid, true);
+          return next;
+        });
       }
       // Refresh user events after RSVP change
       try { const events = await mockApi.getUserEvents(currentUser.id); setUserEvents(events); } catch {}
@@ -325,7 +371,7 @@ const Profile = () => {
           <Grid cols={1} mdCols={2} gap="md">
             {userEvents.map(ev => {
               const eid = String(ev.id);
-              const going = !!myRsvpMap[eid];
+              const going = myRsvpMap instanceof Map && myRsvpMap.get(eid) === true;
               return (
                 <div key={eid} className="event-card">
                   <div className="title">{ev.title}</div>

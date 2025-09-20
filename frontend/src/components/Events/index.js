@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import Calendar from 'react-calendar';
@@ -15,7 +15,7 @@ const Events = () => {
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   // Event-specific comment composer removed in favor of forum preview + link
-  const [rsvpStatus, setRsvpStatus] = useState({});
+  const [rsvpStatus, setRsvpStatus] = useState(() => new Map());
   const { currentUser, token } = useContext(AuthContext);
   const isOwner = selectedEvent && currentUser && String(selectedEvent.createdByUserId) === String(currentUser.id);
   const canModerate = isOwner || currentUser?.developerOverride;
@@ -50,9 +50,9 @@ const Events = () => {
         // Preload RSVP status if logged in
         if (token) {
           const myRsvps = await mockApi.getMyRsvps(token);
-          const map = {};
-          myRsvps.forEach(r => { map[r.eventId] = true; });
-          setRsvpStatus(map);
+          const map = new Map();
+          myRsvps.forEach(r => map.set(String(r.eventId), true));
+          setRsvpStatus(new Map(map));
         }
       } catch (error) {
         console.error('Error loading events:', error);
@@ -104,12 +104,22 @@ const Events = () => {
   const handleRsvpToggle = async (eventId) => {
     try {
       if (!token || !currentUser) { alert('Please login to RSVP'); return; }
-      if (rsvpStatus[eventId]) {
+      const key = String(eventId);
+      const currentlyGoing = isRsvped(key);
+      if (currentlyGoing) {
         await mockApi.cancelRsvp(token, eventId);
-        setRsvpStatus(prev => ({ ...prev, [eventId]: false }));
+        setRsvpStatus(prev => {
+          const next = new Map(prev);
+          next.set(key, false);
+          return next;
+        });
       } else {
         await mockApi.rsvpToEvent(token, eventId);
-        setRsvpStatus(prev => ({ ...prev, [eventId]: true }));
+        setRsvpStatus(prev => {
+          const next = new Map(prev);
+          next.set(key, true);
+          return next;
+        });
       }
       await refreshEvents();
       // Ensure selected event detail is freshest from API
@@ -125,6 +135,13 @@ const Events = () => {
     );
     setSelectedEvent(eventForDate);
   };
+
+  const currentBackground = useMemo(
+    () => (Array.isArray(bgImages) ? bgImages.at(bgIndex) ?? '' : ''),
+    [bgImages, bgIndex]
+  );
+
+  const isRsvped = (id) => rsvpStatus instanceof Map && rsvpStatus.get(String(id)) === true;
 
   const carouselSettings = {
     autoscroll: true,
@@ -148,7 +165,7 @@ const Events = () => {
 
   return (
     <div className="events-container">
-      <div className="events-bg" style={{ backgroundImage: `linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url(${bgImages[bgIndex] || ''})` }} />
+      <div className="events-bg" style={{ backgroundImage: `linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url(${currentBackground})` }} />
       <header className="events-header">
         <h1>Car Community Events</h1>
         <p className="page-description">
@@ -200,13 +217,13 @@ const Events = () => {
                       }}>View Discussion</button>
                     </div>
                     <button 
-                      className={`rsvp-button small ${rsvpStatus[String(event.id)] ? 'rsvp-confirmed' : ''}`}
+                      className={`rsvp-button small ${isRsvped(event.id) ? 'rsvp-confirmed' : ''}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleRsvpToggle(event.id);
                       }}
                     >
-                      {rsvpStatus[String(event.id)] ? '✅ Going' : 'RSVP'}
+                      {isRsvped(event.id) ? '✅ Going' : 'RSVP'}
                     </button>
                   </div>
                 </div>
@@ -292,10 +309,10 @@ const Events = () => {
               {/* Sidebar */}
               <aside className="event-side">
                 <div className="side-card">
-                  <button className={`rsvp-button ${rsvpStatus[selectedEvent.id] ? 'rsvp-confirmed' : ''}`} onClick={()=> handleRsvpToggle(selectedEvent.id)}>
-                    {rsvpStatus[selectedEvent.id] ? '✅ Going' : 'RSVP to Event'}
+                  <button className={`rsvp-button ${isRsvped(selectedEvent.id) ? 'rsvp-confirmed' : ''}`} onClick={()=> handleRsvpToggle(selectedEvent.id)}>
+                    {isRsvped(selectedEvent.id) ? '✅ Going' : 'RSVP to Event'}
                   </button>
-                  {rsvpStatus[selectedEvent.id] && <p className="rsvp-confirmation">You are confirmed for this event!</p>}
+                  {isRsvped(selectedEvent.id) && <p className="rsvp-confirmation">You are confirmed for this event!</p>}
                 </div>
                 <div className="side-card">
                   <h4>Event at a Glance</h4>
