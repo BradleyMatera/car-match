@@ -64,14 +64,6 @@ Some vulnerabilities in dev dependencies (webpack-dev-server) could not be fully
 🔮 Next Steps:  
 Monitor for upstream fixes to dev dependencies, continue to polish security, and maintain documentation.
 
-Reminder:  Weekly Log Update  
-As a follow-up to the team stand-up discussion, be sure to share your final progress at the end of each week by updating your weekly log file on GitHub. You will want to make sure your final log entry covers the following:
-
-⚙️ Overview - What I worked on this past week  
-🌵 Challenges - What problems did I have & how I'm addressing them  
-🏆 Accomplishments - What is something I "leveled up" on this week  
-🔮 Next Steps - What I plan to prioritize and do next
-
 ### Week 4
 
 ⚙️ Overview:  
