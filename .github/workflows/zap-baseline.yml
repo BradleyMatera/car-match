@@ -1,0 +1,31 @@
+name: OWASP ZAP Baseline
+
+on:
+  workflow_dispatch:
+    inputs:
+      target-url:
+        description: 'Target URL to scan (e.g., https://car-match-h2gw.onrender.com)'
+        required: true
+        type: string
+
+jobs:
+  zap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Pull ZAP Docker image
+        run: docker pull owasp/zap2docker-stable
+
+      - name: Run ZAP baseline scan
+        run: |
+          ./scripts/zap/zap-baseline.sh "${{ inputs.target-url }}"
+        env:
+          ZAP_IMAGE: owasp/zap2docker-stable
+
+      - name: Upload ZAP reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-baseline-reports
+          path: zap-reports

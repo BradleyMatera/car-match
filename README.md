@@ -78,6 +78,7 @@ Prereqs: Node 18 (use `.nvmrc`).
 ## Security Tooling
 - **npm audit CI** — `.github/workflows/npm-audit.yml` runs on PRs/pushes to `dev`/`main`, on demand, and weekly. It performs `npm run audit` in both `backend/` and `frontend/`, failing the build on high-severity issues. No additional services required beyond GitHub Actions.
 - **Local scanning** — After installing dependencies, run `npm run audit` inside `backend/` or `frontend/` to check for known vulnerabilities.
+- **OWASP ZAP Baseline** — `.github/workflows/zap-baseline.yml` can be dispatched manually to scan the Render deployment. Run locally via `./scripts/zap/zap-baseline.sh <target-url>` (requires Docker).
 
 ## Deploy Backend (Render)
 [Docs](./docs/DEPLOYMENT.md) — or click:
