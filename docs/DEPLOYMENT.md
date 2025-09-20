@@ -28,6 +28,7 @@ Backend (Render example)
        - IMPORTANT: URL‑encode special characters in the password (e.g., `!` -> `%21`).
 3) Deploy. Note the generated URL, e.g., `https://car-match-h2gw.onrender.com`.
 4) In your GitHub repo, set `REACT_APP_API_BASE_URL` variable to this URL to wire the frontend.
+5) CI dependency scans run via `npm audit` without extra secrets; ensure `npm run audit` passes locally before pushing.
 
 Local Development
 - Backend: `cd backend && npm i && node server.js`

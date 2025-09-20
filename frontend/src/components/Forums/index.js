@@ -37,6 +37,11 @@ const Forums = () => {
     return () => clearInterval(id);
   }, [bgImages]);
 
+  const currentBackground = useMemo(
+    () => (Array.isArray(bgImages) ? bgImages.at(bgIndex) ?? '' : ''),
+    [bgImages, bgIndex]
+  );
+
   useEffect(() => {
     (async () => {
       const cats = await mockApi.getForumCategories();
@@ -193,7 +198,22 @@ const Forums = () => {
   };
 
   // Formatting helpers (safe construction of limited HTML from plain text)
-  const escapeHTML = (s) => s.replace(/[&<>"']/g, (c)=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+  const escapeHTML = (s) => s.replace(/[&<>"']/g, (char) => {
+    switch (char) {
+      case '&':
+        return '&amp;';
+      case '<':
+        return '&lt;';
+      case '>':
+        return '&gt;';
+      case '"':
+        return '&quot;';
+      case '\'':
+        return '&#39;';
+      default:
+        return char;
+    }
+  });
   const safeUrl = (u) => (/^https?:\/\//i.test(u) ? u : null);
   const formatPost = (raw) => {
     if (!raw) return '';
@@ -216,7 +236,7 @@ const Forums = () => {
       <div
         className="page-bg forums-bg"
         style={{
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url(${bgImages[bgIndex]})`
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url(${currentBackground})`
         }}
       />
       <aside className="forums-sidebar">

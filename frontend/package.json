@@ -23,7 +23,8 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d build"
+    "deploy": "gh-pages -d build",
+    "audit": "npm audit --omit=dev --audit-level=critical"
   },
   "devDependencies": {
     "core-js-pure": "^3.38.1",
@@ -33,9 +34,19 @@
   "overrides": {
     "core-js-pure": "^3.38.1",
     "webpack-dev-server": "^4.15.2",
-    "html-webpack-plugin": "^5.6.4",
-    "nth-check": "^2.1.1",
-    "postcss": "^8.4.31"
+    "html-webpack-plugin": "^5.6.4"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ],
+    "plugins": [
+      "security"
+    ],
+    "rules": {
+      "security/detect-object-injection": "error"
+    }
   },
   "browserslist": {
     "production": [
