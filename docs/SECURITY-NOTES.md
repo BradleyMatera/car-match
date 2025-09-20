@@ -14,5 +14,5 @@ As of 2025-09-17, the following moderate vulnerabilities remain in the project:
 - Local development now mirrors production transport security via optional HTTPS (issue #101).
 - API rate limiting active across auth, messaging, forums, and events endpoints (issue #103).
 - Structured security logging with daily rotation captures auth failures, admin changes, rate-limit hits, and comment/event mutations (issue #105 in progress).
-- Automated dependency scanning uses `npm audit` (issue #109): CI workflow (`npm run audit`) plus local scripts in backend/frontend; no additional services required.
+- Automated dependency scanning uses `npm audit` (issue #109): CI workflow (`npm run audit`) plus local scripts in backend/frontend; no additional services required. Current CRA dev dependencies still flag known **high** advisories (`react-scripts` chain); audit is configured to fail on critical issues while we monitor upstream patches.
 - Monitor for updates to react-scripts to fully resolve dev dependency issues.
