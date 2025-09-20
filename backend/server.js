@@ -5,10 +5,62 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const cors = require('cors'); // Import cors
 const mongoose = require('mongoose');
+const fs = require('fs');
+const http = require('http');
+const https = require('https');
+const { createRateLimits } = require('./middleware/rateLimits');
 const { ForumThread, ForumPost } = require('./models/forum');
 let UserModel, EventModel, MessageModel; // loaded only when Mongo is configured
 const app = express();
 const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
+const devHttpsEnabled = /^true|1|yes$/i.test(String(process.env.DEV_HTTPS || '')) && process.env.NODE_ENV !== 'production';
+const parsedDevHttpsPort = parseInt(process.env.DEV_HTTPS_PORT, 10);
+const devHttpsPort = Number.isFinite(parsedDevHttpsPort) ? parsedDevHttpsPort : 3443;
+const devHttpsCertPath = process.env.DEV_HTTPS_CERT || process.env.SSL_CRT_FILE;
+const devHttpsKeyPath = process.env.DEV_HTTPS_KEY || process.env.SSL_KEY_FILE;
+const disableRateLimiting = /^true|1|yes$/i.test(String(process.env.DISABLE_RATE_LIMIT || ''));
+
+const { generalLimiter, authLimiter, createSensitiveLimiter } = createRateLimits();
+const noopMiddleware = (_req, _res, next) => next();
+const useLimiter = (limiter) => (disableRateLimiting ? noopMiddleware : limiter);
+
+const generalLimiterMiddleware = useLimiter(generalLimiter);
+const authLimiterMiddleware = useLimiter(authLimiter);
+const adminLimiterMiddleware = useLimiter(
+  createSensitiveLimiter({
+    windowMs: 60 * 60 * 1000,
+    max: 20,
+    message: 'Too many administrative actions. Please slow down.',
+  })
+);
+const forumWriteLimiter = useLimiter(
+  createSensitiveLimiter({
+    windowMs: 60 * 60 * 1000,
+    max: 80,
+    message: 'Too many forum actions from this IP. Please try again later.',
+  })
+);
+const messageWriteLimiter = useLimiter(
+  createSensitiveLimiter({
+    windowMs: 15 * 60 * 1000,
+    max: 120,
+    message: 'Too many messages sent from this IP. Please slow down.',
+  })
+);
+const eventWriteLimiter = useLimiter(
+  createSensitiveLimiter({
+    windowMs: 60 * 60 * 1000,
+    max: 40,
+    message: 'Too many event actions from this IP. Please wait before trying again.',
+  })
+);
+const rsvpLimiter = useLimiter(
+  createSensitiveLimiter({
+    windowMs: 10 * 60 * 1000,
+    max: 80,
+    message: 'Too many RSVP attempts from this IP. Please wait and retry.',
+  })
+);
 
 // JWT: require secret in non-dev, allow fallback only in development
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -31,7 +83,7 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
 const defaultPagesHost = 'https://bradleymatera.github.io';
 if (!allowedOrigins.includes(defaultPagesHost)) allowedOrigins.push(defaultPagesHost);
 
-const localhostRegex = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+const localhostRegex = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 const ghUser = process.env.GITHUB_PAGES_USER && String(process.env.GITHUB_PAGES_USER).trim();
 const corsOptions = {
   origin: (origin, callback) => {
@@ -47,6 +99,14 @@ const corsOptions = {
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
 };
 app.use(cors(corsOptions));
+const devConnectSources = [];
+if (process.env.NODE_ENV !== 'production') {
+  devConnectSources.push('http://localhost:3000', 'https://localhost:3000');
+}
+if (devHttpsEnabled) {
+  devConnectSources.push(`https://localhost:${devHttpsPort}`);
+}
+const cspConnectSrc = Array.from(new Set([...allowedOrigins, ...devConnectSources]));
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -55,7 +115,7 @@ app.use(
         scriptSrc: ["'self'", "'unsafe-inline'"],
         styleSrc: ["'self'", "https:", "'unsafe-inline'"],
         imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'", ...allowedOrigins],
+        connectSrc: ["'self'", ...cspConnectSrc],
         fontSrc: ["'self'", "https:"],
         objectSrc: ["'none'"],
         upgradeInsecureRequests: [],
@@ -64,6 +124,7 @@ app.use(
   })
 );
 app.use(express.json());
+app.use(generalLimiterMiddleware);
 
 // In-memory store for users
 // Each user object will now be more detailed as per the new requirements
@@ -246,7 +307,7 @@ async function backfillEventsUsers({ dryRun = false } = {}) {
 }
 
 // Admin endpoint: run backfill (requires developerOverride on user)
-app.post('/admin/backfill-events-users', authenticateToken, async (req, res) => {
+app.post('/admin/backfill-events-users', adminLimiterMiddleware, authenticateToken, async (req, res) => {
   try {
     if (!req.user?.developerOverride) return res.status(403).json({ message: 'Forbidden' });
     const result = await backfillEventsUsers({ dryRun: Boolean(req.query.dry) });
@@ -338,7 +399,7 @@ app.get('/forums/categories/:categoryId/threads', async (req, res) => {
   }
 });
 
-app.post('/forums/threads', authenticateToken, async (req, res) => {
+app.post('/forums/threads', forumWriteLimiter, authenticateToken, async (req, res) => {
   const { categoryId, title } = req.body;
   if (!categoryId || !title) return res.status(400).json({ message: 'categoryId and title required' });
   const cat = forumCategories.find(c => c.id === categoryId);
@@ -376,7 +437,7 @@ app.get('/forums/threads/:threadId', async (req, res) => {
   }
 });
 
-app.post('/forums/threads/:threadId/posts', authenticateToken, async (req, res) => {
+app.post('/forums/threads/:threadId/posts', forumWriteLimiter, authenticateToken, async (req, res) => {
   const { threadId } = req.params;
   const { body } = req.body;
   if (!body) return res.status(400).json({ message: 'body required' });
@@ -463,13 +524,13 @@ app.delete('/forums/threads/:threadId', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/forums/posts/:postId/report', authenticateToken, (req, res) => {
+app.post('/forums/posts/:postId/report', forumWriteLimiter, authenticateToken, (req, res) => {
   // Stub: accept report
   res.status(201).json({ ok: true });
 });
 
 // User registration endpoint
-app.post('/register', async (req, res) => {
+app.post('/register', authLimiterMiddleware, async (req, res) => {
   try {
     const { 
       username, 
@@ -553,7 +614,7 @@ app.post('/register', async (req, res) => {
 });
 
 // User login endpoint
-app.post('/login', async (req, res) => {
+app.post('/login', authLimiterMiddleware, async (req, res) => {
   try {
     const { username, password } = req.body;
 
@@ -792,7 +853,7 @@ app.delete('/users/:userId', authenticateToken, async (req, res) => {
 });
 
 // Message sending endpoint
-app.post('/messages', authenticateToken, async (req, res) => {
+app.post('/messages', messageWriteLimiter, authenticateToken, async (req, res) => {
   try {
     const { recipientUsername, text } = req.body;
     // req.user.username is the sender's username from the JWT
@@ -1042,7 +1103,7 @@ app.get('/messages/inbox', authenticateToken, async (req, res) => {
 });
 
 // Event creation endpoint
-app.post('/events', authenticateToken, async (req, res) => {
+app.post('/events', eventWriteLimiter, authenticateToken, async (req, res) => {
   try {
     const { name, description, date, location, image, thumbnail } = req.body;
     const createdByUserId = req.user.id || req.user.userId; // support mongo _id
@@ -1087,7 +1148,7 @@ app.post('/events', authenticateToken, async (req, res) => {
 });
 
 // RSVP to an event endpoint
-app.post('/events/:eventId/rsvp', authenticateToken, async (req, res) => {
+app.post('/events/:eventId/rsvp', rsvpLimiter, authenticateToken, async (req, res) => {
   try {
     const eventIdParam = req.params.eventId;
     const rsvpUserId = req.user.id || req.user.userId; // userId from JWT payload
@@ -1218,7 +1279,7 @@ app.get('/events/:eventId', async (req, res) => {
 });
 
 // Ensure an event has a linked forum thread; create if missing, return normalized event
-app.post('/events/:eventId/ensure-thread', async (req, res) => {
+app.post('/events/:eventId/ensure-thread', eventWriteLimiter, async (req, res) => {
   try {
     if (mongoose.connection.readyState !== 1 || !EventModel) return res.status(503).json({ message: 'Database not available' });
     const { ev, source } = await findEventByParam(req.params.eventId);
@@ -1270,7 +1331,7 @@ app.get('/my-rsvps', authenticateToken, async (req, res) => {
 });
 
 // Event comments
-app.post('/events/:eventId/comments', authenticateToken, async (req, res) => {
+app.post('/events/:eventId/comments', eventWriteLimiter, authenticateToken, async (req, res) => {
   try {
     const eventIdParam = req.params.eventId;
     const { text } = req.body;
@@ -1440,6 +1501,26 @@ app.put('/events/:eventId', authenticateToken, async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+const httpServer = http.createServer(app);
+httpServer.listen(port, () => {
+  console.log(`HTTP server running on port ${port}`);
 });
+
+if (devHttpsEnabled) {
+  if (!devHttpsCertPath || !devHttpsKeyPath) {
+    console.warn('DEV_HTTPS enabled but DEV_HTTPS_CERT/DEV_HTTPS_KEY not provided. HTTPS server not started.');
+  } else {
+    try {
+      const httpsOptions = {
+        key: fs.readFileSync(devHttpsKeyPath),
+        cert: fs.readFileSync(devHttpsCertPath),
+      };
+      const httpsServer = https.createServer(httpsOptions, app);
+      httpsServer.listen(devHttpsPort, () => {
+        console.log(`HTTPS server running on port ${devHttpsPort}`);
+      });
+    } catch (err) {
+      console.error('Failed to start HTTPS server:', err.message);
+    }
+  }
+}

@@ -7,11 +7,15 @@ Overview
 Run locally
 - Node 18 recommended
 - `cd backend && npm i && node server.js`
+- Optional: enable local HTTPS
+  - Generate cert/key via `../scripts/setup-dev-https.sh`
+  - Start with `DEV_HTTPS=true DEV_HTTPS_CERT=../certs/dev/server.crt DEV_HTTPS_KEY=../certs/dev/server.key node server.js`
 
 Environment variables
 - `JWT_SECRET` (string): required in non‑development
 - `TOKEN_VERSION` (string/number): default `1`; bump to invalidate old tokens
 - `ALLOWED_ORIGINS` (csv): e.g., `https://bradleymatera.github.io,http://localhost:3000`
+- `DISABLE_RATE_LIMIT` (booly string, default `false`): set to `true` only when intentionally disabling rate limiting for local testing
 - `MONGODB_URI` (string, optional): Atlas URI including db name and URL‑encoded password, e.g.
   `mongodb+srv://user:ENCODED_PASS@cluster.mongodb.net/car-match?retryWrites=true&w=majority&appName=car-match`
 
@@ -26,4 +30,3 @@ Key endpoints
 Security notes
 - CORS restricted via `ALLOWED_ORIGINS`
 - JWT secret required in production; token payload includes `tokenVersion`
-

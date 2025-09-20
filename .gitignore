@@ -53,6 +53,11 @@ Thumbs.db
 # Optional eslint cache
 .eslintcache
 
+# Local development certificates
+certs/*
+!certs/README.md
+!certs/.gitkeep
+
 # Optional REPL history
 .node_repl_history
 

@@ -51,6 +51,14 @@ Prereqs: Node 18 (use `.nvmrc`).
 2) Frontend
    - `cd frontend && npm i && npm start`
 
+### Local HTTPS (Development)
+- Generate certificates once with `./scripts/setup-dev-https.sh` (outputs to `certs/dev`).
+- Copy `frontend/.env.development.sample` to `frontend/.env.development.local`; adjust paths if needed.
+- Start the backend with HTTPS enabled:
+  `cd backend && DEV_HTTPS=true DEV_HTTPS_CERT=../certs/dev/server.crt DEV_HTTPS_KEY=../certs/dev/server.key npm start`
+  (or export the variables in your shell and run `node server.js`).
+- Frontend `npm start` will detect the `.env` file and serve `https://localhost:3000` using the generated certificate.
+
 ## Env & Toggles
 - Frontend repo variables (Pages builds):
   - `REACT_APP_API_BASE_URL` — backend URL (e.g., Render)
@@ -59,6 +67,7 @@ Prereqs: Node 18 (use `.nvmrc`).
   - `JWT_SECRET` (required in prod)
   - `TOKEN_VERSION=1`
   - `ALLOWED_ORIGINS= https://bradleymatera.github.io,http://localhost:3000`
+  - `DISABLE_RATE_LIMIT=0` (keep enabled in prod; set to `1` temporarily for local load testing only)
   - `MONGODB_URI` (optional; enables forum persistence). Example:
     `mongodb+srv://USERNAME:PASSWORD@car-match.ehzw3qa.mongodb.net/car-match?retryWrites=true&w=majority&appName=car-match`.
     Remember to URL‑encode passwords (`!` becomes `%21`).
