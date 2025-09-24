@@ -1,5 +1,17 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
+
+/**
+ * Seeds the MongoDB database using the historical mock data that originally
+ * powered the frontend. Pulls `frontend/src/api/mockApi.js` from git history,
+ * maps the arrays into the current Mongoose models, and upserts users, events,
+ * messages, threads, and posts. Run from repo root after setting MONGODB_URI.
+ *
+ * Usage:
+ *   MOCK_REV=<git-ref> MONGODB_URI="mongodb+srv://..." node backend/scripts/seedFromMock.js
+ *   # MOCK_REV defaults to the commit prior to removing the mock data.
+ */
+
 require('dotenv').config({ path: __dirname + '/../.env' });
 const { execSync } = require('child_process');
 const mongoose = require('mongoose');

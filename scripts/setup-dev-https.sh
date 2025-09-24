@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Purpose: Generate a local development TLS certificate/key pair that can be
+#          reused by both the frontend dev server (CRA) and the Express API.
+# Usage:   bash scripts/setup-dev-https.sh [--force]
+# Notes:   Requires `openssl`. Re-run with --force to replace existing certs.
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT_DIR="$ROOT_DIR/certs/dev"
 KEY_FILE="$OUT_DIR/server.key"
