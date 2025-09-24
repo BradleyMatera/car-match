@@ -2,6 +2,15 @@
 
 Utility scripts that support local development, automation, and security scans.
 
+```mermaid
+graph LR
+  Root[scripts/] --> HTTPS[setup-dev-https.sh]
+  Root --> Roadmap[update_roadmap.sh]
+  Root --> ZAPDir[zap/]
+  ZAPDir --> Baseline[zap-baseline.sh]
+  ZAPDir --> Doc[README.md]
+```
+
 ## setup-dev-https.sh
 Generates a reusable localhost TLS certificate and key for the frontend dev
 server and Express API. Run `bash scripts/setup-dev-https.sh` to create

@@ -3,6 +3,20 @@
 High-level guide to every directory and notable file in the Car Match repo.
 Refer to individual READMEs for deeper usage notes.
 
+```mermaid
+flowchart TD
+  Root[car-match/] --> Frontend[frontend/]
+  Root --> Backend[backend/]
+  Root --> Docs[docs/]
+  Root --> Scripts[scripts/]
+  Frontend --> Src[src/]
+  Src --> Components[components/]
+  Backend --> Models[models/]
+  Backend --> Middleware[middleware/]
+  Docs --> Research[research/]
+  Scripts --> ZAP[zap/]
+```
+
 ## Root
 - `README.md` — project introduction, deployment overview, and contributor notes.
 - `render.yaml` — Render deployment specification for backend service.

@@ -3,6 +3,14 @@
 Security scanning helpers that run [OWASP ZAP](https://www.zaproxy.org/) from
 Docker to validate Car Match against common web vulnerabilities.
 
+```mermaid
+flowchart TD
+  A[zap-baseline.sh] --> B[zap-baseline.py]
+  B --> C[Docker Container]
+  C --> D[Target URL]
+  C --> E[zap-reports/]
+```
+
 ## zap-baseline.sh
 Runs the ZAP baseline scan (`zap-baseline.py`) against a target URL defined on
 the command line. The script streams scan output, stores HTML/JSON/XML reports

@@ -9,6 +9,20 @@ Car Match is a community app for car enthusiasts — events, forums, messaging, 
 - Database: MongoDB Atlas via Mongoose (forums persist when `MONGODB_URI` is set; otherwise in-memory).
 - CI/CD: GitHub Actions deploys frontend to Pages; Render blueprint for backend.
 
+```mermaid
+graph TD
+  Docs[docs/] --> API[API.md]
+  Docs --> DEP[DEPLOYMENT.md]
+  Docs --> Logs[log.md & log2.md]
+  Docs --> Research[research/]
+  Research --> R1[R1-Notes.md]
+  Research --> R2[R2-Notes.md]
+  Research --> R3[R3-Notes.md]
+  Research --> R4[R4-Notes.md]
+  Docs --> Guides[TROUBLESHOOTING.md]
+  Docs --> Designs[designs/]
+```
+
 ## Key Links
 
 - Live App: https://bradleymatera.github.io/car-match/

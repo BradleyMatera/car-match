@@ -2,6 +2,24 @@
 
 This directory contains reusable components for the Car-Match application. Below is an overview of the layout and UI components available.
 
+```mermaid
+graph TD
+  Components[components/] --> Layout
+  Components --> Container
+  Components --> Grid
+  Components --> Flex
+  Components --> Section
+  Components --> Spacing
+  Components --> Home
+  Components --> Events
+  Components --> Forums
+  Components --> Profile
+  Components --> Settings
+  Components --> SignUp
+  Components --> Login
+  Components --> MessagesPage
+```
+
 ## Layout Components
 
 These components provide the foundation for creating consistent layouts throughout the application.

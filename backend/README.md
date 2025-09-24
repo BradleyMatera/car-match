@@ -4,6 +4,19 @@ Overview
 - Express 5 server with JWT authentication, messaging, events, and forums endpoints.
 - Forums persist to MongoDB if `MONGODB_URI` is set; otherwise endpoints return "Database not available".
 
+```mermaid
+graph LR
+  S[server.js] --> M[middleware/rateLimits.js]
+  S --> C[controllers & routes]
+  C --> U[models/user.js]
+  C --> E[models/event.js]
+  C --> MSG[models/message.js]
+  C --> F[models/forum.js]
+  S --> L[logger/]
+  L --> L1[logger/index.js]
+  S --> Seed[seed/]
+```
+
 Run locally
 - Node 18 recommended
 - `cd backend && npm i && node server.js`
