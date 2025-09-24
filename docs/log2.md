@@ -67,21 +67,21 @@ Monitor for upstream fixes to dev dependencies, continue to polish security, and
 ### Week 4
 
 ⚙️ Overview:  
-This week will focus on resolving all remaining open issues and technical debt. The priority is to address any outstanding bugs, moderate vulnerabilities, incomplete features, and documentation gaps identified in previous weeks.
+Replaced every remaining mock/in-memory flow with real persistence. The Express API now talks directly to MongoDB for registration, profile edits, messaging, events, RSVPs, and comments. On the frontend, the old `mockApi` shim was retired in favor of a `client.js` REST wrapper, and React contexts/components now hydrate from live data. Documentation and weekly logs were updated to reflect the production architecture.
 
 🌵 Challenges:  
-- Remaining moderate dev dependency vulnerabilities (webpack-dev-server) due to upstream limitations in react-scripts.
-- Any unresolved issues from previous sprints.
-- Ensuring all features are production-ready and fully documented.
+- Removing the fallback arrays exposed a lot of legacy assumptions (e.g., event IDs, cached RSVPs), which required new normalizers and helper endpoints.  
+- LocalStorage ran out of space storing full user payloads; added a persistence guard that falls back to a minimal profile snapshot.  
+- Needed to keep CI happy (still under React Scripts) while making large refactors, so builds were re-run frequently to ensure no regression slipped in.
 
-🏆 Accomplishments (planned):  
-- All open issues triaged and resolved or documented.
-- Final bug fixes and UI/UX polish.
-- Complete and up-to-date documentation.
-- All security and compliance requirements verified.
+🏆 Accomplishments:  
+- Backend: introduced `sanitizeUser`/`normalizeEvent` helpers, rewrote `/register`, `/login`, `/users/*`, `/messages`, `/events` routes to be database-only, and added `GET /users/me/events` for dashboard data.  
+- Frontend: renamed `mockApi`→`client.js`, rewired Events/Profile/Messages/Forums to the live API, refreshed AuthContext hydration to consume `/users/me`, and ensured event creation/edit/delete hits the real backend.  
+- Docs: updated repo file overview, component READMEs, and Week 4 log entry to explain the new architecture; ran `npm run build` to confirm production readiness.  
+- GitHub: pushed everything to `main` with green builds; Dependabot warnings remain documented (1 high, 3 moderate dev-only).
 
 🔮 Next Steps:  
-- Monitor for upstream fixes to dev dependencies.
-- Prepare for final demo and release.
-- Archive and document any known limitations for future work.
+- Verify production (Render + GitHub Pages) reflects the new persistence layer and update issues/project board accordingly.  
+- Monitor the outstanding dev dependency advisories and react-scripts roadmap.  
+- Continue polishing UX (e.g., messaging filters and profile garage management) now that the data is real.
 _______
