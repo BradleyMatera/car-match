@@ -10,7 +10,7 @@ flowchart TD
   Index --> Section[../Section]
   Index --> Grid[../Grid]
   Index --> Spacing[../Spacing]
-  Index --> MockApi[../../api/mockApi.js]
+  Index --> ApiClient[../../api/client.js]
   Index --> AuthCtx[../../context/AuthContext]
 ```
 

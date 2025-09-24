@@ -8,7 +8,7 @@ flowchart TD
   HomeDir --> Styles[Home.css]
   Index --> Section[../Section]
   Index --> Grid[../Grid]
-  Index --> MockApi[../../api/mockApi.js]
+  Index --> ApiClient[../../api/client.js]
 ```
 
 - `index.js` — loads stats, latest threads, and upcoming events to populate the hero and feature sections.

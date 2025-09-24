@@ -6,7 +6,7 @@ Events landing page with carousel, calendar, RSVP handling, and forum previews.
 flowchart TD
   EventsDir[Events/] --> Index[index.js]
   EventsDir --> Styles[Events.css]
-  Index --> MockApi[../../api/mockApi.js]
+  Index --> ApiClient[../../api/client.js]
   Index --> SectionComp[../Section]
   Index --> AuthCtx[../../context/AuthContext]
 ```

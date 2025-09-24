@@ -48,7 +48,7 @@ flowchart TD
 - `src/index.js` — React entry point.
 - `src/App.js` and `src/App.css` — root application component and styles.
 - `src/global.css` — project-wide CSS variables and resets.
-- `src/api/` — fetch helpers (real API + mock data adapters).
+- `src/api/` — REST client (`client.js`) for backend integration.
 - `src/context/` — React context providers (auth, profile, events, forums).
 - `src/docs/` — in-app documentation or feature walkthrough data (e.g., `layout-system.md`).
 - `src/components/` — UI building blocks organised by feature domain:

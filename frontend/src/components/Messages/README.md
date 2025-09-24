@@ -6,7 +6,7 @@ Legacy messaging UI (not wired into routing) used for concept demos.
 graph TD
   MessagesDir[Messages/] --> Index[index.js]
   MessagesDir --> Styles[Messages.css]
-  Index --> MockApi[../../api/mockApi.js]
+  Index --> ApiClient[../../api/client.js]
 ```
 
 - `index.js` — placeholder component showing conversation display and composer wiring.

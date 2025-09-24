@@ -6,7 +6,7 @@ Full messaging dashboard with tabbed inbox views, premium filters, and composer.
 graph TD
   MessagesPage[MessagesPage/] --> Index[index.js]
   MessagesPage --> Styles[messages.css]
-  Index --> MockApi[../../api/mockApi.js]
+  Index --> ApiClient[../../api/client.js]
   Index --> AuthCtx[../../context/AuthContext]
 ```
 

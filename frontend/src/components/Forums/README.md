@@ -6,7 +6,7 @@ Forums hub for categories, threads, moderation, and post workflows.
 flowchart TD
   ForumsDir[Forums/] --> Index[index.js]
   ForumsDir --> Styles[Forums.css]
-  Index --> MockApi[../../api/mockApi.js]
+  Index --> ApiClient[../../api/client.js]
   Index --> AuthCtx[../../context/AuthContext]
 ```
 
