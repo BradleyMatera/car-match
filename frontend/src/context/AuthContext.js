@@ -8,6 +8,33 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('authToken'));
   const [loading, setLoading] = useState(true);
 
+  const persistUser = (user) => {
+    if (!user) {
+      localStorage.removeItem('currentUser');
+      return;
+    }
+    const minimal = {
+      id: user.id,
+      username: user.username,
+      name: user.name,
+      displayTag: user.displayTag,
+      premiumStatus: user.premiumStatus,
+      developerOverride: user.developerOverride,
+      profileImage: user.profileImage,
+    };
+    try {
+      localStorage.setItem('currentUser', JSON.stringify(user));
+    } catch (err) {
+      console.error('Failed to persist full user payload, falling back to minimal profile', err);
+      try {
+        localStorage.setItem('currentUser', JSON.stringify(minimal));
+      } catch (nestedErr) {
+        console.error('Failed to persist minimal user payload', nestedErr);
+        localStorage.removeItem('currentUser');
+      }
+    }
+  };
+
   useEffect(() => {
     const storedToken = localStorage.getItem('authToken');
     if (!storedToken) {
@@ -19,7 +46,7 @@ export const AuthProvider = ({ children }) => {
         const data = await api.getMe(storedToken);
         setCurrentUser(data.user);
         setToken(storedToken);
-        localStorage.setItem('currentUser', JSON.stringify(data.user));
+        persistUser(data.user);
       } catch (error) {
         console.error('Failed to hydrate auth user', error);
         localStorage.removeItem('authToken');
@@ -38,7 +65,7 @@ export const AuthProvider = ({ children }) => {
     let profile = null;
     try { const data = await api.getMe(authToken); profile = data.user; } catch {}
     if (profile) {
-      localStorage.setItem('currentUser', JSON.stringify(profile));
+      persistUser(profile);
     }
     setToken(authToken);
     setCurrentUser(profile || null);
@@ -58,7 +85,7 @@ export const AuthProvider = ({ children }) => {
     if (updatedData) {
       setCurrentUser((prevUser) => {
         const newUser = { ...prevUser, ...updatedData };
-        localStorage.setItem('currentUser', JSON.stringify(newUser));
+        persistUser(newUser);
         return newUser;
       });
       return;
@@ -67,7 +94,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const data = await api.getMe(token);
       setCurrentUser(data.user);
-      localStorage.setItem('currentUser', JSON.stringify(data.user));
+      persistUser(data.user);
     } catch (error) {
       console.error('Failed to refresh user profile', error);
     }
