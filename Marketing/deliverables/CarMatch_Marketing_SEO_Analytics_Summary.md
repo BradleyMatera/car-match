@@ -52,4 +52,3 @@ For the full format (metrics table, SWOT, RISE reflection), use [`../playbooks/C
 
 ---
 
-*This overview keeps the submission workflow simple while pointing directly to the deeper documentation for reviewers who need the full story.*
