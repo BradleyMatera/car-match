@@ -5,7 +5,7 @@ Date: September 29, 2025
 ---
 
 ## 1. Executive Summary
-Car Match is the always-on digital home for car enthusiasts who crave authentic connections, event discovery, and a modern alternative to fragmented forums. This plan outlines how we will launch, grow, and measure the community over the next 90 days with a polished brand presence, multi-channel acquisition, SEO foundations, and a rigorous analytics layer.
+Car Match is the always-on digital home for car enthusiasts who crave authentic connections, event discovery, and a modern alternative to fragmented forums. This plan outlines how Car Match will launch, grow, and measure the community over the next 90 days with a polished brand presence, multi-channel acquisition, SEO foundations, and a rigorous analytics layer.
 
 ### 1.1 Objectives & Key Results
 | Objective | KPI & Target | Timeline |
@@ -39,7 +39,7 @@ Car Match is the always-on digital home for car enthusiasts who crave authentic 
 ---
 
 ## 3. Go-To-Market Roadmap
-Using the roadmap in `../playbooks/CarMatch_GoToMarket_Roadmap.md`, we will execute the following phased rollout:
+Using the roadmap in `../playbooks/CarMatch_GoToMarket_Roadmap.md`, Car Match will execute the following phased rollout:
 
 | Phase | Timing | Goals | Hero Plays | Success Checks |
 | ----- | ------ | ----- | ---------- | -------------- |
@@ -143,7 +143,8 @@ As detailed in `../playbooks/CarMatch_Analytics_Implementation.md`.
 ---
 
 ## 10. Week-in-Review Status Update
-*(This section fulfills the weekly communication requirement; also available as a standalone template in `../playbooks/CarMatch_Status_Report_Template.md`.)*
+Use `../playbooks/CarMatch_Status_Report_Template.md` when a standalone weekly communication is required.
+
 
 ### 10.1 Highlights & Progress
 - Rebuilt the master marketing playbook (`SEO&MARKETING.MD`) and shipped five execution-ready companion docs.  

@@ -4,15 +4,15 @@ Last Updated: 2025-09-29
 
 Producing a branded, professional Marketing, SEO, and Analytics Plan for your Capstone
 
-Our plan packages the Car Match growth strategy into a branded dossier framed as a startup launch playbook. The document opens with a concise executive summary, brand positioning statement, and hero metric targets so evaluators immediately see the opportunity. Design-wise, we apply the Car Match visual system (color accents, typography, logo lockup) and leverage the new assets in `../core` and `../playbooks` to ensure every section is visually consistent. Content is organized into: audience insights, channel roadmap, SEO keyword map, analytics implementation, and activation calendar. Each chapter references practical examples (e.g., Instagram carousel mockups, event sponsorship one-pagers) to demonstrate execution readiness while weaving in user quotes and early beta feedback to reinforce authenticity.
+The plan packages the Car Match growth strategy into a branded dossier framed as a startup launch playbook. The document opens with a concise executive summary, brand positioning statement, and hero metric targets so evaluators immediately see the opportunity. Design-wise, the plan applies the Car Match visual system (color accents, typography, logo lockup) and leverages the assets in `../core` and `../playbooks` to keep every section consistent. Content is organized into: audience insights, channel roadmap, SEO keyword map, analytics implementation, and activation calendar. Each chapter references practical examples (e.g., Instagram carousel mockups, event sponsorship one-pagers) to demonstrate execution readiness while weaving in user quotes and early beta feedback to reinforce authenticity.
 
 Produce a professional PDF 'selling' your plan to market your Capstone project to the intended audience(s). Back up your plan with research and examples to show that your plan meets the needs of your audience.
 
-To convert the Markdown suite into a persuasive PDF, we will:
-- Assemble the narrative from `../core/SEO&MARKETING.MD` and the supporting playbooks, highlighting quantified value propositions (e.g., projected 1,000 sessions/week, 15% signup conversion) and persona needs (community belonging, event discovery).
-- Embed research citations already captured in the master guide plus fresh references where needed (e.g., SEMA consumer trends, Statista social usage for automotive fans) to evidence channel choices and budget splits.
-- Feature mini case studies: a comparison of a successful local car club campaign, a before/after SEO snapshot, and sample GA4 dashboards. Visuals will include mock social posts, event flyers, and analytics charts exported from Looker Studio templates.
-- Close with a call-to-action slide inviting stakeholders to approve the launch roadmap and resource asks (budget, tooling, community ambassadors).
+To convert the Markdown suite into a persuasive PDF, Car Match will:
+- Car Match will assemble the narrative from `../core/SEO&MARKETING.MD` and the supporting playbooks, highlighting quantified value propositions (e.g., projected 1,000 sessions/week, 15% signup conversion) and persona needs (community belonging, event discovery).
+- Car Match will embed research citations already captured in the master guide plus fresh references where needed (e.g., SEMA consumer trends, Statista social usage for automotive fans) to evidence channel choices and budget splits.
+- Car Match will feature mini case studies: a comparison of a successful local car club campaign, a before/after SEO snapshot, and sample GA4 dashboards. Visuals will include mock social posts, event flyers, and analytics charts exported from Looker Studio templates.
+- Car Match will close with a call-to-action slide inviting stakeholders to approve the launch roadmap and resource asks (budget, tooling, community ambassadors).
 
 Status Update:
 A report on Capstone status for the week. What have you done? What are you doing? What's next? You may be asked to share this update individually with your instructor, in class, or by using one of our communication channels. The update goes towards your communication grade for the week. Utilize tools in GitHub to track and communicate your status. You may provide a link to your Capstone and/or provide videos showing your progress updating your Portfolio.
