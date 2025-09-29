@@ -309,19 +309,21 @@ Finally, we will keep communicating our status through weekly updates and class 
 - Jasmine Panayotov, “Search Engine Market Share 2025” – Proceed Innovative (May 2025). Provided current stats: Google ~89.7% global share, Bing ~4.0% (and ~7.5% U.S.), DuckDuckGo ~0.8%, underscoring the need to optimize for multiple engines, not just Google ￼ ￼.
 
 ## 4. Supporting Frameworks & Templates
-- `Marketing/CarMatch_GoToMarket_Roadmap.md` — phase-based rollout checklist covering pre-launch, launch, and growth accelerators with owners, KPIs, and experiment slots.
-- `Marketing/CarMatch_Channel_Playbook.md` — channel-by-channel objectives, key offers, cadence, tooling, and success metrics aligned to the marketing plan narrative.
-- `Marketing/CarMatch_SEO_Keyword_Map.md` — keyword-to-page mapping, meta draft copy, and on-page action owners to operationalize the SEO guidance.
-- `Marketing/CarMatch_Analytics_Implementation.md` — measurement framework, GA4 + Plausible setup steps, event definitions, and reporting cadence.
-- `Marketing/CarMatch_Status_Report_Template.md` — reusable weekly status template incorporating accomplishments, plans, SWOT, and RISE reflections.
+- `../playbooks/CarMatch_GoToMarket_Roadmap.md` — phase-based rollout checklist covering pre-launch, launch, and growth accelerators with owners, KPIs, and experiment slots.
+- `../playbooks/CarMatch_Channel_Playbook.md` — channel-by-channel objectives, key offers, cadence, tooling, and success metrics aligned to the marketing plan narrative.
+- `../playbooks/CarMatch_SEO_Keyword_Map.md` — keyword-to-page mapping, meta draft copy, and on-page action owners to operationalize the SEO guidance.
+- `../playbooks/CarMatch_Analytics_Implementation.md` — measurement framework, GA4 + Plausible setup steps, event definitions, and reporting cadence.
+- `../playbooks/CarMatch_Status_Report_Template.md` — reusable weekly status template incorporating accomplishments, plans, SWOT, and RISE reflections.
+- `../playbooks/Growth_Playbook.md` — growth loops, experiment pipeline, and KPI alerting linked to marketing execution.
 
 ## 5. Marketing Document Index
 | File | Purpose | Primary Owner | Update Cadence |
 | ---- | ------- | ------------- | -------------- |
-| `Marketing/SEO&MARKETING.MD` | Master narrative + operating system for marketing, SEO, analytics | Marketing Lead | Weekly during active launch |
-| `Marketing/CarMatch_GoToMarket_Roadmap.md` | Time-bound activation plan with dependencies and milestone gates | Growth PM | Revisit bi-weekly |
-| `Marketing/CarMatch_Channel_Playbook.md` | Channel-specific playbooks with KPIs and offers | Channel Owners | Monthly refinement |
-| `Marketing/CarMatch_SEO_Keyword_Map.md` | Keyword, page, and content alignment matrix | SEO Specialist | Update after each sprint |
-| `Marketing/CarMatch_Analytics_Implementation.md` | Instrumentation and reporting checklist | Data/Analytics Lead | Review after major feature releases |
-| `Marketing/CarMatch_Status_Report_Template.md` | Weekly communications template for stakeholders | Project Manager | Update if requirements change |
+| `./SEO&MARKETING.MD` | Master narrative + operating system for marketing, SEO, analytics | Marketing Lead | Weekly during active launch |
+| `../playbooks/CarMatch_GoToMarket_Roadmap.md` | Time-bound activation plan with dependencies and milestone gates | Growth PM | Revisit bi-weekly |
+| `../playbooks/CarMatch_Channel_Playbook.md` | Channel-specific playbooks with KPIs and offers | Channel Owners | Monthly refinement |
+| `../playbooks/CarMatch_SEO_Keyword_Map.md` | Keyword, page, and content alignment matrix | SEO Specialist | Update after each sprint |
+| `../playbooks/CarMatch_Analytics_Implementation.md` | Instrumentation and reporting checklist | Data/Analytics Lead | Review after major feature releases |
+| `../playbooks/CarMatch_Status_Report_Template.md` | Weekly communications template for stakeholders | Project Manager | Update if requirements change |
+| `../playbooks/Growth_Playbook.md` | Growth loop governance & experiment backlog | Growth PM | Weekly experiment review |
 

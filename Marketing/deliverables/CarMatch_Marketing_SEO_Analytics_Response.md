@@ -4,12 +4,12 @@ Last Updated: 2025-09-29
 
 Producing a branded, professional Marketing, SEO, and Analytics Plan for your Capstone
 
-Our plan packages the Car Match growth strategy into a branded dossier framed as a startup launch playbook. The document opens with a concise executive summary, brand positioning statement, and hero metric targets so evaluators immediately see the opportunity. Design-wise, we apply the Car Match visual system (color accents, typography, logo lockup) and leverage the new assets in `Marketing/` to ensure every section is visually consistent. Content is organized into: audience insights, channel roadmap, SEO keyword map, analytics implementation, and activation calendar. Each chapter references practical examples (e.g., Instagram carousel mockups, event sponsorship one-pagers) to demonstrate execution readiness while weaving in user quotes and early beta feedback to reinforce authenticity.
+Our plan packages the Car Match growth strategy into a branded dossier framed as a startup launch playbook. The document opens with a concise executive summary, brand positioning statement, and hero metric targets so evaluators immediately see the opportunity. Design-wise, we apply the Car Match visual system (color accents, typography, logo lockup) and leverage the new assets in `../core` and `../playbooks` to ensure every section is visually consistent. Content is organized into: audience insights, channel roadmap, SEO keyword map, analytics implementation, and activation calendar. Each chapter references practical examples (e.g., Instagram carousel mockups, event sponsorship one-pagers) to demonstrate execution readiness while weaving in user quotes and early beta feedback to reinforce authenticity.
 
 Produce a professional PDF 'selling' your plan to market your Capstone project to the intended audience(s). Back up your plan with research and examples to show that your plan meets the needs of your audience.
 
 To convert the Markdown suite into a persuasive PDF, we will:
-- Assemble the narrative from `Marketing/SEO&MARKETING.MD` and the supporting playbooks, highlighting quantified value propositions (e.g., projected 1,000 sessions/week, 15% signup conversion) and persona needs (community belonging, event discovery).
+- Assemble the narrative from `../core/SEO&MARKETING.MD` and the supporting playbooks, highlighting quantified value propositions (e.g., projected 1,000 sessions/week, 15% signup conversion) and persona needs (community belonging, event discovery).
 - Embed research citations already captured in the master guide plus fresh references where needed (e.g., SEMA consumer trends, Statista social usage for automotive fans) to evidence channel choices and budget splits.
 - Feature mini case studies: a comparison of a successful local car club campaign, a before/after SEO snapshot, and sample GA4 dashboards. Visuals will include mock social posts, event flyers, and analytics charts exported from Looker Studio templates.
 - Close with a call-to-action slide inviting stakeholders to approve the launch roadmap and resource asks (budget, tooling, community ambassadors).
@@ -18,7 +18,7 @@ Status Update:
 A report on Capstone status for the week. What have you done? What are you doing? What's next? You may be asked to share this update individually with your instructor, in class, or by using one of our communication channels. The update goes towards your communication grade for the week. Utilize tools in GitHub to track and communicate your status. You may provide a link to your Capstone and/or provide videos showing your progress updating your Portfolio.
 
 **Accomplishments (Week of 2025-09-29):**
-- Finalized marketing operating system by structuring `Marketing/SEO&MARKETING.MD` and shipping five execution playbooks.
+- Finalized marketing operating system by structuring `../core/SEO&MARKETING.MD` and shipping five execution playbooks.
 - Conducted SEO audit of primary pages; drafted keyword-to-page assignments and metadata recommendations.
 - Instrumented analytics plan outlining GA4 events (`sign_up`, `event_rsvp`, `forum_post`) and Plausible integration steps.
 - Soft-launched community outreach via Instagram teasers and Slack beta invites (12 early adopters opted in).
@@ -47,7 +47,7 @@ A report on Capstone status for the week. What have you done? What are you doing
 
 Deliverables
 
-- Master PDF compiled from `Marketing/SEO&MARKETING.MD` with embedded Tables of Contents, branded cover, and inline citations.
+- Master PDF compiled from `../core/SEO&MARKETING.MD` with embedded Tables of Contents, branded cover, and inline citations.
 - Appendices bundling `CarMatch_GoToMarket_Roadmap`, `CarMatch_Channel_Playbook`, `CarMatch_SEO_Keyword_Map`, `CarMatch_Analytics_Implementation`, and status template, either annexed or linked via QR codes.
 - Weekly status excerpt (section above) incorporated into the PDF, plus link to live GitHub branch `feature/marketing-playbooks` for traceability.
 - Optional video walkthrough (loom/YouTube unlisted) demonstrating analytics dashboard and content calendar, referenced in the PDF.

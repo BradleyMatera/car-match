@@ -39,7 +39,7 @@ Car Match is the always-on digital home for car enthusiasts who crave authentic 
 ---
 
 ## 3. Go-To-Market Roadmap
-Using the roadmap in `Marketing/CarMatch_GoToMarket_Roadmap.md`, we will execute the following phased rollout:
+Using the roadmap in `../playbooks/CarMatch_GoToMarket_Roadmap.md`, we will execute the following phased rollout:
 
 | Phase | Timing | Goals | Hero Plays | Success Checks |
 | ----- | ------ | ----- | ---------- | -------------- |
@@ -52,7 +52,7 @@ Using the roadmap in `Marketing/CarMatch_GoToMarket_Roadmap.md`, we will execute
 ---
 
 ## 4. Channel Strategy Overview
-Synthesizing `Marketing/CarMatch_Channel_Playbook.md`, each channel has a defined role, cadence, and KPI focus.
+Synthesizing `../playbooks/CarMatch_Channel_Playbook.md`, each channel has a defined role, cadence, and KPI focus.
 
 | Channel | Role in Funnel | Core Audiences | Cadence | Primary KPIs |
 | ------- | -------------- | --------------- | ------- | ------------ |
@@ -77,7 +77,7 @@ Content pillars—community stories, education, events, and product tips—are r
 ---
 
 ## 6. SEO Strategy & On-Site Enhancements
-Grounded in `Marketing/CarMatch_SEO_Keyword_Map.md` and the original marketing guide.
+Grounded in `../playbooks/CarMatch_SEO_Keyword_Map.md` and the original marketing guide.
 
 ### 6.1 Priority Keyword Map
 | Page | Primary Keyword | Key Enhancements |
@@ -98,7 +98,7 @@ Grounded in `Marketing/CarMatch_SEO_Keyword_Map.md` and the original marketing g
 ---
 
 ## 7. Analytics & Measurement
-As detailed in `Marketing/CarMatch_Analytics_Implementation.md`.
+As detailed in `../playbooks/CarMatch_Analytics_Implementation.md`.
 
 ### 7.1 Instrumentation Plan
 - Deploy GA4 with recommended events: `page_view`, `sign_up`, `login`, `forum_post`, `message_send`, `event_rsvp`.  
@@ -143,7 +143,7 @@ As detailed in `Marketing/CarMatch_Analytics_Implementation.md`.
 ---
 
 ## 10. Week-in-Review Status Update
-*(This section fulfills the weekly communication requirement; also available as a standalone template in `Marketing/CarMatch_Status_Report_Template.md`.)*
+*(This section fulfills the weekly communication requirement; also available as a standalone template in `../playbooks/CarMatch_Status_Report_Template.md`.)*
 
 ### 10.1 Highlights & Progress
 - Rebuilt the master marketing playbook (`SEO&MARKETING.MD`) and shipped five execution-ready companion docs.  
@@ -185,12 +185,13 @@ As detailed in `Marketing/CarMatch_Analytics_Implementation.md`.
 ---
 
 ## 11. Appendices & Supporting Assets
-- `Marketing/SEO&MARKETING.MD` — Master narrative and historical guide.  
-- `Marketing/CarMatch_GoToMarket_Roadmap.md` — Detailed phase checklist and experiment backlog.  
-- `Marketing/CarMatch_Channel_Playbook.md` — Channel-by-channel tactics, CTAs, and cadences.  
-- `Marketing/CarMatch_SEO_Keyword_Map.md` — Full keyword-to-page matrix and content workflow.  
-- `Marketing/CarMatch_Analytics_Implementation.md` — Measurement framework, events, reporting cadences.  
-- `Marketing/CarMatch_Status_Report_Template.md` — Reusable weekly reporting structure.
+- `../core/SEO&MARKETING.MD` — Master narrative and historical guide.  
+- `../playbooks/CarMatch_GoToMarket_Roadmap.md` — Detailed phase checklist and experiment backlog.  
+- `../playbooks/CarMatch_Channel_Playbook.md` — Channel-by-channel tactics, CTAs, and cadences.  
+- `../playbooks/CarMatch_SEO_Keyword_Map.md` — Full keyword-to-page matrix and content workflow.  
+- `../playbooks/CarMatch_Analytics_Implementation.md` — Measurement framework, events, reporting cadences.  
+- `../playbooks/CarMatch_Status_Report_Template.md` — Reusable weekly reporting structure.
+- `../playbooks/Growth_Playbook.md` — Growth loops and experiment governance that align marketing + product iteration.
 
 ---
 
