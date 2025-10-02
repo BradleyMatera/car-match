@@ -89,7 +89,7 @@ Content pillars—community stories, education, events, and product tips—are r
 ---
 
 ## 6. SEO Strategy & On-Site Enhancements
-The actionable keyword worksheet and production workflow live in `../playbooks/CarMatch_SEO_Keyword_Map.md`. SISTRIX’s Google CTR study shows that moving from position 10 to position 3 raises average click-through rate from about 2.4% to 11% ([source](https://www.sistrix.com/blog/google-ctr-study/)), while Google Search Central’s SEO Starter Guide ([source](https://developers.google.com/search/docs/fundamentals/seo-starter-guide)) reinforces why clean metadata and scannable copy are essential. Those insights guided page-by-page keyword selection and the content enhancements below.
+The actionable keyword worksheet and production workflow live in `../playbooks/CarMatch_SEO_Keyword_Map.md`. Search Engine Journal’s 2024 CTR analysis shows that page-one positions still command double-digit click-through rates while slots below five fall sharply ([source](https://www.searchenginejournal.com/google-ctr-study-ai-overviews-rise-as-click-rates-decline/541465/)), while Google Search Central’s SEO Starter Guide ([source](https://developers.google.com/search/docs/fundamentals/seo-starter-guide)) reinforces why clean metadata and scannable copy are essential. Those insights guided page-by-page keyword selection and the content enhancements below.
 
 ### 6.1 Priority Keyword Map
 | Page | Primary Keyword | Key Enhancements |
