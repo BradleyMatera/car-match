@@ -38,8 +38,16 @@ For the full format (metrics table, SWOT, RISE reflection), use [`../playbooks/C
 
 ## References
 - GitHub repo: <https://github.com/BradleyMatera/car-match> (branch `feature/marketing-playbooks`).
-- Research citations are maintained in [`../core/SEO&MARKETING.MD`](../core/SEO&MARKETING.MD#13-contact--approvals) and the plan’s references section.
-- Industry sources used most heavily: SEMA Automotive Aftermarket Consumer Trends (2024), DashThis SEO Tracking (2025), Fast Company on privacy-first analytics (2019).
+- Research bundle: [`../core/SEO&MARKETING.MD`](../core/SEO&MARKETING.MD#sources) and the appendices listed below.
+- Key external sources consulted this week:
+  - DataReportal — Digital 2024 Global Overview: <https://datareportal.com/reports/digital-2024-global-overview-report>
+  - SEMA — Market Data & 2024 State of the Automotive Aftermarket: <https://www.sema.org/research>
+  - TikTok for Business — What’s Next Trend Report 2024: <https://www.tiktok.com/business/en-US/blog/whats-next-trend-report-2024>
+  - HubSpot — State of Marketing Report: <https://www.hubspot.com/state-of-marketing>
+  - SISTRIX — Google CTR Study: <https://www.sistrix.com/blog/google-ctr-study/>
+  - Google Search Central — SEO Starter Guide: <https://developers.google.com/search/docs/fundamentals/seo-starter-guide>
+  - Statcounter GlobalStats — Worldwide Search Engine Market Share: <https://gs.statcounter.com/search-engine-market-share>
+  - Fast Company (archived) — “It’s Time to Ditch Google Analytics”: <https://web.archive.org/web/20230515021250/https://www.fastcompany.com/90348106/its-time-to-ditch-google-analytics>
 
 ## Appendices
 - **Appendix A** – [`../core/SEO&MARKETING.MD`](../core/SEO&MARKETING.MD)

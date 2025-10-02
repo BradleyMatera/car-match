@@ -12,11 +12,16 @@ Use these files when preparing updates for instructors, stakeholders, or peers.
 | `CarMatch_Marketing_SEO_Analytics_Response.md` | Markdown | Q&A style responses to assignment prompts |
 
 ### PDF Exports
-Re-render PDFs after significant edits:
+Render fresh PDFs after significant edits. Two options:
 
-```bash
-npx -y md-to-pdf Marketing/deliverables/CarMatch_Marketing_SEO_Analytics_Plan.md
-npx -y md-to-pdf Marketing/deliverables/CarMatch_Marketing_SEO_Analytics_Summary.md
-```
+1. Run the helper script (recommended):
+   ```bash
+   cd Marketing/deliverables
+   ./render_pdfs.sh
+   ```
+2. Or call `md-to-pdf` manually for a single file:
+   ```bash
+   npx -y md-to-pdf Marketing/deliverables/CarMatch_Marketing_SEO_Analytics_Plan.md
+   ```
 
-Track revisions by updating file headers with the new dates and keeping commits small and descriptive.
+The script uses `npx md-to-pdf` under the hood and regenerates the plan, summary, and response PDFs in one pass. Track revisions by updating file headers with the new dates and keeping commits small and descriptive.

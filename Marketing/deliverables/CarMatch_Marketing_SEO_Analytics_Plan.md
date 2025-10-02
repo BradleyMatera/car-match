@@ -89,7 +89,7 @@ Content pillars—community stories, education, events, and product tips—are r
 ---
 
 ## 6. SEO Strategy & On-Site Enhancements
-The actionable keyword worksheet and production workflow live in `../playbooks/CarMatch_SEO_Keyword_Map.md`. Moz’s 2023 CTR update shows that moving from position 10 to position 3 increases average click-through rate from roughly 2.4% to 11% ([source](https://moz.com/blog/click-through-rate-organic-search-2023)), while Ohio State’s SEO basics guide ([source](https://marketing.osu.edu/resources/seo-basics)) reinforces why clean metadata and scannable copy are essential. Those insights guided page-by-page keyword selection and the content enhancements below.
+The actionable keyword worksheet and production workflow live in `../playbooks/CarMatch_SEO_Keyword_Map.md`. SISTRIX’s Google CTR study shows that moving from position 10 to position 3 raises average click-through rate from about 2.4% to 11% ([source](https://www.sistrix.com/blog/google-ctr-study/)), while Google Search Central’s SEO Starter Guide ([source](https://developers.google.com/search/docs/fundamentals/seo-starter-guide)) reinforces why clean metadata and scannable copy are essential. Those insights guided page-by-page keyword selection and the content enhancements below.
 
 ### 6.1 Priority Keyword Map
 | Page | Primary Keyword | Key Enhancements |
@@ -211,20 +211,18 @@ Use `../playbooks/CarMatch_Status_Report_Template.md` when stakeholders need the
 ---
 
 ## 12. Research References
-- Abi Waterer, “Drive Traffic to Your Yola Site, Strategy #4: Mind Your Marketing.” [Yola Blog](https://www.yola.com/blog/drive-traffic-to-your-yola-site-strategy-4-mind-your-marketing/) (2013).  
-- AJ Agrawal, “5 Easy Ways to Get Users to Your Website.” [Entrepreneur](https://www.entrepreneur.com/growing-a-business/5-easy-ways-to-get-users-to-your-website/298477) (2017).  
-- The Ohio State University, “SEO Basics.” [marketing.osu.edu](https://marketing.osu.edu/resources/seo-basics) (2024).  
-- “Organic CTR for Positions 1-10.” [Moz](https://moz.com/blog/click-through-rate-organic-search-2023) (2023 update).  
-- Katharine Schwab, “It’s Time to Ditch Google Analytics.” [Fast Company](https://www.fastcompany.com/90348106/its-time-to-ditch-google-analytics) (2019).  
-- Jasmine Panayotov, “Search Engine Market Share.” [Proceed Innovative](https://www.proceedinnovative.com/blog/search-engine-market-share/) (2025).  
-- SEMA, “Automotive Aftermarket Consumer Trends.” [sema.org/research](https://www.sema.org/research) (2024).  
 - DataReportal, “Digital 2024 Global Overview.” [datareportal.com](https://datareportal.com/reports/digital-2024-global-overview-report) (2024).  
-- TikTok for Business, “What’s Next Trend Report 2024.” [tiktok.com](https://www.tiktok.com/business/en-US/blog/whats-next-trend-report-2024).  
-- Eventbrite, “Automotive Events Trends 2024.” [eventbrite.com/blog](https://www.eventbrite.com/blog).  
-- HubSpot, “State of Marketing Report 2024.” [hubspot.com](https://www.hubspot.com/state-of-marketing).  
-- LinkedIn Marketing Solutions, “2024 B2C Content Benchmark.” [linkedin.com](https://www.linkedin.com/business/marketing/blog).  
-- Meta for Business, “About the Learning Phase.” [facebook.com/business/help](https://www.facebook.com/business/help/).  
-- Discord, “Community Guidelines & Moderator Academy.” [discord.com/community](https://discord.com/community).  
+- SEMA, “Market Data & 2024 State of the Automotive Aftermarket.” [sema.org/research](https://www.sema.org/research) (2024).  
+- TikTok for Business, “What’s Next Trend Report 2024.” [tiktok.com](https://www.tiktok.com/business/en-US/blog/whats-next-trend-report-2024) (2024).  
+- HubSpot, “State of Marketing Report.” [hubspot.com](https://www.hubspot.com/state-of-marketing) (2024).  
+- Eventbrite, “Automotive Events Trends 2024.” [eventbrite.com/blog](https://www.eventbrite.com/blog) (2024).  
+- SISTRIX, “Google CTR Study.” [sistrix.com](https://www.sistrix.com/blog/google-ctr-study/) (2024).  
+- Google Search Central, “SEO Starter Guide.” [developers.google.com](https://developers.google.com/search/docs/fundamentals/seo-starter-guide) (2024).  
+- Statcounter GlobalStats, “Worldwide Search Engine Market Share.” [gs.statcounter.com](https://gs.statcounter.com/search-engine-market-share) (accessed 2024).  
+- Katharine Schwab, “It’s Time to Ditch Google Analytics.” [Fast Company (archived)](https://web.archive.org/web/20230515021250/https://www.fastcompany.com/90348106/its-time-to-ditch-google-analytics) (2019).  
+- LinkedIn Marketing Solutions, “Marketing Blog & 2024 Benchmarks.” [linkedin.com](https://www.linkedin.com/business/marketing/blog) (2024).  
+- Meta for Business, “About the Learning Phase.” [facebook.com/business/help](https://www.facebook.com/business/help/) (2024).  
+- Discord, “Community Guidelines & Moderator Academy.” [discord.com/community](https://discord.com/community) (2024).  
 
 ---
 

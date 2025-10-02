@@ -301,12 +301,15 @@ Finally, we will keep communicating our status through weekly updates and class 
 
 #### Sources
 
-- Abi Waterer, “Drive Traffic to Your Yola Site, Strategy #4: Mind Your Marketing” – Yola Blog (2013). Describes combining online and offline tactics and the importance of knowing your target audience ￼ ￼.
-- AJ Agrawal, “5 Easy Ways to Get Users to Your Website” – Entrepreneur (2017). Provided ideas on blogging, thought leadership, email signature marketing, partnerships, and social media authenticity ￼ ￼.
-- The Ohio State University – SEO Basics: Guidance on using keywords in titles, meta descriptions, and content for on-page SEO ￼ ￼. Emphasizes writing meta descriptions with action words and audience benefits.
-- DashThis, “SEO Tracking: Top 6 Metrics in 2025.” Noted that the #1 Google result gets ~31.7% CTR vs ~3% for #10, highlighting the value of higher rankings ￼.
-- Katharine Schwab, “It’s time to ditch Google Analytics” – Fast Company (2019). Discusses the rise of privacy-first analytics tools that collect only aggregated data (page views, referrals, etc.) without personal info ￼ ￼. Influenced our consideration of alternatives to GA for simplicity and privacy.
-- Jasmine Panayotov, “Search Engine Market Share 2025” – Proceed Innovative (May 2025). Provided current stats: Google ~89.7% global share, Bing ~4.0% (and ~7.5% U.S.), DuckDuckGo ~0.8%, underscoring the need to optimize for multiple engines, not just Google ￼ ￼.
+- DataReportal, “Digital 2024 Global Overview.” [datareportal.com](https://datareportal.com/reports/digital-2024-global-overview-report).
+- SEMA, “Market Data & Industry Research.” [sema.org/research](https://www.sema.org/research).
+- TikTok for Business, “What’s Next Trend Report 2024.” [tiktok.com](https://www.tiktok.com/business/en-US/blog/whats-next-trend-report-2024).
+- HubSpot, “State of Marketing Report.” [hubspot.com](https://www.hubspot.com/state-of-marketing).
+- SISTRIX, “Google CTR Study.” [sistrix.com](https://www.sistrix.com/blog/google-ctr-study/).
+- Google Search Central, “SEO Starter Guide.” [developers.google.com](https://developers.google.com/search/docs/fundamentals/seo-starter-guide).
+- Katharine Schwab, “It’s Time to Ditch Google Analytics.” [Fast Company (archived)](https://web.archive.org/web/20230515021250/https://www.fastcompany.com/90348106/its-time-to-ditch-google-analytics).
+- LinkedIn Marketing Solutions, “Marketing Blog & Benchmarks.” [linkedin.com](https://www.linkedin.com/business/marketing/blog).
+- Statcounter GlobalStats, “Worldwide Search Engine Market Share.” [gs.statcounter.com](https://gs.statcounter.com/search-engine-market-share).
 
 ## 4. Supporting Frameworks & Templates
 - `../playbooks/CarMatch_GoToMarket_Roadmap.md` — phase-based rollout checklist covering pre-launch, launch, and growth accelerators with owners, KPIs, and experiment slots.
