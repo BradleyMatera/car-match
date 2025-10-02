@@ -32,9 +32,9 @@ Car Match exists for people who plan their weekends around meets, wrench days, a
 | The Connector (30-45) | Reach clubs, clients, collaborators | Trust is hard without warm introductions | “Partner with a community that keeps enthusiasts active and accountable.” |
 
 ### 2.2 Research Highlights
-- Enthusiast purchase drivers: SEMA reports that peer recommendations and hands-on events influence specialty-equipment purchases more than generic advertising ([source](https://www.sema.org/research)).
-- Automotive content discovery: TikTok’s 2024 What’s Next Trend Report found that #CarTok content views grew 80% year-over-year, reinforcing why video-first storytelling belongs in the channel mix ([source](https://www.tiktok.com/business/en-US/blog/whats-next-trend-report-2024)).
-- Local meet demand: Eventbrite’s 2024 Automotive Events snapshot shows a 26% YoY increase in small-format car meets, validating the focus on city-specific event listings ([source](https://www.eventbrite.com/blog)).
+- Global appetite: DataReportal’s Digital 2024 report shows that 5.04 billion people (62.3% of the global population) use social media, making cross-platform storytelling table stakes for any community ([source](https://datareportal.com/reports/digital-2024-global-overview-report)).
+- Format effectiveness: Sprout Social’s 2024 Social Media Trends report names short-form video as the top-performing format for engagement and conversions, which is why reels and stories anchor our awareness plan ([source](https://sproutsocial.com/insights/social-media-trends/)).
+- Enthusiast economics: SEMA’s Market Research hub highlights that enthusiast events and peer recommendations still influence accessory purchases more than traditional ads, validating our event-first programming ([source](https://sites.sema.org/market-research/)).
 
 ### 2.2 Brand Story
 
@@ -81,7 +81,7 @@ Content pillars—community stories, education, events, and product tips—are r
 ---
 
 ## 5. Content & Creative System
-- **Flagship assets:** Launch reel, build spotlight blog series, events calendar hub, downloadable meet checklist, and a quarterly “state of the community” recap. These align with HubSpot’s 2024 State of Marketing report showing that short-form video and email newsletters deliver the highest ROI for community-led brands ([source](https://www.hubspot.com/state-of-marketing)).  
+- **Flagship assets:** Launch reel, build spotlight blog series, events calendar hub, downloadable meet checklist, and a quarterly “state of the community” recap. Sprout Social’s trends data reinforces that consistent short-form video and newsletters drive the highest returns for community brands ([source](https://sproutsocial.com/insights/social-media-trends/)).  
 - **Design system:** Slate, signal red, and metallic accents paired with Montserrat + Inter typography; templates live in Figma for agile updates.  
 - **Editorial cadence:** Monday editorial sync, bi-weekly blog posts, weekly email, daily social touchpoints. The content calendar also tracks repurposing opportunities (e.g., a build spotlight turns into a reel, newsletter feature, and forum thread).  
 - **Community activations:** Monthly “Build of the Month” contest, quarterly live Q&A (Instagram Live or Spaces), and seasonal meetups promoted through the events calendar.
@@ -150,10 +150,10 @@ Instrumentation details and alert thresholds are in `../playbooks/CarMatch_Analy
 | Risk | Likelihood | Impact | Mitigation |
 | ---- | ---------- | ------ | ---------- |
 | Product feature delays | Medium | Slows marketing narrative | Weekly cross-functional sync, transparent roadmap |
-| Content cadence slip | Medium | Lower engagement | Editorial calendar, repurposing pipeline (LinkedIn’s 2024 B2C Content Benchmark cites 2.3× engagement for brands that repurpose [source](https://www.linkedin.com/business/marketing/blog)) |
-| Paid campaign underperforms | Low | Budget waste | Small pilots, daily checks, kill-switch rules aligned with Meta’s learning phase guidance ([source](https://www.facebook.com/business/help/)) |
+| Content cadence slip | Medium | Lower engagement | Maintain editorial calendar, build reusable asset library |
+| Paid campaign underperforms | Low | Budget waste | Start with small pilots, monitor daily, pause underperformers quickly |
 | Data gaps/inaccuracies | Medium | Poor decisions | DebugView QA, anomaly alerts, monthly exports |
-| Community moderation load | Low | Reputation risk | Publish guidelines, recruit volunteer moderators, follow Discord Community Guidelines playbook ([source](https://discord.com/community)) |
+| Community moderation load | Low | Reputation risk | Publish clear guidelines, recruit volunteer moderators, rotate duties |
 
 ---
 
@@ -212,17 +212,14 @@ Use `../playbooks/CarMatch_Status_Report_Template.md` when stakeholders need the
 
 ## 12. Research References
 - DataReportal, “Digital 2024 Global Overview.” [datareportal.com](https://datareportal.com/reports/digital-2024-global-overview-report) (2024).  
-- SEMA, “Market Data & 2024 State of the Automotive Aftermarket.” [sema.org/research](https://www.sema.org/research) (2024).  
-- TikTok for Business, “What’s Next Trend Report 2024.” [tiktok.com](https://www.tiktok.com/business/en-US/blog/whats-next-trend-report-2024) (2024).  
+- SEMA, “Market Research Hub.” [sites.sema.org/market-research](https://sites.sema.org/market-research/) (2024).  
+- Sprout Social, “Social Media Trends for 2024.” [sproutsocial.com](https://sproutsocial.com/insights/social-media-trends/) (2024).  
 - HubSpot, “State of Marketing Report.” [hubspot.com](https://www.hubspot.com/state-of-marketing) (2024).  
-- Eventbrite, “Automotive Events Trends 2024.” [eventbrite.com/blog](https://www.eventbrite.com/blog) (2024).  
-- SISTRIX, “Google CTR Study.” [sistrix.com](https://www.sistrix.com/blog/google-ctr-study/) (2024).  
+- Search Engine Journal, “Google CTR Study: AI Overviews Rise as Click Rates Decline.” [searchenginejournal.com](https://www.searchenginejournal.com/google-ctr-study-ai-overviews-rise-as-click-rates-decline/541465/) (2024).  
 - Google Search Central, “SEO Starter Guide.” [developers.google.com](https://developers.google.com/search/docs/fundamentals/seo-starter-guide) (2024).  
+- Google Analytics Help, “Set up Analytics for a website and/or app.” [support.google.com](https://support.google.com/analytics/answer/9304153) (2024).  
 - Statcounter GlobalStats, “Worldwide Search Engine Market Share.” [gs.statcounter.com](https://gs.statcounter.com/search-engine-market-share) (accessed 2024).  
-- Katharine Schwab, “It’s Time to Ditch Google Analytics.” [Fast Company (archived)](https://web.archive.org/web/20230515021250/https://www.fastcompany.com/90348106/its-time-to-ditch-google-analytics) (2019).  
-- LinkedIn Marketing Solutions, “Marketing Blog & 2024 Benchmarks.” [linkedin.com](https://www.linkedin.com/business/marketing/blog) (2024).  
-- Meta for Business, “About the Learning Phase.” [facebook.com/business/help](https://www.facebook.com/business/help/) (2024).  
-- Discord, “Community Guidelines & Moderator Academy.” [discord.com/community](https://discord.com/community) (2024).  
+- Plausible, “Google Analytics Alternatives.” [plausible.io](https://plausible.io/blog/google-analytics-alternatives) (2025).  
 
 ---
 

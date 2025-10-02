@@ -303,12 +303,11 @@ Finally, we will keep communicating our status through weekly updates and class 
 
 - DataReportal, “Digital 2024 Global Overview.” [datareportal.com](https://datareportal.com/reports/digital-2024-global-overview-report).
 - SEMA, “Market Data & Industry Research.” [sema.org/research](https://www.sema.org/research).
-- TikTok for Business, “What’s Next Trend Report 2024.” [tiktok.com](https://www.tiktok.com/business/en-US/blog/whats-next-trend-report-2024).
+- Sprout Social, “Social Media Trends for 2024.” [sproutsocial.com](https://sproutsocial.com/insights/social-media-trends/).
 - HubSpot, “State of Marketing Report.” [hubspot.com](https://www.hubspot.com/state-of-marketing).
-- SISTRIX, “Google CTR Study.” [sistrix.com](https://www.sistrix.com/blog/google-ctr-study/).
+- Search Engine Journal, “Google CTR Study: AI Overviews Rise as Click Rates Decline.” [searchenginejournal.com](https://www.searchenginejournal.com/google-ctr-study-ai-overviews-rise-as-click-rates-decline/541465/).
 - Google Search Central, “SEO Starter Guide.” [developers.google.com](https://developers.google.com/search/docs/fundamentals/seo-starter-guide).
-- Katharine Schwab, “It’s Time to Ditch Google Analytics.” [Fast Company (archived)](https://web.archive.org/web/20230515021250/https://www.fastcompany.com/90348106/its-time-to-ditch-google-analytics).
-- LinkedIn Marketing Solutions, “Marketing Blog & Benchmarks.” [linkedin.com](https://www.linkedin.com/business/marketing/blog).
+- Plausible, “Google Analytics Alternatives.” [plausible.io](https://plausible.io/blog/google-analytics-alternatives).
 - Statcounter GlobalStats, “Worldwide Search Engine Market Share.” [gs.statcounter.com](https://gs.statcounter.com/search-engine-market-share).
 
 ## 4. Supporting Frameworks & Templates

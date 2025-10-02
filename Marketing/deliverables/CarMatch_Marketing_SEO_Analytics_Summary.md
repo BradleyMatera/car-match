@@ -41,13 +41,14 @@ For the full format (metrics table, SWOT, RISE reflection), use [`../playbooks/C
 - Research bundle: [`../core/SEO&MARKETING.MD`](../core/SEO&MARKETING.MD#sources) and the appendices listed below.
 - Key external sources consulted this week:
   - DataReportal — Digital 2024 Global Overview: <https://datareportal.com/reports/digital-2024-global-overview-report>
-  - SEMA — Market Data & 2024 State of the Automotive Aftermarket: <https://www.sema.org/research>
-  - TikTok for Business — What’s Next Trend Report 2024: <https://www.tiktok.com/business/en-US/blog/whats-next-trend-report-2024>
+  - SEMA — Market Research Hub: <https://sites.sema.org/market-research/>
+  - Sprout Social — Social Media Trends for 2024: <https://sproutsocial.com/insights/social-media-trends/>
   - HubSpot — State of Marketing Report: <https://www.hubspot.com/state-of-marketing>
-  - SISTRIX — Google CTR Study: <https://www.sistrix.com/blog/google-ctr-study/>
+  - Search Engine Journal — Google CTR Study: <https://www.searchenginejournal.com/google-ctr-study-ai-overviews-rise-as-click-rates-decline/541465/>
   - Google Search Central — SEO Starter Guide: <https://developers.google.com/search/docs/fundamentals/seo-starter-guide>
+  - Google Analytics Help — Set up Analytics for a website and/or app: <https://support.google.com/analytics/answer/9304153>
   - Statcounter GlobalStats — Worldwide Search Engine Market Share: <https://gs.statcounter.com/search-engine-market-share>
-  - Fast Company (archived) — “It’s Time to Ditch Google Analytics”: <https://web.archive.org/web/20230515021250/https://www.fastcompany.com/90348106/its-time-to-ditch-google-analytics>
+  - Plausible — Google Analytics Alternatives: <https://plausible.io/blog/google-analytics-alternatives>
 
 ## Appendices
 - **Appendix A** – [`../core/SEO&MARKETING.MD`](../core/SEO&MARKETING.MD)
