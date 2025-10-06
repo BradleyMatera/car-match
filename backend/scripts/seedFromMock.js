@@ -52,6 +52,7 @@ async function main() {
   // Seed Events
   let idCounter = 1;
   for (const e of mockEvents) {
+    const mappedOwnerId = idMap.get(e.createdByUserId) || idMap.get(e.organizerId) || null;
     const base = {
       id: e.id || idCounter++,
       title: e.title || e.name,
@@ -59,7 +60,7 @@ async function main() {
       date: e.date,
       location: e.location,
       description: e.description,
-      organizerId: e.organizerId,
+      organizerId: mappedOwnerId || e.organizerId,
       organizerUsername: e.organizerUsername,
       rsvpCount: e.rsvpCount || 0,
       tags: e.tags || [],
@@ -67,11 +68,18 @@ async function main() {
       thumbnail: e.thumbnail,
       schedule: e.schedule || [],
       testimonials: e.testimonials || [],
-      comments: e.comments || [],
-      createdByUserId: e.createdByUserId,
-      createdByUsername: e.createdByUsername,
-      rsvps: e.rsvps || [],
+      comments: (e.comments || []).map((comment) => ({
+        ...comment,
+        userId: idMap.get(comment.userId) || idMap.get(comment.userId?.id) || idMap.get(comment.user) || comment.userId || null,
+      })),
+      createdByUserId: mappedOwnerId,
+      createdByUsername: e.createdByUsername || e.organizerUsername,
+      rsvps: (e.rsvps || []).map((rid) => idMap.get(rid) || rid),
     };
+    if (!base.createdByUserId && idMap.size > 0) {
+      base.createdByUserId = [...idMap.values()][0];
+      base.createdByUsername = base.createdByUsername || mockUsers.find(u => u.id === [...idMap.keys()][0])?.username || 'demo';
+    }
     await Event.updateOne({ id: base.id }, { $set: base }, { upsert: true });
   }
   console.log('Events seeded');
