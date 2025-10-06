@@ -44,6 +44,13 @@ const forumWriteLimiter = useLimiter(
     message: 'Too many forum actions from this IP. Please try again later.',
   })
 );
+const forumModerationLimiter = useLimiter(
+  createSensitiveLimiter({
+    windowMs: 30 * 60 * 1000,
+    max: 40,
+    message: 'Too many moderation actions. Please slow down.',
+  })
+);
 const messageWriteLimiter = useLimiter(
   createSensitiveLimiter({
     windowMs: 15 * 60 * 1000,
@@ -181,6 +188,8 @@ const forumCategories = [
   { id: 'cat4', name: 'Tech & Tuning', description: 'Ask questions, share tips, tuning talk.' },
 ];
 
+const isForumModerator = (user = {}) => Boolean(user.developerOverride || user.role === 'admin' || user.role === 'moderator');
+
 app.get('/', (req, res) => {
   res.send('Hello from the Car Match backend!');
 });
@@ -221,6 +230,7 @@ const seedDemoData = () => {
         interests: [], biography: '', profileImage: '', lastLoginTimestamp: null,
         premiumStatus: u.username === 'jane',
         developerOverride: u.username === 'demo',
+        role: u.username === 'demo' ? 'admin' : 'user',
         activityMetadata: { messageCountToday: 0, lastMessageDate: null },
         tierSpecificHistory: {}, createdAt: new Date().toISOString()
       });
@@ -511,7 +521,7 @@ app.post('/forums/threads/:threadId/posts', forumWriteLimiter, authenticateToken
   }
 });
 
-app.patch('/forums/threads/:threadId/pin', authenticateToken, async (req, res) => {
+app.patch('/forums/threads/:threadId/pin', forumModerationLimiter, authenticateToken, async (req, res) => {
   const { threadId } = req.params;
   const { pinned } = req.body;
   try {
@@ -520,13 +530,23 @@ app.patch('/forums/threads/:threadId/pin', authenticateToken, async (req, res) =
       if (!threadDoc) return res.status(404).json({ message: 'Thread not found' });
       // If thread belongs to an event, only event owner or devOverride may pin
       const ev = await EventModel.findOne({ threadId: threadDoc._id });
+      const isMod = isForumModerator(req.user);
       if (ev) {
         const uid = String(req.user.id || req.user.userId);
-        const can = String(ev.createdByUserId) === uid || req.user.developerOverride;
+        const can = isMod || String(ev.createdByUserId) === uid;
         if (!can) return res.status(403).json({ message: 'Forbidden' });
+      } else if (!isMod) {
+        return res.status(403).json({ message: 'Moderator role required' });
       }
       threadDoc.pinned = !!pinned;
       await threadDoc.save();
+      securityEvent('Thread pinned status changed', {
+        requestId: req.requestId,
+        threadId,
+        userId: req.user.id,
+        role: req.user.role,
+        pinned: !!pinned,
+      });
       return res.json({ ok: true, thread: threadDoc.toObject() });
     }
     return res.status(503).json({ message: 'Database not available' });
@@ -536,7 +556,7 @@ app.patch('/forums/threads/:threadId/pin', authenticateToken, async (req, res) =
   }
 });
 
-app.patch('/forums/threads/:threadId/lock', authenticateToken, async (req, res) => {
+app.patch('/forums/threads/:threadId/lock', forumModerationLimiter, authenticateToken, async (req, res) => {
   const { threadId } = req.params;
   const { locked } = req.body;
   try {
@@ -544,13 +564,23 @@ app.patch('/forums/threads/:threadId/lock', authenticateToken, async (req, res) 
       const threadDoc = await ForumThread.findById(threadId);
       if (!threadDoc) return res.status(404).json({ message: 'Thread not found' });
       const ev = await EventModel.findOne({ threadId: threadDoc._id });
+      const isMod = isForumModerator(req.user);
       if (ev) {
         const uid = String(req.user.id || req.user.userId);
-        const can = String(ev.createdByUserId) === uid || req.user.developerOverride;
+        const can = isMod || String(ev.createdByUserId) === uid;
         if (!can) return res.status(403).json({ message: 'Forbidden' });
+      } else if (!isMod) {
+        return res.status(403).json({ message: 'Moderator role required' });
       }
       threadDoc.locked = !!locked;
       await threadDoc.save();
+      securityEvent('Thread lock status changed', {
+        requestId: req.requestId,
+        threadId,
+        userId: req.user.id,
+        role: req.user.role,
+        locked: !!locked,
+      });
       return res.json({ ok: true, thread: threadDoc.toObject() });
     }
     return res.status(503).json({ message: 'Database not available' });
@@ -560,13 +590,29 @@ app.patch('/forums/threads/:threadId/lock', authenticateToken, async (req, res) 
   }
 });
 
-app.delete('/forums/threads/:threadId', authenticateToken, async (req, res) => {
+app.delete('/forums/threads/:threadId', forumModerationLimiter, authenticateToken, async (req, res) => {
   const { threadId } = req.params;
   try {
     if (mongoose.connection.readyState === 1) {
-      const thread = await ForumThread.findByIdAndDelete(threadId);
+      const thread = await ForumThread.findById(threadId);
       if (!thread) return res.status(404).json({ message: 'Thread not found' });
+      const ev = await EventModel.findOne({ threadId: thread._id });
+      const isMod = isForumModerator(req.user);
+      if (ev) {
+        const uid = String(req.user.id || req.user.userId);
+        const can = isMod || String(ev.createdByUserId) === uid;
+        if (!can) return res.status(403).json({ message: 'Forbidden' });
+      } else if (!isMod) {
+        return res.status(403).json({ message: 'Moderator role required' });
+      }
+      await ForumThread.deleteOne({ _id: thread._id });
       await ForumPost.deleteMany({ threadId: thread._id });
+      securityEvent('Thread deleted', {
+        requestId: req.requestId,
+        threadId,
+        userId: req.user.id,
+        role: req.user.role,
+      });
       return res.json({ ok: true });
     }
     return res.status(503).json({ message: 'Database not available' });
@@ -631,6 +677,7 @@ app.post('/register', authLimiterMiddleware, async (req, res) => {
       lastLoginTimestamp: null,
       premiumStatus: false, // Default to non-premium
       developerOverride: false, // Default
+      role: 'user',
       activityMetadata: { messageCountToday: 0, lastMessageDate: null }, // For daily limits
       tierSpecificHistory: {}, // Default
       createdAt: new Date().toISOString()
@@ -650,6 +697,7 @@ app.post('/register', authLimiterMiddleware, async (req, res) => {
         location: newUser.location,
         premiumStatus: newUser.premiumStatus,
         developerOverride: newUser.developerOverride,
+        role: newUser.role,
         activityMetadata: newUser.activityMetadata,
         biography: newUser.biography,
         profileImage: newUser.profileImage,
@@ -701,6 +749,7 @@ app.post('/login', authLimiterMiddleware, async (req, res) => {
           lastLoginTimestamp: null,
           premiumStatus: !!dbUser.premiumStatus,
           developerOverride: !!dbUser.developerOverride,
+          role: dbUser.role || 'user',
           activityMetadata: dbUser.activityMetadata || { messageCountToday: 0, lastMessageDate: null },
           tierSpecificHistory: {}, createdAt: new Date().toISOString()
         };
@@ -717,6 +766,7 @@ app.post('/login', authLimiterMiddleware, async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials (password mismatch)' });
     }
 
+    user.role = user.role || 'user';
     // Update last login timestamp
     user.lastLoginTimestamp = new Date().toISOString();
 
@@ -728,7 +778,8 @@ app.post('/login', authLimiterMiddleware, async (req, res) => {
       userId: user.id, 
       username: user.username, 
       premiumStatus: user.premiumStatus,
-      developerOverride: user.developerOverride // Add dev override to JWT
+      developerOverride: user.developerOverride,
+      role: user.role || 'user'
     };
     tokenPayload.tokenVersion = TOKEN_VERSION;
     const token = jwt.sign(tokenPayload, JWT_SECRET || 'dev-insecure-secret', { expiresIn: '1h' });
@@ -741,7 +792,8 @@ app.post('/login', authLimiterMiddleware, async (req, res) => {
       name: user.name,
       displayTag: user.displayTag,
       premiumStatus: user.premiumStatus,
-      developerOverride: user.developerOverride
+      developerOverride: user.developerOverride,
+      role: user.role || 'user'
     });
   } catch (error) {
     logger.error('Login error', { error, requestId: req.requestId, username: req.body?.username });
@@ -774,9 +826,15 @@ async function authenticateToken(req, res, next) {
       const dbUser = await UserModel.findOne({ $or: [ { _id: decodedPayload.userId }, { username: decodedPayload.username } ] }).lean();
       if (dbUser) {
         fullUser = {
-          id: dbUser._id.toString(), username: dbUser.username, premiumStatus: !!dbUser.premiumStatus,
-          developerOverride: !!dbUser.developerOverride, activityMetadata: dbUser.activityMetadata || { messageCountToday: 0, lastMessageDate: null },
-          location: dbUser.location || {}, gender: dbUser.gender || 'other', name: dbUser.name || dbUser.username
+          id: dbUser._id.toString(),
+          username: dbUser.username,
+          premiumStatus: !!dbUser.premiumStatus,
+          developerOverride: !!dbUser.developerOverride,
+          role: dbUser.role || 'user',
+          activityMetadata: dbUser.activityMetadata || { messageCountToday: 0, lastMessageDate: null },
+          location: dbUser.location || {},
+          gender: dbUser.gender || 'other',
+          name: dbUser.name || dbUser.username
         };
       }
     }
@@ -784,7 +842,10 @@ async function authenticateToken(req, res, next) {
       securityEvent('Authenticated user not found', { requestId: req.requestId, userId: decodedPayload.userId, username: decodedPayload.username });
       return res.sendStatus(401);
     }
-    req.user = fullUser; // Attach the full, current user object
+    req.user = {
+      ...fullUser,
+      role: fullUser.role || decodedPayload.role || 'user',
+    };
     next(); // proceed to the protected route
   });
 }
@@ -845,11 +906,57 @@ app.put('/users/:userId/toggle-dev-override', authenticateToken, (req, res) => {
   res.json({ message: `User ${userToToggle.username} developer override is now ${userToToggle.developerOverride}. Please re-login to update JWT.`, user: {id: userToToggle.id, username: userToToggle.username, developerOverride: userToToggle.developerOverride }});
 });
 
+// Assign role (admin/moderator) endpoint
+app.put('/admin/users/:userId/role', authenticateToken, async (req, res) => {
+  try {
+    if (!(req.user.developerOverride || req.user.role === 'admin')) {
+      return res.status(403).json({ message: 'Forbidden: Admin or developer access required.' });
+    }
+
+    const targetUserId = String(req.params.userId);
+    const { role } = req.body || {};
+    const allowedRoles = ['user', 'moderator', 'admin'];
+    if (!allowedRoles.includes(role)) {
+      return res.status(400).json({ message: 'Invalid role specified.' });
+    }
+
+    const memIdx = users.findIndex(u => String(u.id) === targetUserId || String(u._id || u.id) === targetUserId);
+    if (memIdx > -1) {
+      users[memIdx] = { ...users[memIdx], role };
+    }
+
+    if (mongoose.connection.readyState === 1 && UserModel) {
+      await UserModel.updateOne({ _id: targetUserId }, { $set: { role } });
+    }
+
+    securityEvent('User role updated', {
+      requestId: req.requestId,
+      targetUserId,
+      actingUserId: req.user.id,
+      actingUsername: req.user.username,
+      newRole: role,
+    });
+
+    res.json({ ok: true, userId: targetUserId, role });
+  } catch (error) {
+    logger.error('Assign role error', { error, requestId: req.requestId, targetUserId: req.params.userId });
+    res.status(500).json({ message: 'Error assigning role' });
+  }
+});
+
 
 // Example protected route
 app.get('/protected', authenticateToken, (req, res) => {
-  // req.user is now the full user object
-  res.json({ message: 'This is a protected route', user: { id: req.user.id, username: req.user.username, premium: req.user.premiumStatus, devOverride: req.user.developerOverride } });
+  res.json({
+    message: 'This is a protected route',
+    user: {
+      id: req.user.id,
+      username: req.user.username,
+      premium: req.user.premiumStatus,
+      devOverride: req.user.developerOverride,
+      role: req.user.role || 'user',
+    },
+  });
 });
 
 // Get current user (normalized) with preferences

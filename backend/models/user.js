@@ -67,12 +67,13 @@ const UserSchema = new mongoose.Schema({
   profileImage: String,
   carInterests: [String],
   cars: [CarSchema],
-  role: { type: String, default: 'user' },
+  role: { type: String, enum: ['user', 'moderator', 'admin'], default: 'user' },
   createdAt: { type: Date, default: Date.now },
   preferences: { type: PreferencesSchema, default: () => ({}) },
 });
 
 // Enforce email uniqueness only when email exists
 UserSchema.index({ email: 1 }, { unique: true, partialFilterExpression: { email: { $type: 'string' } } });
+UserSchema.index({ role: 1 });
 
 module.exports = mongoose.models.User || mongoose.model('User', UserSchema);

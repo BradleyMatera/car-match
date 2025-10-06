@@ -39,6 +39,7 @@ async function main() {
       location: mu.location,
       premiumStatus: !!mu.premiumStatus,
       developerOverride: !!mu.developerOverride,
+      role: mu.role && ['user','moderator','admin'].includes(mu.role) ? mu.role : (mu.developerOverride ? 'admin' : 'user'),
       activityMetadata: mu.activityMetadata || { messageCountToday: 0, lastMessageDate: null },
       biography: prof?.bio || '',
       carInterests: prof?.carInterests || [],
