@@ -90,7 +90,7 @@ const Profile = () => {
       setProfileError(null);
       try {
         if (token) {
-          const events = await api.getUserEvents();
+          const events = await api.getUserEvents(currentUser.id);
           setUserEvents(events);
           try {
             const mine = await api.getMyRsvps(token);
@@ -239,7 +239,7 @@ const Profile = () => {
         });
       }
       // Refresh user events after RSVP change
-      try { const events = await api.getUserEvents(); setUserEvents(events); } catch {}
+      try { const events = await api.getUserEvents(currentUser.id); setUserEvents(events); } catch {}
     } catch (e) {
       alert(e.message || 'Failed to toggle RSVP');
     }
@@ -325,7 +325,7 @@ const Profile = () => {
         </div>
       </Section>
       )}
-
+      )}
 
       {activeTab==='profile' && (
       <Section>

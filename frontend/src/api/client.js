@@ -30,26 +30,12 @@ const getStoredToken = () => {
   return null;
 };
 
-const normalizeEvent = (e = {}) => {
-  const id = e.id != null ? String(e.id) : (e._id ? String(e._id) : undefined);
-  return {
-    id,
-    title: e.name || e.title,
-    name: e.name || e.title,
-    date: e.date,
-    location: e.location,
-    description: e.description,
-    rsvpCount: Array.isArray(e.rsvps) ? e.rsvps.length : (e.rsvpCount || 0),
-    schedule: e.schedule || [],
-    comments: e.comments || [],
-    image: e.image || e.thumbnail || 'https://via.placeholder.com/600x300.png?text=Event',
-    thumbnail: e.thumbnail,
-    createdByUserId: e.createdByUserId != null ? String(e.createdByUserId) : undefined,
-    createdByUsername: e.createdByUsername,
-    rsvps: e.rsvps || [],
-    threadId: e.threadId,
-    tags: e.tags || [],
-  };
+const getStoredUser = () => {
+  if (typeof localStorage !== 'undefined') {
+    const s = localStorage.getItem('currentUser');
+    if (s) try { return JSON.parse(s); } catch {}
+  }
+  return null;
 };
 
 const api = {
@@ -63,8 +49,10 @@ const api = {
   getCurrentUser: async () => {
     const token = getStoredToken();
     if (!token) throw new Error('Not authenticated');
-    const data = await api.getMe(token);
-    return data.user;
+    const data = await ok(await fetch(`${API_BASE_URL}/protected`, { headers: authHeader(token) })).then(json);
+    // Normalize to match existing UI expectations
+    const stored = getStoredUser();
+    return { id: data?.user?.id, username: data?.user?.username, name: stored?.name || data?.user?.username, premiumStatus: data?.user?.premium, developerOverride: data?.user?.devOverride, location: stored?.location || {}, carInterests: stored?.carInterests || [], profileImage: stored?.profileImage };
   },
 
   // --- Messages ---
@@ -90,20 +78,30 @@ const api = {
   // --- Events ---
   getEvents: async () => {
     const events = await ok(await fetch(`${API_BASE_URL}/events`)).then(json);
-    return (events || []).map(normalizeEvent);
+    // Normalize shape for existing UI
+    return (events || []).map(e => {
+      const normId = e.id != null ? String(e.id) : (e._id ? String(e._id) : undefined);
+      return {
+        id: normId,
+        title: e.name || e.title,
+        date: e.date,
+        location: e.location,
+        description: e.description,
+        rsvpCount: Array.isArray(e.rsvps) ? e.rsvps.length : (e.rsvpCount || 0),
+        schedule: e.schedule || [],
+        comments: e.comments || [],
+        image: e.image || e.thumbnail || 'https://via.placeholder.com/600x300.png?text=Event',
+        thumbnail: e.thumbnail,
+        createdByUserId: e.createdByUserId != null ? String(e.createdByUserId) : (e.organizerId != null ? String(e.organizerId) : undefined),
+        createdByUsername: e.createdByUsername || e.organizerUsername,
+        rsvps: e.rsvps || [],
+      };
+    });
   },
-  getEvent: async (eventId) => normalizeEvent(await ok(await fetch(`${API_BASE_URL}/events/${encodeURIComponent(eventId)}`)).then(json)),
+  getEvent: async (eventId) =>
+    ok(await fetch(`${API_BASE_URL}/events/${encodeURIComponent(eventId)}`)).then(json),
   ensureEventThread: async (eventId) =>
     ok(await fetch(`${API_BASE_URL}/events/${encodeURIComponent(eventId)}/ensure-thread`, { method: 'POST' })).then(json),
-
-  createEvent: async (token, payload) => {
-    const res = await ok(await fetch(`${API_BASE_URL}/events`, {
-      method: 'POST',
-      headers: { ...jsonHeader, ...authHeader(token) },
-      body: JSON.stringify(payload),
-    })).then(json);
-    return { ...res, data: normalizeEvent(res?.data) };
-  },
 
   rsvpToEvent: async (token, eventId) =>
     ok(await fetch(`${API_BASE_URL}/events/${encodeURIComponent(eventId)}/rsvp`, { method: 'POST', headers: { ...jsonHeader, ...authHeader(token) } })).then(json),
@@ -114,11 +112,23 @@ const api = {
     ok(await fetch(`${API_BASE_URL}/my-rsvps`, { headers: { ...jsonHeader, ...authHeader(token) } })).then(json),
 
   // For profile page convenience
-  getUserEvents: async () => {
+  getUserEvents: async (userId) => {
     const token = getStoredToken();
-    if (!token) throw new Error('Not authenticated');
-    const data = await ok(await fetch(`${API_BASE_URL}/users/me/events`, { headers: { ...authHeader(token) } })).then(json);
-    return (data.events || []).map(normalizeEvent);
+    // Fallback: if userId is missing, query /protected to resolve it
+    let uid = userId != null ? String(userId) : undefined;
+    if (!uid && token) {
+      try { const me = await ok(await fetch(`${API_BASE_URL}/protected`, { headers: authHeader(token) })).then(json); uid = String(me?.user?.id ?? me?.user?.userId); } catch {}
+    }
+    const [all, mine] = await Promise.all([
+      api.getEvents(),
+      token ? api.getMyRsvps(token) : Promise.resolve([]),
+    ]);
+    const rsvpIds = new Set((mine || []).map(r => String(r.eventId)));
+    return (all || []).filter(e => {
+      const eid = String(e.id);
+      const createdBy = e.createdByUserId != null ? String(e.createdByUserId) : undefined;
+      return (uid && createdBy && createdBy === uid) || rsvpIds.has(eid);
+    });
   },
 
   // --- Forums ---
@@ -164,22 +174,23 @@ const api = {
     ok(await fetch(`${API_BASE_URL}/users/${encodeURIComponent(userId)}`, { method: 'PATCH', headers: { ...jsonHeader, ...authHeader(token) }, body: JSON.stringify(data) })).then(json),
   deleteUser: async (token, userId) =>
     ok(await fetch(`${API_BASE_URL}/users/${encodeURIComponent(userId)}`, { method: 'DELETE', headers: { ...authHeader(token) } })).then(json),
+
+  // --- Legacy shims (no mocks) ---
+  initMockData: () => Promise.resolve(),
+  getMessages: async () => [],
   addEventComment: async (token, eventId, text) =>
     ok(await fetch(`${API_BASE_URL}/events/${encodeURIComponent(eventId)}/comments`, { method: 'POST', headers: { ...jsonHeader, ...authHeader(token) }, body: JSON.stringify({ text }) })).then(json),
   editEventComment: async (token, eventId, commentId, text) =>
     ok(await fetch(`${API_BASE_URL}/events/${encodeURIComponent(eventId)}/comments/${encodeURIComponent(commentId)}`, { method: 'PUT', headers: { ...jsonHeader, ...authHeader(token) }, body: JSON.stringify({ text }) })).then(json),
   deleteEventComment: async (token, eventId, commentId) =>
     ok(await fetch(`${API_BASE_URL}/events/${encodeURIComponent(eventId)}/comments/${encodeURIComponent(commentId)}`, { method: 'DELETE', headers: { ...authHeader(token) } })).then(json),
-  updateEvent: async (token, eventId, data) => {
-    const res = await ok(await fetch(`${API_BASE_URL}/events/${encodeURIComponent(eventId)}`, {
-      method: 'PUT',
-      headers: { ...jsonHeader, ...authHeader(token) },
-      body: JSON.stringify(data),
-    })).then(json);
-    return normalizeEvent(res);
+  updateProfile: async (data) => {
+    // Persist locally so the UI reflects changes; real backend endpoint not implemented yet
+    const cur = getStoredUser() || {};
+    const next = { ...cur, ...data };
+    if (typeof localStorage !== 'undefined') localStorage.setItem('currentUser', JSON.stringify(next));
+    return next;
   },
-  deleteEvent: async (token, eventId) =>
-    ok(await fetch(`${API_BASE_URL}/events/${encodeURIComponent(eventId)}`, { method: 'DELETE', headers: { ...authHeader(token) } })).then(json),
 };
 
 export default api;

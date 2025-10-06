@@ -1,6 +1,6 @@
 import React, { useState, useContext, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../../api/client'; // Assuming this now includes registerUser to backend
+import api from '../../api/client';
 import AuthContext from '../../context/AuthContext';
 import './SignUp.css';
 
@@ -127,7 +127,7 @@ const SignUp = () => {
     };
 
     try {
-      const response = await api.registerUser(registrationData); // Calls backend /register
+      const response = await api.registerUser(registrationData);
       console.log('Registration successful:', response);
       alert('Registration successful! Please log in.');
       navigate('/login'); // Navigate to login page after successful registration

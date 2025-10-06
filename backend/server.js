@@ -44,6 +44,13 @@ const forumWriteLimiter = useLimiter(
     message: 'Too many forum actions from this IP. Please try again later.',
   })
 );
+const forumModerationLimiter = useLimiter(
+  createSensitiveLimiter({
+    windowMs: 30 * 60 * 1000,
+    max: 40,
+    message: 'Too many moderation actions. Please slow down.',
+  })
+);
 const messageWriteLimiter = useLimiter(
   createSensitiveLimiter({
     windowMs: 15 * 60 * 1000,
@@ -159,7 +166,19 @@ app.use(
 app.use(express.json());
 app.use(generalLimiterMiddleware);
 
+// In-memory store for users
+// Each user object will now be more detailed as per the new requirements
+const users = []; 
 const saltRounds = 10;
+
+// In-memory store for messages
+const messages = [];
+
+// In-memory store for events
+const events = [];
+
+// In-memory store for RSVPs
+const rsvps = [];
 
 // --- Forums ---
 const forumCategories = [
@@ -169,89 +188,7 @@ const forumCategories = [
   { id: 'cat4', name: 'Tech & Tuning', description: 'Ask questions, share tips, tuning talk.' },
 ];
 
-const defaultPreferences = Object.freeze({
-  notifications: { messagesEmail: true, forumRepliesEmail: true, eventRemindersEmail: true },
-  privacy: { showProfile: true, showEmail: false, searchable: true },
-  display: { theme: 'system', textSize: 'normal' },
-  connections: { instagram: '', twitter: '', website: '' },
-});
-
-const ensurePreferencesShape = (prefs = {}) => ({
-  notifications: { ...defaultPreferences.notifications, ...(prefs.notifications || {}) },
-  privacy: { ...defaultPreferences.privacy, ...(prefs.privacy || {}) },
-  display: { ...defaultPreferences.display, ...(prefs.display || {}) },
-  connections: { ...defaultPreferences.connections, ...(prefs.connections || {}) },
-});
-
-const sanitizeUser = (doc) => {
-  if (!doc) return null;
-  const raw = doc.toObject ? doc.toObject() : doc;
-  const id = raw._id ? raw._id.toString() : raw.id;
-  return {
-    id,
-    username: raw.username,
-    email: raw.email,
-    name: raw.name,
-    displayTag: raw.displayTag,
-    gender: raw.gender,
-    location: raw.location || null,
-    biography: raw.biography || raw.bio || '',
-    profileImage: raw.profileImage || '',
-    carInterests: Array.isArray(raw.carInterests) ? raw.carInterests : [],
-    cars: Array.isArray(raw.cars) ? raw.cars : [],
-    premiumStatus: !!raw.premiumStatus,
-    developerOverride: !!raw.developerOverride,
-    preferences: ensurePreferencesShape(raw.preferences),
-    activityMetadata: raw.activityMetadata || { messageCountToday: 0, lastMessageDate: null },
-    createdAt: raw.createdAt || null,
-    updatedAt: raw.updatedAt || null,
-  };
-};
-
-const normalizeEvent = (doc) => {
-  if (!doc) return null;
-  const raw = doc.toObject ? doc.toObject() : doc;
-  const id = raw._id ? raw._id.toString() : raw.id != null ? String(raw.id) : undefined;
-  return {
-    id,
-    title: raw.title || raw.name,
-    name: raw.name || raw.title,
-    date: raw.date,
-    location: raw.location,
-    description: raw.description,
-    image: raw.image,
-    thumbnail: raw.thumbnail,
-    schedule: raw.schedule || [],
-    comments: raw.comments || [],
-    rsvps: raw.rsvps || [],
-    rsvpCount: Array.isArray(raw.rsvps) ? raw.rsvps.length : (raw.rsvpCount || 0),
-    createdByUserId: raw.createdByUserId ? String(raw.createdByUserId) : undefined,
-    createdByUsername: raw.createdByUsername,
-    tags: raw.tags || [],
-    threadId: raw.threadId,
-  };
-};
-
-const normalizeMessage = (doc) => {
-  if (!doc) return null;
-  const raw = doc.toObject ? doc.toObject() : doc;
-  const id = raw._id ? raw._id.toString() : raw.id;
-  return {
-    id,
-    senderId: raw.senderId ? String(raw.senderId) : undefined,
-    senderUsername: raw.senderUsername,
-    senderEffectivePremiumStatus: !!raw.senderEffectivePremiumStatus,
-    recipientId: raw.recipientId ? String(raw.recipientId) : undefined,
-    recipientUsername: raw.recipientUsername,
-    recipientEffectivePremiumStatus: !!raw.recipientEffectivePremiumStatus,
-    text: raw.text,
-    timestamp: raw.timestamp || raw.createdAt,
-    read: !!raw.read,
-    category: raw.category,
-    systemMessage: !!raw.systemMessage,
-    isLocked: !!raw.isLocked,
-  };
-};
+const isForumModerator = (user = {}) => Boolean(user.developerOverride || user.role === 'admin' || user.role === 'moderator');
 
 app.get('/', (req, res) => {
   res.send('Hello from the Car Match backend!');
@@ -271,7 +208,46 @@ app.get('/healthz', (req, res) => {
   });
 });
 
-// Legacy forum categories retained for compatibility
+// Seed a few demo users and basic events in-memory so the app "feels real"
+const seedDemoData = () => {
+  if (users.length > 0) return; // already seeded
+  try {
+    const demoUsers = [
+      { username: 'demo', password: 'password123', name: 'Demo User', displayTag: 'Demo', gender: 'other', city: 'Los Angeles', state: 'CA' },
+      { username: 'jane', password: 'password123', name: 'Jane Smith', displayTag: 'JSpeed', gender: 'female', city: 'San Francisco', state: 'CA' },
+      { username: 'mike', password: 'password123', name: 'Mike Davis', displayTag: 'MDrives', gender: 'male', city: 'San Diego', state: 'CA' },
+    ];
+    demoUsers.forEach((u) => {
+      const hashed = bcrypt.hashSync(u.password, 10);
+      users.push({
+        id: users.length + 1,
+        username: u.username,
+        password: hashed,
+        name: u.name,
+        displayTag: u.displayTag,
+        gender: u.gender,
+        location: { city: u.city, state: u.state, geoCoordinates: { lat: (Math.random()*180-90), lon: (Math.random()*360-180) } },
+        interests: [], biography: '', profileImage: '', lastLoginTimestamp: null,
+        premiumStatus: u.username === 'jane',
+        developerOverride: u.username === 'demo',
+        role: u.username === 'demo' ? 'admin' : 'user',
+        activityMetadata: { messageCountToday: 0, lastMessageDate: null },
+        tierSpecificHistory: {}, createdAt: new Date().toISOString()
+      });
+    });
+
+    // Basic sample events to show if frontend switches to real events
+    const now = new Date();
+    const fmt = (d) => d.toISOString().slice(0,10);
+    events.push(
+      { id: 1, name: 'Demo Cars & Coffee', description: 'Meet local enthusiasts.', date: fmt(new Date(now.getTime()+7*86400000)), location: 'Los Angeles, CA', createdByUserId: '1', createdByUsername: 'demo', rsvps: [] },
+      { id: 2, name: 'Track Day Intro', description: 'Beginner-friendly track event.', date: fmt(new Date(now.getTime()+14*86400000)), location: 'San Francisco, CA', createdByUserId: '2', createdByUsername: 'jane', rsvps: [] }
+    );
+  } catch (e) {
+    logger.error('Seed demo data failed', { error: e });
+  }
+};
+seedDemoData();
 
 // MongoDB connection (optional but recommended for persistence)
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -339,7 +315,7 @@ async function backfillEventsUsers({ dryRun = false } = {}) {
     // If still missing, pick a stable fallback (first user) to satisfy invariant
     if (!ownerUser && users[0]) { ownerUser = users[0]; ownerId = String(ownerUser._id); }
     if (ownerUser) {
-      if (String(e.createdByUserId || '') !== ownerId) set.createdByUserId = ownerId;
+      if (String(e.createdByUserId || '') !== ownerId) set.createdByUserId = new mongoose.Types.ObjectId(ownerId);
       if ((e.createdByUsername || '') !== String(ownerUser.username || '')) set.createdByUsername = ownerUser.username || undefined;
     }
 
@@ -363,7 +339,26 @@ async function backfillEventsUsers({ dryRun = false } = {}) {
       if (uid && byId.has(uid)) newRsvps.push(uid);
     }
     const needRsvpUpdate = JSON.stringify(newRsvps) !== JSON.stringify(orig);
-    if (needRsvpUpdate) set.rsvps = newRsvps, rsvpFixed++;
+    if (needRsvpUpdate) {
+      set.rsvps = newRsvps.map((uid) => new mongoose.Types.ObjectId(uid));
+      rsvpFixed++;
+    }
+
+    if (Array.isArray(e.comments)) {
+      const updatedComments = e.comments.map((comment) => {
+        const mappedUserId = comment.userId ? String(comment.userId) : comment.user ? String(comment.user) : null;
+        let normalizedUserId = mappedUserId;
+        if (mappedUserId && !byId.has(mappedUserId)) {
+          const maybeUser = byUsername.get(mappedUserId);
+          if (maybeUser) normalizedUserId = String(maybeUser._id);
+        }
+        return {
+          ...comment,
+          userId: normalizedUserId ? new mongoose.Types.ObjectId(normalizedUserId) : comment.userId,
+        };
+      });
+      set.comments = updatedComments;
+    }
 
     if (Object.keys(set).length) {
       updated++;
@@ -424,8 +419,8 @@ app.get('/forums/stats', async (req, res) => {
 // Site-wide snapshot metrics
 app.get('/stats/site', async (req, res) => {
   try {
-    if (mongoose.connection.readyState !== 1 || !EventModel) {
-      return res.status(503).json({ message: 'Database not available' });
+    if (mongoose.connection.readyState !== 1) {
+      return res.json({ users: 0, threads: 0, posts: 0, events: events.length });
     }
     const [users, threads, posts, eventsCount] = await Promise.all([
       (async ()=> { try { const U = require('./models/user'); return await U.countDocuments({}); } catch { return 0; } })(),
@@ -526,7 +521,7 @@ app.post('/forums/threads/:threadId/posts', forumWriteLimiter, authenticateToken
   }
 });
 
-app.patch('/forums/threads/:threadId/pin', authenticateToken, async (req, res) => {
+app.patch('/forums/threads/:threadId/pin', forumModerationLimiter, authenticateToken, async (req, res) => {
   const { threadId } = req.params;
   const { pinned } = req.body;
   try {
@@ -535,13 +530,23 @@ app.patch('/forums/threads/:threadId/pin', authenticateToken, async (req, res) =
       if (!threadDoc) return res.status(404).json({ message: 'Thread not found' });
       // If thread belongs to an event, only event owner or devOverride may pin
       const ev = await EventModel.findOne({ threadId: threadDoc._id });
+      const isMod = isForumModerator(req.user);
       if (ev) {
         const uid = String(req.user.id || req.user.userId);
-        const can = String(ev.createdByUserId) === uid || req.user.developerOverride;
+        const can = isMod || String(ev.createdByUserId) === uid;
         if (!can) return res.status(403).json({ message: 'Forbidden' });
+      } else if (!isMod) {
+        return res.status(403).json({ message: 'Moderator role required' });
       }
       threadDoc.pinned = !!pinned;
       await threadDoc.save();
+      securityEvent('Thread pinned status changed', {
+        requestId: req.requestId,
+        threadId,
+        userId: req.user.id,
+        role: req.user.role,
+        pinned: !!pinned,
+      });
       return res.json({ ok: true, thread: threadDoc.toObject() });
     }
     return res.status(503).json({ message: 'Database not available' });
@@ -551,7 +556,7 @@ app.patch('/forums/threads/:threadId/pin', authenticateToken, async (req, res) =
   }
 });
 
-app.patch('/forums/threads/:threadId/lock', authenticateToken, async (req, res) => {
+app.patch('/forums/threads/:threadId/lock', forumModerationLimiter, authenticateToken, async (req, res) => {
   const { threadId } = req.params;
   const { locked } = req.body;
   try {
@@ -559,13 +564,23 @@ app.patch('/forums/threads/:threadId/lock', authenticateToken, async (req, res) 
       const threadDoc = await ForumThread.findById(threadId);
       if (!threadDoc) return res.status(404).json({ message: 'Thread not found' });
       const ev = await EventModel.findOne({ threadId: threadDoc._id });
+      const isMod = isForumModerator(req.user);
       if (ev) {
         const uid = String(req.user.id || req.user.userId);
-        const can = String(ev.createdByUserId) === uid || req.user.developerOverride;
+        const can = isMod || String(ev.createdByUserId) === uid;
         if (!can) return res.status(403).json({ message: 'Forbidden' });
+      } else if (!isMod) {
+        return res.status(403).json({ message: 'Moderator role required' });
       }
       threadDoc.locked = !!locked;
       await threadDoc.save();
+      securityEvent('Thread lock status changed', {
+        requestId: req.requestId,
+        threadId,
+        userId: req.user.id,
+        role: req.user.role,
+        locked: !!locked,
+      });
       return res.json({ ok: true, thread: threadDoc.toObject() });
     }
     return res.status(503).json({ message: 'Database not available' });
@@ -575,13 +590,29 @@ app.patch('/forums/threads/:threadId/lock', authenticateToken, async (req, res) 
   }
 });
 
-app.delete('/forums/threads/:threadId', authenticateToken, async (req, res) => {
+app.delete('/forums/threads/:threadId', forumModerationLimiter, authenticateToken, async (req, res) => {
   const { threadId } = req.params;
   try {
     if (mongoose.connection.readyState === 1) {
-      const thread = await ForumThread.findByIdAndDelete(threadId);
+      const thread = await ForumThread.findById(threadId);
       if (!thread) return res.status(404).json({ message: 'Thread not found' });
+      const ev = await EventModel.findOne({ threadId: thread._id });
+      const isMod = isForumModerator(req.user);
+      if (ev) {
+        const uid = String(req.user.id || req.user.userId);
+        const can = isMod || String(ev.createdByUserId) === uid;
+        if (!can) return res.status(403).json({ message: 'Forbidden' });
+      } else if (!isMod) {
+        return res.status(403).json({ message: 'Moderator role required' });
+      }
+      await ForumThread.deleteOne({ _id: thread._id });
       await ForumPost.deleteMany({ threadId: thread._id });
+      securityEvent('Thread deleted', {
+        requestId: req.requestId,
+        threadId,
+        userId: req.user.id,
+        role: req.user.role,
+      });
       return res.json({ ok: true });
     }
     return res.status(503).json({ message: 'Database not available' });
@@ -599,65 +630,83 @@ app.post('/forums/posts/:postId/report', forumWriteLimiter, authenticateToken, (
 // User registration endpoint
 app.post('/register', authLimiterMiddleware, async (req, res) => {
   try {
-    if (mongoose.connection.readyState !== 1 || !UserModel) {
-      return res.status(503).json({ message: 'Database connection required for registration' });
-    }
-
-    const {
-      username,
-      password,
-      name,
-      displayTag,
-      gender,
-      city,
+    const { 
+      username, 
+      password, 
+      name, 
+      displayTag, 
+      gender, 
+      city, 
       state,
       email: rawEmail,
+      // Other fields like orientation, interests, bio, profileImage can be added later or made optional
     } = req.body;
 
     if (!username || !password || !name || !displayTag || !gender || !city || !state) {
       return res.status(400).json({ message: 'Username, password, name, displayTag, gender, city, and state are required' });
     }
 
-    const email = rawEmail || (username.includes('@') ? username : undefined);
-    const existingUser = await UserModel.findOne({
-      $or: [
-        { username: username.trim() },
-        ...(email ? [{ email: email.trim().toLowerCase() }] : []),
-      ],
-    }).lean();
-
+    // Check if user already exists (in-memory)
+    let existingUser = users.find(user => user.username === username);
+    // Also check Mongo if available
+    if (!existingUser && mongoose.connection.readyState === 1 && UserModel) {
+      const email = rawEmail || (username.includes('@') ? username : undefined);
+      existingUser = await UserModel.findOne({ $or: [ { username }, ...(email?[{ email }]:[]) ] }).lean();
+    }
     if (existingUser) {
-      return res.status(409).json({ message: 'Username or email already exists' });
+      return res.status(409).json({ message: 'Username already exists' });
     }
 
     const hashedPassword = await bcrypt.hash(password, saltRounds);
-    const location = {
-      city,
-      state,
-      geoCoordinates: { lat: (Math.random() * 180 - 90), lon: (Math.random() * 360 - 180) },
-    };
-
-    const created = await UserModel.create({
-      username: username.trim(),
-      email: email ? email.trim().toLowerCase() : undefined,
+    const newUser = { 
+      id: users.length + 1, // simple id generation
+      username, 
       password: hashedPassword,
       name,
       displayTag,
       gender,
-      location,
-      biography: '',
-      profileImage: '',
-      carInterests: [],
-      cars: [],
-      premiumStatus: false,
-      developerOverride: false,
-      activityMetadata: { messageCountToday: 0, lastMessageDate: null },
-      preferences: ensurePreferencesShape(),
-    });
+      location: { 
+        city, 
+        state, 
+        // Mock geoCoordinates for now. In a real app, this would come from a geocoding service or user input.
+        geoCoordinates: { lat: (Math.random() * 180 - 90), lon: (Math.random() * 360 - 180) } 
+      },
+      interests: [], // Default to empty, can be updated later
+      biography: "", // Default to empty
+      profileImage: "", // Default to empty
+      lastLoginTimestamp: null,
+      premiumStatus: false, // Default to non-premium
+      developerOverride: false, // Default
+      role: 'user',
+      activityMetadata: { messageCountToday: 0, lastMessageDate: null }, // For daily limits
+      tierSpecificHistory: {}, // Default
+      createdAt: new Date().toISOString()
+    };
+    users.push(newUser);
 
-    const sanitized = sanitizeUser(created);
-    logger.info('User registered', { requestId: req.requestId, userId: sanitized.id, username: sanitized.username });
-    res.status(201).json({ user: sanitized });
+    // Persist to Mongo if available
+    if (mongoose.connection.readyState === 1 && UserModel) {
+      await UserModel.create({
+        mockId: String(newUser.id),
+        username: newUser.username,
+        email: rawEmail || (username.includes('@') ? username : undefined) || `${newUser.username}@example.com`,
+        password: newUser.password,
+        name: newUser.name,
+        displayTag: newUser.displayTag,
+        gender: newUser.gender,
+        location: newUser.location,
+        premiumStatus: newUser.premiumStatus,
+        developerOverride: newUser.developerOverride,
+        role: newUser.role,
+        activityMetadata: newUser.activityMetadata,
+        biography: newUser.biography,
+        profileImage: newUser.profileImage,
+        carInterests: newUser.interests,
+      });
+    }
+
+    logger.info('User registered', { requestId: req.requestId, userId: newUser.id, username: newUser.username });
+    res.status(201).json({ message: 'User registered successfully', userId: newUser.id });
   } catch (error) {
     logger.error('Registration error', { error, requestId: req.requestId, body: { username: req.body?.username } });
     res.status(500).json({ message: 'Error registering user' });
@@ -667,49 +716,85 @@ app.post('/register', authLimiterMiddleware, async (req, res) => {
 // User login endpoint
 app.post('/login', authLimiterMiddleware, async (req, res) => {
   try {
-    if (mongoose.connection.readyState !== 1 || !UserModel) {
-      return res.status(503).json({ message: 'Database connection required for login' });
-    }
-
     const { username, password } = req.body;
 
     if (!username || !password) {
       return res.status(400).json({ message: 'Username and password are required' });
     }
 
-    const loginId = String(username || '').trim();
-    const query = loginId.includes('@')
-      ? { $or: [{ email: loginId.toLowerCase() }, { username: loginId }] }
-      : { username: loginId };
-
-    const dbUser = await UserModel.findOne(query).lean();
-    if (!dbUser) {
-      securityEvent('Login failed (user not found)', { username: loginId, requestId: req.requestId, ip: req.ip });
-      return res.status(401).json({ message: 'Invalid credentials' });
+    let user = users.find(u => u.username === username);
+    // If not found in-memory, try MongoDB
+    if (!user && mongoose.connection.readyState === 1 && UserModel) {
+      // Support login with username OR email
+      const loginId = String(username || '').trim();
+      const query = loginId.includes('@') ? { email: loginId } : { username: loginId };
+      const dbUser = await UserModel.findOne(query).lean();
+      if (dbUser) {
+        const ok = await bcrypt.compare(password, dbUser.password);
+        if (!ok) {
+          securityEvent('Login failed (password mismatch)', { username: loginId, requestId: req.requestId, ip: req.ip });
+          return res.status(401).json({ message: 'Invalid credentials (password mismatch)' });
+        }
+        user = {
+          id: dbUser._id.toString(),
+          username: dbUser.username,
+          password: dbUser.password,
+          name: dbUser.name,
+          displayTag: dbUser.displayTag,
+          gender: dbUser.gender,
+          location: dbUser.location,
+          interests: dbUser.carInterests || [],
+          biography: dbUser.biography || '',
+          profileImage: dbUser.profileImage || '',
+          lastLoginTimestamp: null,
+          premiumStatus: !!dbUser.premiumStatus,
+          developerOverride: !!dbUser.developerOverride,
+          role: dbUser.role || 'user',
+          activityMetadata: dbUser.activityMetadata || { messageCountToday: 0, lastMessageDate: null },
+          tierSpecificHistory: {}, createdAt: new Date().toISOString()
+        };
+      }
+    }
+    if (!user) {
+      securityEvent('Login failed (user not found)', { username, requestId: req.requestId, ip: req.ip });
+      return res.status(401).json({ message: 'Invalid credentials (user not found)' });
     }
 
-    const passwordMatches = await bcrypt.compare(password, dbUser.password);
-    if (!passwordMatches) {
-      securityEvent('Login failed (password mismatch)', { username: loginId, requestId: req.requestId, ip: req.ip });
-      return res.status(401).json({ message: 'Invalid credentials' });
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      securityEvent('Login failed (password mismatch)', { username: user.username, requestId: req.requestId, ip: req.ip });
+      return res.status(401).json({ message: 'Invalid credentials (password mismatch)' });
     }
 
-    const sanitized = sanitizeUser(dbUser);
+    user.role = user.role || 'user';
+    // Update last login timestamp
+    user.lastLoginTimestamp = new Date().toISOString();
 
-    const tokenPayload = {
-      userId: sanitized.id,
-      username: sanitized.username,
-      premiumStatus: sanitized.premiumStatus,
-      developerOverride: sanitized.developerOverride,
-      tokenVersion: TOKEN_VERSION,
+    // Update last login timestamp
+    user.lastLoginTimestamp = new Date().toISOString();
+
+    // Include more user info in JWT payload
+    const tokenPayload = { 
+      userId: user.id, 
+      username: user.username, 
+      premiumStatus: user.premiumStatus,
+      developerOverride: user.developerOverride,
+      role: user.role || 'user'
     };
-
+    tokenPayload.tokenVersion = TOKEN_VERSION;
     const token = jwt.sign(tokenPayload, JWT_SECRET || 'dev-insecure-secret', { expiresIn: '1h' });
 
-    await UserModel.updateOne({ _id: sanitized.id }, { $set: { lastLoginAt: new Date() } });
-
-    securityEvent('Login success', { userId: sanitized.id, username: sanitized.username, requestId: req.requestId, ip: req.ip });
-    res.json({ token, user: sanitized });
+    securityEvent('Login success', { userId: user.id, username: user.username, requestId: req.requestId, ip: req.ip });
+    res.json({ 
+      token, 
+      userId: user.id, 
+      username: user.username,
+      name: user.name,
+      displayTag: user.displayTag,
+      premiumStatus: user.premiumStatus,
+      developerOverride: user.developerOverride,
+      role: user.role || 'user'
+    });
   } catch (error) {
     logger.error('Login error', { error, requestId: req.requestId, username: req.body?.username });
     res.status(500).json({ message: 'Error logging in' });
@@ -735,140 +820,156 @@ async function authenticateToken(req, res, next) {
       securityEvent('Token version mismatch', { requestId: req.requestId, tokenVersion: decodedPayload.tokenVersion, expected: TOKEN_VERSION, ip: req.ip });
       return res.status(401).json({ message: 'Token version expired. Please re-login.' });
     }
-    if (mongoose.connection.readyState !== 1 || !UserModel) {
-      securityEvent('Authenticated user lookup failed (no DB connection)', { requestId: req.requestId, userId: decodedPayload.userId });
-      return res.sendStatus(401);
+    // Find the full user object to get the most up-to-date status, including developerOverride
+    let fullUser = users.find(u => u.id === decodedPayload.userId || u.username === decodedPayload.username);
+    if (!fullUser && mongoose.connection.readyState === 1 && UserModel) {
+      const dbUser = await UserModel.findOne({ $or: [ { _id: decodedPayload.userId }, { username: decodedPayload.username } ] }).lean();
+      if (dbUser) {
+        fullUser = {
+          id: dbUser._id.toString(),
+          username: dbUser.username,
+          premiumStatus: !!dbUser.premiumStatus,
+          developerOverride: !!dbUser.developerOverride,
+          role: dbUser.role || 'user',
+          activityMetadata: dbUser.activityMetadata || { messageCountToday: 0, lastMessageDate: null },
+          location: dbUser.location || {},
+          gender: dbUser.gender || 'other',
+          name: dbUser.name || dbUser.username
+        };
+      }
     }
-
-    const dbUser = await UserModel.findOne({
-      $or: [
-        { _id: decodedPayload.userId },
-        { username: decodedPayload.username },
-      ],
-    }).lean();
-
-    if (!dbUser) {
+    if (!fullUser) {
       securityEvent('Authenticated user not found', { requestId: req.requestId, userId: decodedPayload.userId, username: decodedPayload.username });
       return res.sendStatus(401);
     }
-
-    req.user = sanitizeUser(dbUser);
+    req.user = {
+      ...fullUser,
+      role: fullUser.role || decodedPayload.role || 'user',
+    };
     next(); // proceed to the protected route
   });
 }
 
 // Endpoint to simulate upgrading a user to premium
-app.put('/users/:userId/upgrade-to-premium', authenticateToken, async (req, res) => {
-  try {
-    const targetUserId = String(req.params.userId);
-    const actingUser = req.user;
+app.put('/users/:userId/upgrade-to-premium', authenticateToken, (req, res) => {
+  // In a real app, only an admin or a payment success callback would hit this.
+  // For simulation, any authenticated user can call this on THEMSELVES if they are an admin, or if it's for dev testing.
+  // For simplicity here, we'll allow an admin (or dev override user) to upgrade anyone.
+  // Or a user to upgrade themselves.
+  
+  const targetUserId = String(req.params.userId);
+  const actingUser = req.user; // User performing the action
 
-    if (String(actingUser.id) !== targetUserId && !(actingUser.developerOverride || actingUser.premiumStatus)) {
-      return res.status(403).json({ message: 'Forbidden: You can only upgrade yourself or have elevated permissions.' });
-    }
-
-    if (mongoose.connection.readyState !== 1 || !UserModel) {
-      return res.status(503).json({ message: 'Database not available' });
-    }
-
-    const updated = await UserModel.findByIdAndUpdate(
-      targetUserId,
-      { $set: { premiumStatus: true } },
-      { new: true }
-    );
-
-    if (!updated) return res.status(404).json({ message: 'User to upgrade not found' });
-
-    const sanitized = sanitizeUser(updated);
-    securityEvent('User upgraded to premium', {
-      requestId: req.requestId,
-      targetUserId,
-      actingUserId: actingUser.id,
-      actingUsername: actingUser.username,
-    });
-    res.json({ message: `User ${sanitized.username} is now premium.`, user: sanitized });
-  } catch (e) {
-    logger.error('Upgrade to premium error', { error: e, requestId: req.requestId, userId: req.params.userId });
-    res.status(500).json({ message: 'Error upgrading user' });
+  // Basic check: allow self-upgrade or admin/dev override to upgrade others
+  if (String(actingUser.id || actingUser.userId) !== targetUserId && !(actingUser.premiumStatus || actingUser.developerOverride)) {
+      return res.status(403).json({ message: "Forbidden: You can only upgrade yourself or an admin/dev can upgrade others." });
   }
+
+  const userToUpgrade = users.find(u => String(u.id) === targetUserId);
+  if (!userToUpgrade) {
+    return res.status(404).json({ message: 'User to upgrade not found' });
+  }
+
+  userToUpgrade.premiumStatus = true;
+  securityEvent('User upgraded to premium', {
+    requestId: req.requestId,
+    targetUserId,
+    actingUserId: actingUser.id,
+    actingUsername: actingUser.username,
+  });
+  res.json({ message: `User ${userToUpgrade.username} is now premium. Please re-login to update JWT if needed.`, user: {id: userToUpgrade.id, username: userToUpgrade.username, premiumStatus: userToUpgrade.premiumStatus} });
 });
 
 // Endpoint to toggle developer override for a user
-app.put('/users/:userId/toggle-dev-override', authenticateToken, async (req, res) => {
+app.put('/users/:userId/toggle-dev-override', authenticateToken, (req, res) => {
+  // Similar authorization logic as above, typically admin-only
+  const targetUserId = String(req.params.userId);
+  const actingUser = req.user;
+
+  if (String(actingUser.id || actingUser.userId) !== targetUserId && !(actingUser.premiumStatus || actingUser.developerOverride)) { // Simplistic admin check
+      return res.status(403).json({ message: "Forbidden: Only admins/devs can toggle override for others." });
+  }
+
+  const userToToggle = users.find(u => String(u.id) === targetUserId);
+  if (!userToToggle) {
+    return res.status(404).json({ message: 'User to toggle not found' });
+  }
+
+  userToToggle.developerOverride = !userToToggle.developerOverride;
+  securityEvent('Developer override toggled', {
+    requestId: req.requestId,
+    targetUserId,
+    actingUserId: actingUser.id,
+    actingUsername: actingUser.username,
+    newValue: userToToggle.developerOverride,
+  });
+  res.json({ message: `User ${userToToggle.username} developer override is now ${userToToggle.developerOverride}. Please re-login to update JWT.`, user: {id: userToToggle.id, username: userToToggle.username, developerOverride: userToToggle.developerOverride }});
+});
+
+// Assign role (admin/moderator) endpoint
+app.put('/admin/users/:userId/role', authenticateToken, async (req, res) => {
   try {
+    if (!(req.user.developerOverride || req.user.role === 'admin')) {
+      return res.status(403).json({ message: 'Forbidden: Admin or developer access required.' });
+    }
+
     const targetUserId = String(req.params.userId);
-    const actingUser = req.user;
-
-    if (!actingUser.developerOverride) {
-      return res.status(403).json({ message: 'Forbidden: Only developers can toggle override.' });
+    const { role } = req.body || {};
+    const allowedRoles = ['user', 'moderator', 'admin'];
+    if (!allowedRoles.includes(role)) {
+      return res.status(400).json({ message: 'Invalid role specified.' });
     }
 
-    if (mongoose.connection.readyState !== 1 || !UserModel) {
-      return res.status(503).json({ message: 'Database not available' });
+    const memIdx = users.findIndex(u => String(u.id) === targetUserId || String(u._id || u.id) === targetUserId);
+    if (memIdx > -1) {
+      users[memIdx] = { ...users[memIdx], role };
     }
 
-    const updated = await UserModel.findById(targetUserId);
-    if (!updated) return res.status(404).json({ message: 'User to toggle not found' });
+    if (mongoose.connection.readyState === 1 && UserModel) {
+      await UserModel.updateOne({ _id: targetUserId }, { $set: { role } });
+    }
 
-    updated.developerOverride = !updated.developerOverride;
-    await updated.save();
-
-    const sanitized = sanitizeUser(updated);
-    securityEvent('Developer override toggled', {
+    securityEvent('User role updated', {
       requestId: req.requestId,
       targetUserId,
-      actingUserId: actingUser.id,
-      actingUsername: actingUser.username,
-      newValue: sanitized.developerOverride,
+      actingUserId: req.user.id,
+      actingUsername: req.user.username,
+      newRole: role,
     });
-    res.json({ message: `User ${sanitized.username} developer override is now ${sanitized.developerOverride}.`, user: sanitized });
-  } catch (e) {
-    logger.error('Toggle dev override error', { error: e, requestId: req.requestId, userId: req.params.userId });
-    res.status(500).json({ message: 'Error toggling developer override' });
+
+    res.json({ ok: true, userId: targetUserId, role });
+  } catch (error) {
+    logger.error('Assign role error', { error, requestId: req.requestId, targetUserId: req.params.userId });
+    res.status(500).json({ message: 'Error assigning role' });
   }
 });
 
 
 // Example protected route
 app.get('/protected', authenticateToken, (req, res) => {
-  // req.user is now the full user object
-  res.json({ message: 'This is a protected route', user: { id: req.user.id, username: req.user.username, premium: req.user.premiumStatus, devOverride: req.user.developerOverride } });
+  res.json({
+    message: 'This is a protected route',
+    user: {
+      id: req.user.id,
+      username: req.user.username,
+      premium: req.user.premiumStatus,
+      devOverride: req.user.developerOverride,
+      role: req.user.role || 'user',
+    },
+  });
 });
 
 // Get current user (normalized) with preferences
 app.get('/users/me', authenticateToken, async (req, res) => {
   try {
-    if (mongoose.connection.readyState !== 1 || !UserModel) {
-      return res.status(503).json({ message: 'Database not available' });
+    let user = req.user;
+    if (mongoose.connection.readyState === 1 && UserModel) {
+      const dbUser = await UserModel.findOne({ _id: req.user.id }).lean();
+      if (dbUser) user = { ...user, ...dbUser, id: dbUser._id.toString() };
     }
-    const dbUser = await UserModel.findById(req.user.id).lean();
-    if (!dbUser) return res.status(404).json({ message: 'User not found' });
-    res.json({ user: sanitizeUser(dbUser) });
+    res.json({ user });
   } catch (e) {
-    logger.error('Get current user error', { error: e, requestId: req.requestId });
     res.status(500).json({ message: 'Error fetching user' });
-  }
-});
-
-app.get('/users/me/events', authenticateToken, async (req, res) => {
-  try {
-    if (mongoose.connection.readyState !== 1 || !EventModel) {
-      return res.status(503).json({ message: 'Database not available' });
-    }
-    const userId = req.user.id;
-    const [createdDocs, attendingDocs] = await Promise.all([
-      EventModel.find({ createdByUserId: userId }).lean(),
-      EventModel.find({ rsvps: userId }).lean(),
-    ]);
-    const map = new Map();
-    [...createdDocs, ...attendingDocs].forEach((doc) => {
-      const normalized = normalizeEvent(doc);
-      if (normalized?.id) map.set(normalized.id, normalized);
-    });
-    res.json({ events: Array.from(map.values()) });
-  } catch (error) {
-    logger.error('Get user events error', { error, requestId: req.requestId });
-    res.status(500).json({ message: 'Error fetching user events' });
   }
 });
 
@@ -881,30 +982,33 @@ app.patch('/users/:userId', authenticateToken, async (req, res) => {
 
     // Whitelist fields
     const b = req.body || {};
-    if (mongoose.connection.readyState !== 1 || !UserModel) {
-      return res.status(503).json({ message: 'Database not available' });
-    }
-
     const set = {};
-    const allow = ['name', 'displayTag', 'gender', 'biography', 'profileImage', 'email'];
-    allow.forEach((k) => {
-      if (b[k] !== undefined) set[k] = b[k];
-    });
-
+    const allow = ['name','displayTag','gender','biography','profileImage'];
+    allow.forEach(k => { if (b[k] !== undefined) set[k] = b[k]; });
     if (b.carInterests) set.carInterests = Array.isArray(b.carInterests) ? b.carInterests : [];
-    if (b.cars) set.cars = Array.isArray(b.cars) ? b.cars : [];
-    if (b.location) set.location = { ...(req.user.location || {}), ...b.location };
-
-    const prefs = ensurePreferencesShape({ ...(req.user.preferences || {}), ...(b.preferences || {}) });
-    if (b.preferences) set.preferences = prefs;
-
-    if (Object.keys(set).length === 0) {
-      return res.status(400).json({ message: 'No valid fields to update' });
+    if (b.location) {
+      set.location = { ...req.user.location, ...b.location };
+    }
+    if (b.preferences) {
+      const p = b.preferences;
+      if (p.notifications) set['preferences.notifications'] = p.notifications;
+      if (p.privacy) set['preferences.privacy'] = p.privacy;
+      if (p.display) set['preferences.display'] = p.display;
+      if (p.connections) set['preferences.connections'] = p.connections;
     }
 
-    await UserModel.updateOne({ _id: userId }, { $set: set });
-    const updated = await UserModel.findById(userId).lean();
-    const responseUser = sanitizeUser(updated);
+    // Update in-memory if exists
+    const memIdx = users.findIndex(u => String(u.id) === userId);
+    if (memIdx > -1) {
+      users[memIdx] = { ...users[memIdx], ...set, preferences: { ...(users[memIdx].preferences||{}), ...(set.preferences||{}) } };
+    }
+    // Update Mongo if connected
+    let updated;
+    if (mongoose.connection.readyState === 1 && UserModel) {
+      await UserModel.updateOne({ _id: userId }, { $set: set });
+      updated = await UserModel.findById(userId).lean();
+    }
+    const responseUser = updated ? { ...updated, id: updated._id.toString() } : users[memIdx] || { id: userId, ...set };
     securityEvent('User profile updated', { requestId: req.requestId, userId, actingUserId: acting });
     res.json({ ok: true, user: responseUser });
   } catch (e) {
@@ -919,10 +1023,11 @@ app.delete('/users/:userId', authenticateToken, async (req, res) => {
     const userId = String(req.params.userId);
     const acting = String(req.user.id || req.user.userId);
     if (acting !== userId && !req.user.developerOverride) return res.status(403).json({ message: 'Forbidden' });
-    if (mongoose.connection.readyState !== 1 || !UserModel) {
-      return res.status(503).json({ message: 'Database not available' });
-    }
-    await UserModel.deleteOne({ _id: userId });
+    // Remove from memory
+    const idx = users.findIndex(u => String(u.id) === userId);
+    if (idx > -1) users.splice(idx, 1);
+    // Remove from DB
+    if (mongoose.connection.readyState === 1 && UserModel) await UserModel.deleteOne({ _id: userId });
     securityEvent('User account deleted', { requestId: req.requestId, userId, actingUserId: acting });
     res.json({ ok: true });
   } catch (e) {
@@ -934,56 +1039,75 @@ app.delete('/users/:userId', authenticateToken, async (req, res) => {
 // Message sending endpoint
 app.post('/messages', messageWriteLimiter, authenticateToken, async (req, res) => {
   try {
-    if (mongoose.connection.readyState !== 1 || !UserModel || !MessageModel) {
-      return res.status(503).json({ message: 'Database not available' });
-    }
-
     const { recipientUsername, text } = req.body;
+    // req.user.username is the sender's username from the JWT
+    const senderUsername = req.user.username; 
+
     if (!recipientUsername || !text) {
       return res.status(400).json({ message: 'Recipient username and text are required' });
     }
 
-    const senderUser = req.user;
-    const senderUsername = senderUser.username;
-    const recipientDoc = await UserModel.findOne({ username: recipientUsername.trim() }).lean();
-    if (!recipientDoc) return res.status(404).json({ message: 'Recipient not found' });
+    let recipientUser = users.find(user => user.username === recipientUsername);
+    if (!recipientUser && mongoose.connection.readyState === 1 && UserModel) {
+      const dbUser = await UserModel.findOne({ username: recipientUsername }).lean();
+      if (dbUser) {
+        recipientUser = { id: dbUser._id.toString(), username: dbUser.username, premiumStatus: !!dbUser.premiumStatus, developerOverride: !!dbUser.developerOverride };
+      }
+    }
+    if (!recipientUser) return res.status(404).json({ message: 'Recipient not found' });
 
-    const recipientUser = sanitizeUser(recipientDoc);
+    // req.user is now the full sender object from authenticateToken
+    const senderUser = req.user; 
+
+    // Premium Logic for sending messages
+    // Effective premium status considers both actual premium and dev override
     const isSenderEffectivelyPremium = senderUser.premiumStatus || senderUser.developerOverride;
-    const isRecipientEffectivelyPremium = recipientUser.premiumStatus || recipientUser.developerOverride;
+    const dailyMessageLimit = 5; // Example limit for free users
 
-    const dailyMessageLimit = 5;
+    // Reset daily count if it's a new day
     const today = new Date().toISOString().split('T')[0];
-    const activity = senderUser.activityMetadata || { messageCountToday: 0, lastMessageDate: null };
-    if (activity.lastMessageDate !== today) {
-      activity.messageCountToday = 0;
-      activity.lastMessageDate = today;
+    if (senderUser.activityMetadata.lastMessageDate !== today) {
+      senderUser.activityMetadata.messageCountToday = 0;
+      senderUser.activityMetadata.lastMessageDate = today;
     }
 
-    if (!isSenderEffectivelyPremium && activity.messageCountToday >= dailyMessageLimit) {
-      return res.status(403).json({
+    if (!isSenderEffectivelyPremium && senderUser.activityMetadata.messageCountToday >= dailyMessageLimit) {
+      return res.status(403).json({ 
         message: `Free users are limited to ${dailyMessageLimit} new messages per day. Upgrade to premium for unlimited messaging.`,
-        action: 'upgradeRequired',
+        action: "upgradeRequired" // For frontend to trigger paywall UI
       });
     }
+    
+    // Reply Gating: Free user cannot reply to premium-initiated messages
+    // This requires checking if the message is a reply and the original sender's status.
+    // For now, we'll focus on the daily limit and message blurring.
+    // A more complex implementation would check `req.body.replyToMessageId`
 
-    const created = await MessageModel.create({
+    const isRecipientEffectivelyPremium = recipientUser.premiumStatus || recipientUser.developerOverride;
+
+    const newMessage = {
+      id: messages.length + 1,
       senderId: senderUser.id,
-      senderUsername,
-      senderEffectivePremiumStatus: isSenderEffectivelyPremium,
+      senderUsername: senderUsername,
+      senderEffectivePremiumStatus: isSenderEffectivelyPremium, 
       recipientId: recipientUser.id,
-      recipientUsername: recipientUser.username,
+      recipientUsername: recipientUsername,
       recipientEffectivePremiumStatus: isRecipientEffectivelyPremium,
       text,
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
       read: false,
-      category: 'Inbox',
-      systemMessage: false,
-    });
+      category: 'Inbox', // Default category, can be adjusted by recipient's view
+      systemMessage: false, // Flag for system messages
+      // replyEligibility, expiration can be added
+    };
+    messages.push(newMessage);
+
+    if (mongoose.connection.readyState === 1 && MessageModel) {
+      await MessageModel.create(newMessage);
+    }
 
     if (!isSenderEffectivelyPremium) {
-      activity.messageCountToday += 1;
-      await UserModel.updateOne({ _id: senderUser.id }, { $set: { activityMetadata: activity } });
+      senderUser.activityMetadata.messageCountToday += 1;
     }
 
     securityEvent('Direct message sent', {
@@ -992,8 +1116,8 @@ app.post('/messages', messageWriteLimiter, authenticateToken, async (req, res) =
       toUserId: recipientUser.id,
       toUsername: recipientUser.username,
     });
-
-    res.status(201).json({ message: 'Message sent successfully', data: normalizeMessage(created) });
+    logger.debug('Message queue size', { count: messages.length });
+    res.status(201).json({ message: 'Message sent successfully', data: newMessage });
   } catch (error) {
     logger.error('Send message error', { error, requestId: req.requestId, recipient: req.body?.recipientUsername });
     res.status(500).json({ message: 'Error sending message' });
@@ -1016,183 +1140,189 @@ function getDistanceInMiles(lat1, lon1, lat2, lon2) {
 // --- Helpers: Events ---
 const isObjectIdLike = (v) => typeof v === 'string' && /^[a-fA-F0-9]{24}$/.test(v);
 async function findEventByParam(eventIdParam) {
-  if (mongoose.connection.readyState !== 1 || !EventModel) {
-    return { ev: null, source: null };
-  }
-
+  // Prefer persistent DB if available
   const n = Number(eventIdParam);
+  if (!Number.isNaN(n) && mongoose.connection.readyState === 1 && EventModel) {
+    const doc = await EventModel.findOne({ id: n });
+    if (doc) return { ev: doc, source: 'db' };
+  }
+  if (mongoose.connection.readyState === 1 && EventModel && isObjectIdLike(eventIdParam)) {
+    const doc = await EventModel.findById(eventIdParam);
+    if (doc) return { ev: doc, source: 'db' };
+  }
+  // Fallback to in-memory
   if (!Number.isNaN(n)) {
-    const byNumeric = await EventModel.findOne({ id: n });
-    if (byNumeric) return { ev: byNumeric, source: 'db' };
+    const evMem = events.find(e => e.id === n);
+    if (evMem) return { ev: evMem, source: 'mem' };
   }
-
-  if (isObjectIdLike(eventIdParam)) {
-    const byId = await EventModel.findById(eventIdParam);
-    if (byId) return { ev: byId, source: 'db' };
-  }
-
-  // Attempt direct match on stringified _id or legacy id field
-  const byStringId = await EventModel.findOne({ $or: [{ _id: eventIdParam }, { id: eventIdParam }] });
-  if (byStringId) return { ev: byStringId, source: 'db' };
-
   return { ev: null, source: null };
+}
+
+function normalizeEventRecord(raw) {
+  if (!raw) return null;
+  const doc = raw.toObject ? raw.toObject() : raw;
+  const normalizedRsvps = Array.isArray(doc.rsvps)
+    ? doc.rsvps.map((entry) => (entry && entry.toString ? entry.toString() : String(entry)))
+    : [];
+  const normalizedComments = Array.isArray(doc.comments)
+    ? doc.comments.map((comment) => ({
+        ...comment,
+        userId: comment?.userId ? comment.userId.toString() : undefined,
+      }))
+    : [];
+
+  const createdByUserId = doc.createdByUserId ? doc.createdByUserId.toString() : undefined;
+
+  return {
+    id: doc.id != null ? String(doc.id) : doc._id ? doc._id.toString() : undefined,
+    title: doc.title || doc.name,
+    name: doc.name || doc.title,
+    date: doc.date,
+    location: doc.location,
+    description: doc.description,
+    image: doc.image,
+    thumbnail: doc.thumbnail,
+    schedule: doc.schedule || [],
+    comments: normalizedComments,
+    rsvps: normalizedRsvps,
+    rsvpCount: normalizedRsvps.length,
+    createdByUserId,
+    createdByUsername: doc.createdByUsername,
+    tags: doc.tags || [],
+    threadId: doc.threadId,
+  };
 }
 
 // Inbox endpoint to fetch messages for the logged-in user
 app.get('/messages/inbox', authenticateToken, async (req, res) => {
   try {
-    if (mongoose.connection.readyState !== 1 || !MessageModel || !UserModel) {
-      return res.status(503).json({ message: 'Database not available' });
-    }
-
-    const loggedInUser = req.user;
-    const userId = String(loggedInUser.id);
+    const loggedInUser = req.user; 
     const isUserEffectivelyPremium = loggedInUser.premiumStatus || loggedInUser.developerOverride;
 
-    const docs = await MessageModel.find({
-      $or: [{ recipientId: userId }, { senderId: userId }],
-    }).lean();
-
-    const idCandidates = new Set();
-    const usernameCandidates = new Set();
-
-    docs.forEach((msg) => {
-      if (msg.senderId) idCandidates.add(String(msg.senderId));
-      if (msg.recipientId) idCandidates.add(String(msg.recipientId));
-      if (msg.senderUsername) usernameCandidates.add(msg.senderUsername);
-      if (msg.recipientUsername) usernameCandidates.add(msg.recipientUsername);
-    });
-
-    const objectIds = [...idCandidates].filter(isObjectIdLike).map((id) => new mongoose.Types.ObjectId(id));
-    const usersById = objectIds.length ? await UserModel.find({ _id: { $in: objectIds } }).lean() : [];
-    const userMapById = new Map();
-    const userMapByUsername = new Map();
-    usersById.forEach((doc) => {
-      const sanitized = sanitizeUser(doc);
-      userMapById.set(sanitized.id, sanitized);
-      if (sanitized.username) userMapByUsername.set(sanitized.username, sanitized);
-    });
-
-    const remainingUsernames = [...usernameCandidates].filter((name) => !userMapByUsername.has(name));
-    if (remainingUsernames.length) {
-      const usersByUsername = await UserModel.find({ username: { $in: remainingUsernames } }).lean();
-      usersByUsername.forEach((doc) => {
-        const sanitized = sanitizeUser(doc);
-        userMapById.set(sanitized.id, sanitized);
-        if (sanitized.username) userMapByUsername.set(sanitized.username, sanitized);
-      });
+    let allUserRelatedMessages = [];
+    if (mongoose.connection.readyState === 1 && MessageModel) {
+      allUserRelatedMessages = await MessageModel.find({ $or: [ { recipientId: loggedInUser.id }, { senderId: loggedInUser.id } ] }).lean();
+    } else {
+      allUserRelatedMessages = messages.filter(msg => msg.recipientId === loggedInUser.id || msg.senderId === loggedInUser.id);
     }
 
-    const resolveOtherUser = (msg) => {
-      const otherId = msg.senderId === userId ? msg.recipientId : msg.senderId;
-      const otherUsername = msg.senderId === userId ? msg.recipientUsername : msg.senderUsername;
-      return (otherId && userMapById.get(String(otherId)))
-        || (otherUsername && userMapByUsername.get(otherUsername))
-        || null;
-    };
+    // Apply premium visibility rules and categorize messages
+    let processedMessages = [];
+    for (const msg of allUserRelatedMessages) {
+      let displayMessage = { ...msg }; // Create a copy to modify for display
 
-    const markReadIds = [];
-    const processedMessages = docs.map((msg) => {
-      const display = normalizeMessage(msg);
-      const otherPartyIsPremium = display.senderId === userId
-        ? display.recipientEffectivePremiumStatus
-        : display.senderEffectivePremiumStatus;
+      // Determine effective premium status of the other party in the conversation
+      const otherPartyIsPremium = (msg.senderId === loggedInUser.id) ? msg.recipientEffectivePremiumStatus : msg.senderEffectivePremiumStatus;
 
-      if (display.senderId === userId) display.category = 'Sent';
-      else if (display.recipientId === userId && !display.read) display.category = 'Unread';
-      else if (!display.category) display.category = 'Inbox';
+      displayMessage.category = 'Inbox'; // Default
+      if (msg.senderId === loggedInUser.id) {
+        displayMessage.category = 'Sent';
+      } else if (msg.recipientId === loggedInUser.id && !msg.read) {
+        displayMessage.category = 'Unread'; // Also Inbox, but specifically unread
+      }
 
-      if (display.recipientId === userId && !isUserEffectivelyPremium && otherPartyIsPremium) {
-        display.text = `${(display.text || '').slice(0, 20)}... (Upgrade to premium to read full message)`;
-        display.category = 'Locked';
-        display.isLocked = true;
+
+      // Rule: Free users see blurred/truncated content from premium members if they are the recipient
+      if (msg.recipientId === loggedInUser.id && !isUserEffectivelyPremium && otherPartyIsPremium) {
+        displayMessage.text = msg.text.substring(0, 20) + "... (Upgrade to premium to read full message)";
+        displayMessage.category = 'Locked'; 
+        displayMessage.isLocked = true; // Flag for UI
       } else {
-        display.isLocked = false;
+        displayMessage.isLocked = false;
       }
-
-      if (display.recipientId === userId && !display.read && msg._id) {
-        markReadIds.push(msg._id);
-        display.read = true;
+      
+      // Mark as read if recipient is viewing and it's unread (persisting the change)
+      if (msg.recipientId === loggedInUser.id && !msg.read) {
+        const originalMessageIndex = messages.findIndex(m => m.id === msg.id);
+        if (originalMessageIndex !== -1) messages[originalMessageIndex].read = true;
+        if (mongoose.connection.readyState === 1 && MessageModel && msg._id) {
+          await MessageModel.updateOne({ _id: msg._id }, { $set: { read: true } });
+        }
+        displayMessage.read = true; // Reflect in the copy being sent
       }
-
-      return display;
-    });
-
-    if (markReadIds.length) {
-      await MessageModel.updateMany({ _id: { $in: markReadIds } }, { $set: { read: true } });
+      processedMessages.push(displayMessage);
     }
-
+    
+    // Filtering by category query parameter
     const queryCategory = req.query.category;
-    const filterGender = req.query.filterGender;
-    const filterRadius = req.query.filterRadius ? parseInt(req.query.filterRadius, 10) : null;
-    let result = processedMessages;
+    const filterGender = req.query.filterGender; // e.g., ?filterGender=male
+    const filterRadius = req.query.filterRadius ? parseInt(req.query.filterRadius, 10) : null; // e.g., ?filterRadius=10 (in miles)
 
     if (queryCategory) {
+      // Category filtering logic (as before)
       switch (queryCategory.toLowerCase()) {
-        case 'inbox':
-          result = result.filter((msg) => msg.recipientId === userId && !msg.systemMessage);
+        case 'inbox': 
+          processedMessages = processedMessages.filter(msg => msg.recipientId === loggedInUser.id);
           break;
         case 'unread':
-          result = result.filter((msg) => msg.recipientId === userId && !msg.read && !msg.isLocked);
+          processedMessages = processedMessages.filter(msg => msg.recipientId === loggedInUser.id && !msg.read && !msg.isLocked);
           break;
         case 'sent':
-          result = result.filter((msg) => msg.senderId === userId);
+          processedMessages = processedMessages.filter(msg => msg.senderId === loggedInUser.id);
           break;
-        case 'system':
-          result = result.filter((msg) => msg.systemMessage);
-          break;
-        case 'locked':
-          result = result.filter((msg) => msg.isLocked);
+        case 'locked': 
+          processedMessages = processedMessages.filter(msg => msg.recipientId === loggedInUser.id && msg.isLocked);
           break;
         default:
-          result = [];
           break;
       }
     }
 
-    if ((filterGender || filterRadius) && !isUserEffectivelyPremium) {
-      return res.status(403).json({
-        message: 'Upgrade to premium to use advanced filters like gender or proximity.',
-        action: 'upgradeRequired',
-      });
-    }
+    // Apply premium filters only if the user is effectively premium
+    if (isUserEffectivelyPremium) {
+      if (filterGender) {
+        processedMessages = processedMessages.filter(msg => {
+          // We need sender's gender. Fetch sender user object.
+          const sender = users.find(u => u.id === msg.senderId);
+          return sender && sender.gender.toLowerCase() === filterGender.toLowerCase();
+        });
+      }
 
-    if (filterGender && isUserEffectivelyPremium) {
-      result = result.filter((msg) => {
-        const other = resolveOtherUser(msg);
-        return other && other.gender === filterGender;
-      });
-    }
-
-    if (filterRadius && isUserEffectivelyPremium && loggedInUser.location?.geoCoordinates) {
-      const { lat: userLat, lon: userLon } = loggedInUser.location.geoCoordinates;
-      result = result.filter((msg) => {
-        const other = resolveOtherUser(msg);
-        if (!other?.location?.geoCoordinates) return false;
-        const { lat, lon } = other.location.geoCoordinates;
-        const distance = getDistanceInMiles(userLat, userLon, lat, lon);
-        return distance <= filterRadius;
-      });
-    }
-
-    const sortBy = req.query.sortBy;
-    if (isUserEffectivelyPremium && sortBy === 'proximity' && loggedInUser.location?.geoCoordinates) {
-      const { lat: userLat, lon: userLon } = loggedInUser.location.geoCoordinates;
-      result.sort((a, b) => {
-        const userA = resolveOtherUser(a);
-        const userB = resolveOtherUser(b);
-        if (!userA?.location?.geoCoordinates || !userB?.location?.geoCoordinates) return 0;
-        const distA = getDistanceInMiles(userLat, userLon, userA.location.geoCoordinates.lat, userA.location.geoCoordinates.lon);
-        const distB = getDistanceInMiles(userLat, userLon, userB.location.geoCoordinates.lat, userB.location.geoCoordinates.lon);
-        return distA - distB;
-      });
+      if (filterRadius && loggedInUser.location && loggedInUser.location.geoCoordinates) {
+        const userLat = loggedInUser.location.geoCoordinates.lat;
+        const userLon = loggedInUser.location.geoCoordinates.lon;
+        
+        processedMessages = processedMessages.filter(msg => {
+          const sender = users.find(u => u.id === msg.senderId);
+          if (sender && sender.location && sender.location.geoCoordinates) {
+            const senderLat = sender.location.geoCoordinates.lat;
+            const senderLon = sender.location.geoCoordinates.lon;
+            const distance = getDistanceInMiles(userLat, userLon, senderLat, senderLon);
+            return distance <= filterRadius;
+          }
+          return false; // Don't include if sender location is missing
+        });
+      }
     } else {
-      result.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+      // Optionally, if a non-premium user tries to use these filters, inform them.
+      if (filterGender || filterRadius) {
+         // Could add a header or a field in the response indicating filters were ignored.
+         // For now, filters are silently ignored for non-premium.
+      }
     }
 
-    res.json(result);
+    // Sort messages by timestamp, newest first (or by proximity if requested and premium)
+    const sortBy = req.query.sortBy;
+    if (isUserEffectivelyPremium && sortBy === 'proximity' && loggedInUser.location && loggedInUser.location.geoCoordinates) {
+        const userLat = loggedInUser.location.geoCoordinates.lat;
+        const userLon = loggedInUser.location.geoCoordinates.lon;
+        processedMessages.sort((a, b) => {
+            const senderA = users.find(u => u.id === a.senderId);
+            const senderB = users.find(u => u.id === b.senderId);
+            if (senderA && senderA.location && senderA.location.geoCoordinates && senderB && senderB.location && senderB.location.geoCoordinates) {
+                const distA = getDistanceInMiles(userLat, userLon, senderA.location.geoCoordinates.lat, senderA.location.geoCoordinates.lon);
+                const distB = getDistanceInMiles(userLat, userLon, senderB.location.geoCoordinates.lat, senderB.location.geoCoordinates.lon);
+                return distA - distB;
+            }
+            return 0; // Default if location data is missing for sorting
+        });
+    } else {
+        processedMessages.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // Default sort
+    }
+    
+    res.json(processedMessages);
   } catch (error) {
-    logger.error('Inbox error', { error, requestId: req.requestId });
+    logger.error('Inbox error', { error: error, requestId: req.requestId });
     res.status(500).json({ message: 'Error fetching messages' });
   }
 });
@@ -1200,19 +1330,17 @@ app.get('/messages/inbox', authenticateToken, async (req, res) => {
 // Event creation endpoint
 app.post('/events', eventWriteLimiter, authenticateToken, async (req, res) => {
   try {
-    if (mongoose.connection.readyState !== 1 || !EventModel) {
-      return res.status(503).json({ message: 'Database not available' });
-    }
-
-    const { name, description, date, location, image, thumbnail, schedule, tags } = req.body;
-    const createdByUserId = req.user.id;
+    const { name, description, date, location, image, thumbnail, schedule = [], tags = [] } = req.body;
+    const createdByUserId = req.user.id || req.user.userId; // sanitized string id
     const createdByUsername = req.user.username;
 
     if (!name || !description || !date || !location) {
       return res.status(400).json({ message: 'Name, description, date, and location are required for an event' });
     }
 
-    const created = await EventModel.create({
+    const nextId = events.length + 1;
+    const newEvent = {
+      id: nextId,
       name,
       title: name,
       description,
@@ -1220,26 +1348,46 @@ app.post('/events', eventWriteLimiter, authenticateToken, async (req, res) => {
       location,
       image,
       thumbnail,
-      schedule: schedule || [],
-      tags: tags || [],
+      schedule,
+      tags,
       createdByUserId,
       createdByUsername,
       rsvps: [],
-    });
-
-    let threadId = null;
-    try {
-      const thread = await ForumThread.create({ categoryId: 'cat3', title: name, authorId: createdByUserId, authorUsername: createdByUsername });
-      await EventModel.updateOne({ _id: created._id }, { $set: { threadId: thread._id } });
-      threadId = thread._id;
-      const intro = `Event: ${name}\nDate: ${date}\nLocation: ${location}\n\n${description || ''}`;
-      await ForumPost.create({ threadId, authorId: createdByUserId, authorUsername: createdByUsername, body: intro });
-    } catch (e) {
-      logger.warn('Auto thread create failed', { error: e, requestId: req.requestId, eventId: created._id });
+      comments: [],
+    };
+    events.push({ ...newEvent });
+    let saved = newEvent;
+    if (mongoose.connection.readyState === 1 && EventModel) {
+      saved = await EventModel.create({
+        id: nextId,
+        name,
+        title: name,
+        description,
+        date,
+        location,
+        image,
+        thumbnail,
+        schedule,
+        tags,
+        createdByUserId,
+        createdByUsername,
+        rsvps: [],
+        comments: [],
+      });
+      // Auto-create forum thread for event under Events & Meetups (cat3)
+      try {
+        const thread = await ForumThread.create({ categoryId: 'cat3', title: name, authorId: createdByUserId, authorUsername: createdByUsername });
+        await EventModel.updateOne({ _id: saved._id }, { $set: { threadId: thread._id } });
+        saved.threadId = thread._id;
+        // Introductory forum post
+        const intro = `Event: ${name}\nDate: ${date}\nLocation: ${newEvent.location}\n\n${newEvent.description || ''}`;
+        await ForumPost.create({ threadId: thread._id, authorId: createdByUserId, authorUsername: createdByUsername, body: intro });
+      } catch (e) {
+        logger.warn('Auto thread create failed', { error: e, requestId: req.requestId, eventId: saved?._id || newEvent.id });
+      }
     }
-
-    const normalized = normalizeEvent({ ...created.toObject(), threadId });
-    securityEvent('Event created', { requestId: req.requestId, eventId: normalized.id, createdByUserId });
+    const normalized = normalizeEventRecord(saved);
+    securityEvent('Event created', { requestId: req.requestId, eventId: normalized?.id, createdByUserId });
     res.status(201).json({ message: 'Event created successfully', data: normalized });
   } catch (error) {
     logger.error('Create event error', { error, requestId: req.requestId });
@@ -1250,28 +1398,41 @@ app.post('/events', eventWriteLimiter, authenticateToken, async (req, res) => {
 // RSVP to an event endpoint
 app.post('/events/:eventId/rsvp', rsvpLimiter, authenticateToken, async (req, res) => {
   try {
-    if (mongoose.connection.readyState !== 1 || !EventModel) {
-      return res.status(503).json({ message: 'Database not available' });
-    }
     const eventIdParam = req.params.eventId;
-    const rsvpUserId = req.user.id;
-    const rsvpUsername = req.user.username;
+    const rsvpUserId = String(req.user.id || req.user.userId);
     const { ev, source } = await findEventByParam(eventIdParam);
-    const eventDoc = source === 'db' ? ev : null;
-    if (!eventDoc) return res.status(404).json({ message: 'Event not found' });
+    if (!ev) return res.status(404).json({ message: 'Event not found' });
 
-    const eid = eventDoc._id.toString();
-    if (Array.isArray(eventDoc.rsvps) && eventDoc.rsvps.map(String).includes(String(rsvpUserId))) {
+    if (source === 'db' && mongoose.connection.readyState === 1 && EventModel) {
+      const ownerId = ev.createdByUserId ? ev.createdByUserId.toString() : undefined;
+      if (ownerId && ownerId === rsvpUserId) {
+        return res.status(409).json({ message: 'Organizers are automatically listed for their event.' });
+      }
+
+      const hasRsvp = Array.isArray(ev.rsvps) && ev.rsvps.map((r) => r?.toString?.() || String(r)).includes(rsvpUserId);
+      if (hasRsvp) {
+        return res.status(409).json({ message: 'Already RSVPed to this event' });
+      }
+
+      await EventModel.updateOne({ _id: ev._id }, { $addToSet: { rsvps: rsvpUserId } });
+      const updated = await EventModel.findById(ev._id).lean();
+      securityEvent('Event RSVP added', {
+        requestId: req.requestId,
+        eventId: updated?._id?.toString() || eventIdParam,
+        userId: rsvpUserId,
+      });
+      return res.status(201).json({ message: 'RSVP successful', data: normalizeEventRecord(updated) });
+    }
+
+    // Fallback in-memory operation
+    const event = ev;
+    if (!event) return res.status(404).json({ message: 'Event not found' });
+    if (Array.isArray(event.rsvps) && event.rsvps.includes(rsvpUserId)) {
       return res.status(409).json({ message: 'Already RSVPed to this event' });
     }
-
-    await EventModel.updateOne({ _id: eventDoc._id }, { $addToSet: { rsvps: rsvpUserId } });
-    securityEvent('Event RSVP added', {
-      requestId: req.requestId,
-      eventId: eid,
-      userId: rsvpUserId,
-    });
-    res.status(201).json({ message: 'RSVP successful', eventId: eid, userId: rsvpUserId, username: rsvpUsername });
+    event.rsvps = Array.isArray(event.rsvps) ? [...event.rsvps, rsvpUserId] : [rsvpUserId];
+    rsvps.push({ id: rsvps.length + 1, eventId: event.id, userId: rsvpUserId, timestamp: new Date().toISOString() });
+    return res.status(201).json({ message: 'RSVP successful', data: event });
   } catch (error) {
     logger.error('RSVP error', { error, requestId: req.requestId, eventId: req.params.eventId });
     res.status(500).json({ message: 'Error RSVPing to event' });
@@ -1281,22 +1442,30 @@ app.post('/events/:eventId/rsvp', rsvpLimiter, authenticateToken, async (req, re
 // Cancel RSVP (toggle off)
 app.delete('/events/:eventId/rsvp', authenticateToken, async (req, res) => {
   try {
-    if (mongoose.connection.readyState !== 1 || !EventModel) {
-      return res.status(503).json({ message: 'Database not available' });
-    }
     const eventIdParam = req.params.eventId;
-    const rsvpUserId = req.user.id;
+    const rsvpUserId = String(req.user.id || req.user.userId);
     const { ev, source } = await findEventByParam(eventIdParam);
-    const eventDoc = source === 'db' ? ev : null;
-    if (!eventDoc) return res.status(404).json({ message: 'Event not found' });
-    const eid = eventDoc._id.toString();
-    await EventModel.updateOne({ _id: eventDoc._id }, { $pull: { rsvps: rsvpUserId } });
-    securityEvent('Event RSVP removed', {
-      requestId: req.requestId,
-      eventId: eid,
-      userId: rsvpUserId,
-    });
-    res.json({ message: 'RSVP removed', eventId: eid });
+    if (!ev) return res.status(404).json({ message: 'Event not found' });
+
+    if (source === 'db' && mongoose.connection.readyState === 1 && EventModel) {
+      await EventModel.updateOne({ _id: ev._id }, { $pull: { rsvps: rsvpUserId } });
+      const updated = await EventModel.findById(ev._id).lean();
+      securityEvent('Event RSVP removed', {
+        requestId: req.requestId,
+        eventId: updated?._id?.toString() || eventIdParam,
+        userId: rsvpUserId,
+      });
+      return res.json({ message: 'RSVP removed', data: normalizeEventRecord(updated) });
+    }
+
+    const event = ev;
+    if (!event) return res.status(404).json({ message: 'Event not found' });
+    if (Array.isArray(event.rsvps)) {
+      event.rsvps = event.rsvps.filter((v) => String(v) !== rsvpUserId);
+    }
+    const index = rsvps.findIndex((entry) => String(entry.eventId) === String(event.id) && String(entry.userId) === rsvpUserId);
+    if (index > -1) rsvps.splice(index, 1);
+    return res.json({ message: 'RSVP removed', data: event });
   } catch (error) {
     logger.error('Cancel RSVP error', { error, requestId: req.requestId, eventId: req.params.eventId });
     res.status(500).json({ message: 'Error cancelling RSVP' });
@@ -1306,12 +1475,12 @@ app.delete('/events/:eventId/rsvp', authenticateToken, async (req, res) => {
 // Get all events endpoint
 app.get('/events', async (req, res) => {
   try {
-    if (mongoose.connection.readyState !== 1 || !EventModel) {
-      return res.status(503).json({ message: 'Database not available' });
+    if (mongoose.connection.readyState === 1 && EventModel) {
+      const docs = await EventModel.find({}).lean();
+      const items = docs.map(normalizeEventRecord);
+      return res.json(items);
     }
-    const docs = await EventModel.find({}).lean();
-    const items = docs.map(normalizeEvent);
-    return res.json(items);
+    res.json(events.map(normalizeEventRecord));
   } catch (error) {
     logger.error('Get events error', { error, requestId: req.requestId });
     res.status(500).json({ message: 'Error fetching events' });
@@ -1322,8 +1491,9 @@ app.get('/events', async (req, res) => {
 app.get('/events/:eventId', async (req, res) => {
   try {
     const { ev, source } = await findEventByParam(req.params.eventId);
-    if (!ev || source !== 'db') return res.status(404).json({ message: 'Event not found' });
-    res.json(normalizeEvent(ev));
+    if (!ev) return res.status(404).json({ message: 'Event not found' });
+    const payload = normalizeEventRecord(ev);
+    res.json(payload);
   } catch (e) {
     logger.error('Get event error', { error: e, requestId: req.requestId, eventId: req.params.eventId });
     res.status(500).json({ message: 'Error fetching event' });
@@ -1350,7 +1520,7 @@ app.post('/events/:eventId/ensure-thread', eventWriteLimiter, async (req, res) =
         logger.warn('Intro post failed', { error: e, requestId: req.requestId, eventId: req.params.eventId });
       }
     }
-    return res.json({ id: doc.id || doc._id.toString(), name: doc.name, title: doc.title || doc.name, date: doc.date, location: doc.location, description: doc.description, image: doc.image, thumbnail: doc.thumbnail, schedule: doc.schedule || [], comments: doc.comments || [], rsvps: doc.rsvps || [], rsvpCount: Array.isArray(doc.rsvps) ? doc.rsvps.length : 0, createdByUserId: doc.createdByUserId, createdByUsername: doc.createdByUsername, threadId: doc.threadId });
+    return res.json(normalizeEventRecord(doc));
   } catch (e) {
     logger.error('Ensure thread error', { error: e, requestId: req.requestId, eventId: req.params.eventId });
     res.status(500).json({ message: 'Error ensuring thread' });
@@ -1360,24 +1530,17 @@ app.post('/events/:eventId/ensure-thread', eventWriteLimiter, async (req, res) =
 // Get user's RSVPs endpoint
 app.get('/my-rsvps', authenticateToken, async (req, res) => {
   try {
-    if (mongoose.connection.readyState !== 1 || !EventModel) {
-      return res.status(503).json({ message: 'Database not available' });
+    const rsvpUserId = String(req.user.id || req.user.userId);
+    if (mongoose.connection.readyState === 1 && EventModel) {
+      const docs = await EventModel.find({ rsvps: rsvpUserId }).lean();
+      return res.json(docs.map(normalizeEventRecord));
     }
-    const rsvpUserId = req.user.id;
-    const docs = await EventModel.find({ rsvps: rsvpUserId }).lean();
-    const mapped = docs.map((doc) => {
-      const normalized = normalizeEvent(doc);
-      return {
-        eventId: normalized.id,
-        userId: rsvpUserId,
-        username: req.user.username,
-        timestamp: new Date().toISOString(),
-        eventName: normalized.name,
-        eventDate: normalized.date,
-      };
-    });
 
-    res.json(mapped);
+    // Fallback: derive from in-memory events
+    const inMemory = events
+      .filter((event) => Array.isArray(event.rsvps) && event.rsvps.includes(rsvpUserId))
+      .map((event) => normalizeEventRecord(event));
+    res.json(inMemory);
   } catch (error) {
     logger.error('Get my RSVPs error', { error, requestId: req.requestId });
     res.status(500).json({ message: 'Error fetching your RSVPs' });
@@ -1387,27 +1550,32 @@ app.get('/my-rsvps', authenticateToken, async (req, res) => {
 // Event comments
 app.post('/events/:eventId/comments', eventWriteLimiter, authenticateToken, async (req, res) => {
   try {
-    if (mongoose.connection.readyState !== 1 || !EventModel) {
-      return res.status(503).json({ message: 'Database not available' });
-    }
     const eventIdParam = req.params.eventId;
     const { text } = req.body;
     if (!text) return res.status(400).json({ message: 'text required' });
     const { ev, source } = await findEventByParam(eventIdParam);
-    if (!ev || source !== 'db') return res.status(404).json({ message: 'Event not found' });
-    const doc = await EventModel.findById(ev._id);
-    const comment = { id: Date.now(), user: req.user.username, userId: req.user.id, text, timestamp: new Date().toISOString() };
-    if (doc.threadId) {
-      try {
-        const fp = await ForumPost.create({ threadId: doc.threadId, authorId: comment.userId, authorUsername: comment.user, body: text });
-        comment.forumPostId = fp._id;
-      } catch (mir) {
-        logger.warn('Forum mirror failed', { error: mir, requestId: req.requestId, eventId: eventIdParam });
+    if (!ev) return res.status(404).json({ message: 'Event not found' });
+    if (source === 'db') {
+      const doc = await EventModel.findById(ev._id);
+      const commentUserId = new mongoose.Types.ObjectId(req.user.id || req.user.userId);
+      const comment = { id: Date.now(), user: req.user.username, userId: commentUserId, text, timestamp: new Date().toISOString() };
+      // Mirror to forum thread if available
+      if (doc.threadId) {
+        try {
+          const fp = await ForumPost.create({ threadId: doc.threadId, authorId: comment.userId, authorUsername: comment.user, body: text });
+          comment.forumPostId = fp._id;
+        } catch (mir) {
+          logger.warn('Forum mirror failed', { error: mir, requestId: req.requestId, eventId: eventIdParam });
+        }
       }
+      doc.comments = doc.comments || [];
+      doc.comments.push(comment);
+      await doc.save();
+      return res.status(201).json({ ...comment, userId: commentUserId.toString() });
     }
-    doc.comments = doc.comments || [];
-    doc.comments.push(comment);
-    await doc.save();
+    const comment = { id: Date.now(), user: req.user.username, userId: req.user.id || req.user.userId, text, timestamp: new Date().toISOString() };
+    ev.comments = ev.comments || [];
+    ev.comments.push(comment);
     securityEvent('Event comment added', { requestId: req.requestId, eventId: eventIdParam, userId: comment.userId });
     res.status(201).json(comment);
   } catch (e) {
@@ -1418,26 +1586,33 @@ app.post('/events/:eventId/comments', eventWriteLimiter, authenticateToken, asyn
 
 app.put('/events/:eventId/comments/:commentId', authenticateToken, async (req, res) => {
   try {
-    if (mongoose.connection.readyState !== 1 || !EventModel) {
-      return res.status(503).json({ message: 'Database not available' });
-    }
     const eventIdParam = req.params.eventId;
     const commentId = parseInt(req.params.commentId, 10);
     const { text } = req.body;
     if (!text) return res.status(400).json({ message: 'text required' });
     const { ev, source } = await findEventByParam(eventIdParam);
-    if (!ev || source !== 'db') return res.status(404).json({ message: 'Event not found' });
-    const doc = await EventModel.findById(ev._id);
-    const userId = String(req.user.id);
-    const c = (doc.comments || []).find((x) => x.id === commentId);
+    if (!ev) return res.status(404).json({ message: 'Event not found' });
+    const userId = String(req.user.id || req.user.userId);
+    if (source === 'db') {
+      const doc = await EventModel.findById(ev._id);
+      const c = (doc.comments || []).find(x => x.id === commentId);
+      if (!c) return res.status(404).json({ message: 'Comment not found' });
+      const can = String(c.userId) === userId || String(doc.createdByUserId) === userId || req.user.developerOverride;
+      if (!can) return res.status(403).json({ message: 'Forbidden' });
+      c.text = text;
+      // Mirror to forum post if present
+      if (c.forumPostId) {
+        try { await ForumPost.updateOne({ _id: c.forumPostId }, { $set: { body: text } }); } catch (e) { logger.warn('Forum mirror edit failed', { error: e, requestId: req.requestId, eventId: eventIdParam }); }
+      }
+      await doc.save();
+      securityEvent('Event comment edited', { requestId: req.requestId, eventId: eventIdParam, commentId, userId });
+      return res.json({ ...c, userId: c.userId ? c.userId.toString() : undefined });
+    }
+    const c = (ev.comments || []).find(x => x.id === commentId);
     if (!c) return res.status(404).json({ message: 'Comment not found' });
-    const can = String(c.userId) === userId || String(doc.createdByUserId) === userId || req.user.developerOverride;
+    const can = String(c.userId) === userId || req.user.developerOverride;
     if (!can) return res.status(403).json({ message: 'Forbidden' });
     c.text = text;
-    if (c.forumPostId) {
-      try { await ForumPost.updateOne({ _id: c.forumPostId }, { $set: { body: text } }); } catch (e) { logger.warn('Forum mirror edit failed', { error: e, requestId: req.requestId, eventId: eventIdParam }); }
-    }
-    await doc.save();
     securityEvent('Event comment edited', { requestId: req.requestId, eventId: eventIdParam, commentId, userId });
     res.json(c);
   } catch (e) {
@@ -1448,25 +1623,32 @@ app.put('/events/:eventId/comments/:commentId', authenticateToken, async (req, r
 
 app.delete('/events/:eventId/comments/:commentId', authenticateToken, async (req, res) => {
   try {
-    if (mongoose.connection.readyState !== 1 || !EventModel) {
-      return res.status(503).json({ message: 'Database not available' });
-    }
     const eventIdParam = req.params.eventId;
     const commentId = parseInt(req.params.commentId, 10);
     const { ev, source } = await findEventByParam(eventIdParam);
-    if (!ev || source !== 'db') return res.status(404).json({ message: 'Event not found' });
-    const userId = String(req.user.id);
-    const doc = await EventModel.findById(ev._id);
-    const idx = (doc.comments || []).findIndex((x) => x.id === commentId);
-    if (idx === -1) return res.status(404).json({ message: 'Comment not found' });
-    const c = doc.comments[idx];
-    const can = String(c.userId) === userId || String(doc.createdByUserId) === userId || req.user.developerOverride;
-    if (!can) return res.status(403).json({ message: 'Forbidden' });
-    const removed = doc.comments.splice(idx, 1)[0];
-    if (removed?.forumPostId) {
-      try { await ForumPost.deleteOne({ _id: removed.forumPostId }); } catch (e) { logger.warn('Forum mirror delete failed', { error: e, requestId: req.requestId, eventId: eventIdParam }); }
+    if (!ev) return res.status(404).json({ message: 'Event not found' });
+    const userId = String(req.user.id || req.user.userId);
+    if (source === 'db') {
+      const doc = await EventModel.findById(ev._id);
+      const idx = (doc.comments || []).findIndex(x => x.id === commentId);
+      if (idx === -1) return res.status(404).json({ message: 'Comment not found' });
+      const c = doc.comments[idx];
+      const can = String(c.userId) === userId || String(doc.createdByUserId) === userId || req.user.developerOverride;
+      if (!can) return res.status(403).json({ message: 'Forbidden' });
+      const removed = doc.comments.splice(idx, 1)[0];
+      if (removed && removed.forumPostId) {
+        try { await ForumPost.deleteOne({ _id: removed.forumPostId }); } catch (e) { logger.warn('Forum mirror delete failed', { error: e, requestId: req.requestId, eventId: eventIdParam }); }
+      }
+      await doc.save();
+      securityEvent('Event comment deleted', { requestId: req.requestId, eventId: eventIdParam, commentId, userId });
+      return res.json({ ok: true });
     }
-    await doc.save();
+    const idx = (ev.comments || []).findIndex(x => x.id === commentId);
+    if (idx === -1) return res.status(404).json({ message: 'Comment not found' });
+    const c = ev.comments[idx];
+    const can = String(c.userId) === userId || req.user.developerOverride;
+    if (!can) return res.status(403).json({ message: 'Forbidden' });
+    ev.comments.splice(idx, 1);
     securityEvent('Event comment deleted', { requestId: req.requestId, eventId: eventIdParam, commentId, userId });
     res.json({ ok: true });
   } catch (e) {
@@ -1477,25 +1659,30 @@ app.delete('/events/:eventId/comments/:commentId', authenticateToken, async (req
 
 app.delete('/events/:eventId', authenticateToken, async (req, res) => {
   try {
-    if (mongoose.connection.readyState !== 1 || !EventModel) {
-      return res.status(503).json({ message: 'Database not available' });
-    }
     const eventIdParam = req.params.eventId;
     const { ev, source } = await findEventByParam(eventIdParam);
-    if (!ev || source !== 'db') return res.status(404).json({ message: 'Event not found' });
-    const doc = await EventModel.findById(ev._id);
-    const userId = String(req.user.id);
-    const can = String(doc.createdByUserId) === userId || req.user.developerOverride;
-    if (!can) return res.status(403).json({ message: 'Forbidden' });
-    if (doc.threadId) {
-      try {
-        await ForumPost.deleteMany({ threadId: doc.threadId });
-        await ForumThread.deleteOne({ _id: doc.threadId });
-      } catch (e) {
-        logger.warn('Delete thread cascade failed', { error: e, requestId: req.requestId, eventId: eventIdParam });
+    if (!ev) return res.status(404).json({ message: 'Event not found' });
+    const userId = String(req.user.id || req.user.userId);
+    if (source === 'db') {
+      const doc = await EventModel.findById(ev._id);
+      const can = String(doc.createdByUserId) === userId || req.user.developerOverride;
+      if (!can) return res.status(403).json({ message: 'Forbidden' });
+      // Delete associated thread and posts if any
+      if (doc.threadId) {
+        try {
+          await ForumPost.deleteMany({ threadId: doc.threadId });
+          await ForumThread.deleteOne({ _id: doc.threadId });
+        } catch (e) {
+          logger.warn('Delete thread cascade failed', { error: e, requestId: req.requestId, eventId: eventIdParam });
+        }
       }
+      await EventModel.deleteOne({ _id: ev._id });
+      securityEvent('Event deleted', { requestId: req.requestId, eventId: eventIdParam, userId });
+      return res.json({ ok: true });
     }
-    await EventModel.deleteOne({ _id: ev._id });
+    // Memory fallback
+    const idx = events.findIndex(e => String(e.id) === String(eventIdParam));
+    if (idx > -1) events.splice(idx, 1);
     securityEvent('Event deleted', { requestId: req.requestId, eventId: eventIdParam, userId });
     res.json({ ok: true });
   } catch (e) {
@@ -1506,35 +1693,41 @@ app.delete('/events/:eventId', authenticateToken, async (req, res) => {
 
 app.put('/events/:eventId', authenticateToken, async (req, res) => {
   try {
-    if (mongoose.connection.readyState !== 1 || !EventModel) {
-      return res.status(503).json({ message: 'Database not available' });
-    }
     const eventIdParam = req.params.eventId;
     const { ev, source } = await findEventByParam(eventIdParam);
-    if (!ev || source !== 'db') return res.status(404).json({ message: 'Event not found' });
-    const doc = await EventModel.findById(ev._id);
-    const userId = String(req.user.id);
-    const can = String(doc.createdByUserId) === userId || req.user.developerOverride;
-    if (!can) return res.status(403).json({ message: 'Forbidden' });
-    const allowed = ((f) => ({ name: f.name, description: f.description, date: f.date, location: f.location, image: f.image, thumbnail: f.thumbnail, schedule: f.schedule, tags: f.tags }))(req.body || {});
-    const oldName = doc.name || doc.title;
-    Object.assign(doc, allowed);
-    await doc.save();
-    if (doc.threadId) {
-      try {
-        if (allowed.name && allowed.name !== oldName) {
-          await ForumThread.updateOne({ _id: doc.threadId }, { $set: { title: allowed.name } });
+    if (!ev) return res.status(404).json({ message: 'Event not found' });
+    const userId = String(req.user.id || req.user.userId);
+    if (source === 'db') {
+      const doc = await EventModel.findById(ev._id);
+      const can = String(doc.createdByUserId) === userId || req.user.developerOverride;
+      if (!can) return res.status(403).json({ message: 'Forbidden' });
+      const allowed = ((f) => ({ name: f.name, description: f.description, date: f.date, location: f.location, image: f.image, thumbnail: f.thumbnail, schedule: f.schedule, tags: f.tags }))(req.body || {});
+      const oldName = doc.name || doc.title;
+      Object.assign(doc, allowed);
+      await doc.save();
+      // If name changed, update thread title; if description changed, add a system post
+      if (doc.threadId) {
+        try {
+          if (allowed.name && allowed.name !== oldName) {
+            await ForumThread.updateOne({ _id: doc.threadId }, { $set: { title: allowed.name } });
+          }
+          if (allowed.description) {
+            const body = `Event details updated by organizer.\n\n${allowed.description}`;
+            await ForumPost.create({ threadId: doc.threadId, authorId: userId, authorUsername: req.user.username, body });
+          }
+        } catch (e) {
+          logger.warn('Thread update note failed', { error: e, requestId: req.requestId, eventId: eventIdParam });
         }
-        if (allowed.description) {
-          const body = `Event details updated by organizer.\n\n${allowed.description}`;
-          await ForumPost.create({ threadId: doc.threadId, authorId: userId, authorUsername: req.user.username, body });
-        }
-      } catch (e) {
-        logger.warn('Thread update note failed', { error: e, requestId: req.requestId, eventId: eventIdParam });
       }
+      securityEvent('Event updated', { requestId: req.requestId, eventId: eventIdParam, userId });
+      return res.json(normalizeEventRecord(doc));
     }
+    // Memory fallback
+    const idx = events.findIndex(e => String(e.id) === String(eventIdParam));
+    if (idx === -1) return res.status(404).json({ message: 'Event not found' });
+    Object.assign(events[idx], req.body || {});
     securityEvent('Event updated', { requestId: req.requestId, eventId: eventIdParam, userId });
-    res.json(normalizeEvent(doc));
+    res.json(normalizeEventRecord(events[idx]));
   } catch (e) {
     logger.error('Update event error', { error: e, requestId: req.requestId, eventId: req.params.eventId });
     res.status(500).json({ message: 'Error updating event' });

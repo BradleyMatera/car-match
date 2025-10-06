@@ -64,24 +64,33 @@ Some vulnerabilities in dev dependencies (webpack-dev-server) could not be fully
 🔮 Next Steps:  
 Monitor for upstream fixes to dev dependencies, continue to polish security, and maintain documentation.
 
+Reminder:  Weekly Log Update  
+As a follow-up to the team stand-up discussion, be sure to share your final progress at the end of each week by updating your weekly log file on GitHub. You will want to make sure your final log entry covers the following:
+
+⚙️ Overview - What I worked on this past week  
+🌵 Challenges - What problems did I have & how I'm addressing them  
+🏆 Accomplishments - What is something I "leveled up" on this week  
+🔮 Next Steps - What I plan to prioritize and do next
+
 ### Week 4
 
 ⚙️ Overview:  
-Replaced every remaining mock/in-memory flow with real persistence. The Express API now talks directly to MongoDB for registration, profile edits, messaging, events, RSVPs, and comments. On the frontend, the old `mockApi` shim was retired in favor of a `client.js` REST wrapper, and React contexts/components now hydrate from live data. Documentation and weekly logs were updated to reflect the production architecture.
+Opened Milestone `359 MS 10`, kept the `dev → staging` rollup PR active, and broke the Events Ownership (#64) and Forums Moderation (#63) work into 20 child issues covering research, development, documentation, and directed feedback. Posted backend/front-end research findings (issues #111, #112), refreshed epic bodies, and synchronized the project board with Ready/In progress statuses.
 
 🌵 Challenges:  
-- Removing the fallback arrays exposed a lot of legacy assumptions (e.g., event IDs, cached RSVPs), which required new normalizers and helper endpoints.  
-- LocalStorage ran out of space storing full user payloads; added a persistence guard that falls back to a minimal profile snapshot.  
-- Needed to keep CI happy (still under React Scripts) while making large refactors, so builds were re-run frequently to ensure no regression slipped in.
+- Legacy events store mixed `createdByUserId` types, forcing the API/UI to treat organizers as “Unknown” until the schema is tightened.
+- Events UI still relies on the legacy `mockApi`, so owner gating and thread linking behave inconsistently.
 
 🏆 Accomplishments:  
-- Backend: introduced `sanitizeUser`/`normalizeEvent` helpers, rewrote `/register`, `/login`, `/users/*`, `/messages`, `/events` routes to be database-only, and added `GET /users/me/events` for dashboard data.  
-- Frontend: renamed `mockApi`→`client.js`, rewired Events/Profile/Messages/Forums to the live API, refreshed AuthContext hydration to consume `/users/me`, and ensured event creation/edit/delete hits the real backend.  
-- Docs: updated repo file overview, component READMEs, and Week 4 log entry to explain the new architecture; ran `npm run build` to confirm production readiness.  
-- GitHub: pushed everything to `main` with green builds; Dependabot warnings remain documented (1 high, 3 moderate dev-only).
+- Updated milestone metadata and project board to reflect the current sprint.
+- Added research summaries + rollout plans to the master log and epics without spawning new docs.
+- Implemented backend ownership enforcement (schema, RSVP/comment, backfill) and opened PR #133.
+- Replaced the frontend `mockApi` imports with the real API client (`client.js`) so all flows call the live backend.
+- Hardened forum moderation backend (role enum, admin role assignment API, moderation logging/limits) and synced Atlas via `/admin/backfill-events-users`.
+- Merged documentation PR #131 after verifying the workflow through feature branch → dev.
 
 🔮 Next Steps:  
-- Verify production (Render + GitHub Pages) reflects the new persistence layer and update issues/project board accordingly.  
-- Monitor the outstanding dev dependency advisories and react-scripts roadmap.  
-- Continue polishing UX (e.g., messaging filters and profile garage management) now that the data is real.
+- Tackle implementation issues (#113–#118, #123–#128) to enforce ownership and moderation roles.
+- Run backfill/seed updates once schema changes are in place.
+- Continue grooming the project board as tasks move from Ready → In progress → Done.
 _______

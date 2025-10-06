@@ -8,69 +8,29 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('authToken'));
   const [loading, setLoading] = useState(true);
 
-  const persistUser = (user) => {
-    if (!user) {
-      localStorage.removeItem('currentUser');
-      return;
-    }
-    const minimal = {
-      id: user.id,
-      username: user.username,
-      name: user.name,
-      displayTag: user.displayTag,
-      premiumStatus: user.premiumStatus,
-      developerOverride: user.developerOverride,
-      profileImage: user.profileImage,
-    };
-    try {
-      localStorage.setItem('currentUser', JSON.stringify(user));
-    } catch (err) {
-      console.error('Failed to persist full user payload, falling back to minimal profile', err);
-      try {
-        localStorage.setItem('currentUser', JSON.stringify(minimal));
-      } catch (nestedErr) {
-        console.error('Failed to persist minimal user payload', nestedErr);
-        localStorage.removeItem('currentUser');
-      }
-    }
-  };
-
   useEffect(() => {
+    const storedUser = localStorage.getItem('currentUser');
     const storedToken = localStorage.getItem('authToken');
-    if (!storedToken) {
-      setLoading(false);
-      return;
-    }
-    (async () => {
+    if (storedUser && storedToken) {
       try {
-        const data = await api.getMe(storedToken);
-        setCurrentUser(data.user);
+        setCurrentUser(JSON.parse(storedUser));
         setToken(storedToken);
-        persistUser(data.user);
-      } catch (error) {
-        console.error('Failed to hydrate auth user', error);
-        localStorage.removeItem('authToken');
+      } catch (e) {
+        console.error("Error parsing stored user data", e);
         localStorage.removeItem('currentUser');
-        setToken(null);
-        setCurrentUser(null);
-      } finally {
-        setLoading(false);
+        localStorage.removeItem('authToken');
       }
-    })();
+    }
+    setLoading(false);
   }, []);
 
   const login = async (username, password) => {
-    const { token: authToken } = await api.loginUser(username, password);
-    localStorage.setItem('authToken', authToken);
-    let profile = null;
-    try { const data = await api.getMe(authToken); profile = data.user; } catch {}
-    if (profile) {
-      persistUser(profile);
-    }
-    setToken(authToken);
-    setCurrentUser(profile || null);
-    setLoading(false);
-    return { token: authToken, user: profile };
+    const userData = await api.loginUser(username, password).catch((e)=>{ throw e; });
+    localStorage.setItem('authToken', userData.token);
+    localStorage.setItem('currentUser', JSON.stringify(userData));
+    setToken(userData.token);
+    setCurrentUser(userData);
+    return userData;
   };
 
   const logout = () => {
@@ -81,23 +41,12 @@ export const AuthProvider = ({ children }) => {
   };
   
   // Function to update current user data if it changes (e.g., after premium upgrade)
-  const updateCurrentUser = async (updatedData) => {
-    if (updatedData) {
-      setCurrentUser((prevUser) => {
-        const newUser = { ...prevUser, ...updatedData };
-        persistUser(newUser);
-        return newUser;
-      });
-      return;
-    }
-    if (!token) return;
-    try {
-      const data = await api.getMe(token);
-      setCurrentUser(data.user);
-      persistUser(data.user);
-    } catch (error) {
-      console.error('Failed to refresh user profile', error);
-    }
+  const updateCurrentUser = (updatedData) => {
+    setCurrentUser(prevUser => {
+      const newUser = { ...prevUser, ...updatedData };
+      localStorage.setItem('currentUser', JSON.stringify(newUser));
+      return newUser;
+    });
   };
 
   return (
