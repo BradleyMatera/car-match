@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import Section from '../Section';
 import Grid from '../Grid';
 import './Home.css';
-import mockApi from '../../api/mockApi';
+import api from '../../api/client';
 
 const Home = () => {
   const [stats, setStats] = useState({ users: 0, threads: 0, posts: 0, events: 0 });
@@ -31,17 +31,17 @@ const Home = () => {
     (async () => {
       try {
         // Site snapshot
-        try { setStats(await mockApi.getSiteStats()); } catch {}
+        try { setStats(await api.getSiteStats()); } catch {}
         // Forum category stats for the front cards
         let sections = [];
-        try { sections = await mockApi.getForumStats(); } catch {}
+        try { sections = await api.getForumStats(); } catch {}
         setForumSections(sections || []);
         // Latest threads: pull small page from each category and sort by lastPostAt
         try {
-          const cats = await mockApi.getForumCategories();
+          const cats = await api.getForumCategories();
           const all = await Promise.all((cats || []).map(async (cat) => ({
             cat,
-            resp: await mockApi.getThreadsByCategory(cat.id, { page: 1, pageSize: 3 })
+            resp: await api.getThreadsByCategory(cat.id, { page: 1, pageSize: 3 })
           })));
           const flat = [];
           all.forEach(({ cat, resp }) => {
@@ -57,7 +57,7 @@ const Home = () => {
         } catch {}
         // Upcoming events
         try {
-          const evs = await mockApi.getEvents();
+          const evs = await api.getEvents();
           const withDates = (evs||[]).map(e => ({...e, dateObj: new Date(e.date)})).filter(e => !isNaN(e.dateObj));
           withDates.sort((a,b) => a.dateObj - b.dateObj);
           setEvents(withDates);

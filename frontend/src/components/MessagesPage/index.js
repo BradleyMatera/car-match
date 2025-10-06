@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState, useCallback } from 'react';
 import './messages.css';
-import mockApi from '../../api/mockApi';
+import api from '../../api/client';
 import AuthContext from '../../context/AuthContext';
 
 const MessagesPage = () => {
@@ -24,7 +24,7 @@ const MessagesPage = () => {
         filterRadius: filters.radius,
         sortBy: filters.sortBy,
       } : {};
-      const data = await mockApi.fetchMessages(token, activeTab, apiFilters);
+      const data = await api.fetchMessages(token, activeTab, apiFilters);
       setMessages(data);
     } catch (e) {
       setError(e.message || 'Failed to load messages');
@@ -39,7 +39,7 @@ const MessagesPage = () => {
     e.preventDefault();
     if (!recipient || !text) return;
     try {
-      await mockApi.sendMessage(token, recipient, text);
+      await api.sendMessage(token, recipient, text);
       setRecipient(''); setText('');
       loadMessages();
     } catch (e) {

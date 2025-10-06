@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import './Forums.css';
-import mockApi from '../../api/mockApi';
+import api from '../../api/client';
 import AuthContext from '../../context/AuthContext';
 
 const Forums = () => {
@@ -44,15 +44,15 @@ const Forums = () => {
 
   useEffect(() => {
     (async () => {
-      const cats = await mockApi.getForumCategories();
+      const cats = await api.getForumCategories();
       setCategories(cats);
       // Load front-page stats for category tiles
-      try { const stats = await mockApi.getForumStats(); setFrontStats(stats); } catch {}
+      try { const stats = await api.getForumStats(); setFrontStats(stats); } catch {}
       const params = new URLSearchParams(location.search);
       const open = params.get('open');
       if (open) {
         try {
-          const data = await mockApi.getThreadById(open);
+          const data = await api.getThreadById(open);
           if (data?.thread) {
             const cat = cats.find(c => c.id === data.thread.categoryId);
             if (cat) setSelectedCategory(cat);
@@ -71,7 +71,7 @@ const Forums = () => {
     const s = opts.search ?? search;
     const p = opts.page ?? page;
     try {
-      const resp = await mockApi.getThreadsByCategory(cat.id, { search: s, page: p, pageSize });
+      const resp = await api.getThreadsByCategory(cat.id, { search: s, page: p, pageSize });
       if (Array.isArray(resp)) {
         setThreads(resp);
         setThreadsTotal(resp.length);
@@ -89,7 +89,7 @@ const Forums = () => {
   const getThreadId = (t) => t?.id || t?._id || t?.threadId;
 
   const openThread = async (thread) => {
-    const data = await mockApi.getThreadById(getThreadId(thread));
+    const data = await api.getThreadById(getThreadId(thread));
     setActiveThread(data.thread);
     setThreadPosts(data.posts);
     setThreadEvent(data.event || null);
@@ -115,10 +115,10 @@ const Forums = () => {
     let newThread;
     try {
       if (!token) { alert('Please log in.'); return; }
-      newThread = await mockApi.createThread(token, { categoryId: selectedCategory.id, title: newThreadTitle.trim() });
+      newThread = await api.createThread(token, { categoryId: selectedCategory.id, title: newThreadTitle.trim() });
       // Optionally create first post body if provided
       if (newThreadBody.trim()) {
-        await mockApi.addPostToThread(token, { threadId: getThreadId(newThread), body: newThreadBody.trim() });
+        await api.addPostToThread(token, { threadId: getThreadId(newThread), body: newThreadBody.trim() });
       }
       setNewThreadTitle('');
       setNewThreadBody('');
@@ -136,9 +136,9 @@ const Forums = () => {
     if (!activeThread || !newPostBody.trim()) return;
     try {
       if (!token) { alert('Please log in.'); return; }
-      await mockApi.addPostToThread(token, { threadId: getThreadId(activeThread), body: newPostBody.trim() });
+      await api.addPostToThread(token, { threadId: getThreadId(activeThread), body: newPostBody.trim() });
       setNewPostBody('');
-      const data = await mockApi.getThreadById(getThreadId(activeThread));
+      const data = await api.getThreadById(getThreadId(activeThread));
       setActiveThread(data.thread);
       setThreadPosts(data.posts);
     } catch (err) {
@@ -149,7 +149,7 @@ const Forums = () => {
   const pinToggle = async (thread, pinned) => {
     try {
       if (!token) { alert('Please log in.'); return; }
-      await mockApi.pinThread(token, getThreadId(thread), pinned);
+      await api.pinThread(token, getThreadId(thread), pinned);
       await loadThreads(selectedCategory, { page });
     } catch (e) { alert(e.message || 'Failed to pin'); }
   };
@@ -157,8 +157,8 @@ const Forums = () => {
   const lockToggle = async (thread, locked) => {
     try {
       if (!token) { alert('Please log in.'); return; }
-      await mockApi.lockThread(token, getThreadId(thread), locked);
-      const data = await mockApi.getThreadById(getThreadId(thread));
+      await api.lockThread(token, getThreadId(thread), locked);
+      const data = await api.getThreadById(getThreadId(thread));
       setActiveThread(data.thread);
       setThreadPosts(data.posts);
     } catch (e) { alert(e.message || 'Failed to lock'); }
@@ -168,7 +168,7 @@ const Forums = () => {
     if (!window.confirm('Delete this thread?')) return;
     try {
       if (!token) { alert('Please log in.'); return; }
-      await mockApi.deleteThread(token, getThreadId(thread));
+      await api.deleteThread(token, getThreadId(thread));
       setActiveThread(null);
       await loadThreads(selectedCategory, { page: 1 });
     } catch (e) { alert(e.message || 'Failed to delete'); }
@@ -177,7 +177,7 @@ const Forums = () => {
   const reportPost = async (post) => {
     try {
       if (!token) { alert('Please log in.'); return; }
-      await mockApi.reportPost(token, post.id, 'inappropriate');
+      await api.reportPost(token, post.id, 'inappropriate');
       alert('Reported');
     } catch (e) { alert(e.message || 'Failed to report'); }
   };

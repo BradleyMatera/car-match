@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './Messages.css';
-import mockApi from '../../api/mockApi';
+import api from '../../api/client';
 
 const Messages = ({ userId }) => {
   const [messages, setMessages] = useState([]);
