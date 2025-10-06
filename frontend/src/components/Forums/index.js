@@ -6,6 +6,11 @@ import AuthContext from '../../context/AuthContext';
 
 const Forums = () => {
   const { currentUser, token } = useContext(AuthContext);
+  const userRole = currentUser?.role || (currentUser?.developerOverride ? 'admin' : 'user');
+  const canModerate = useMemo(
+    () => Boolean(currentUser && (currentUser.developerOverride || userRole === 'admin' || userRole === 'moderator')),
+    [currentUser, userRole]
+  );
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [threads, setThreads] = useState([]);
@@ -23,8 +28,6 @@ const Forums = () => {
   const location = useLocation();
   const [frontStats, setFrontStats] = useState([]);
   const [showEmoji, setShowEmoji] = useState(false);
-
-  const canModerate = useMemo(() => !!currentUser, [currentUser]);
   // Background images (rotates like Events)
   const bgImages = useMemo(() => ([
     'https://images.unsplash.com/photo-1514316454349-750a7fd3da3a',
@@ -41,6 +44,19 @@ const Forums = () => {
     () => (Array.isArray(bgImages) ? bgImages.at(bgIndex) ?? '' : ''),
     [bgImages, bgIndex]
   );
+  function getThreadId(t) {
+  return t?.id || t?._id || t?.threadId;
+}
+
+  const activeThreadId = activeThread ? getThreadId(activeThread) : null;
+  const canManageActiveThread = useMemo(() => {
+    if (!currentUser || !activeThread) return false;
+    if (canModerate) return true;
+    if (threadEvent?.createdByUserId) {
+      return String(threadEvent.createdByUserId) === String(currentUser.id);
+    }
+    return false;
+  }, [activeThread, canModerate, currentUser, threadEvent]);
 
   useEffect(() => {
     (async () => {
@@ -86,7 +102,6 @@ const Forums = () => {
     }
   };
 
-  const getThreadId = (t) => t?.id || t?._id || t?.threadId;
 
   const openThread = async (thread) => {
     const data = await api.getThreadById(getThreadId(thread));
@@ -149,15 +164,32 @@ const Forums = () => {
   const pinToggle = async (thread, pinned) => {
     try {
       if (!token) { alert('Please log in.'); return; }
-      await api.pinThread(token, getThreadId(thread), pinned);
-      await loadThreads(selectedCategory, { page });
+      const response = await api.pinThread(token, getThreadId(thread), pinned);
+      const updatedThread = response?.thread || null;
+      if (updatedThread) {
+        const threadId = getThreadId(updatedThread);
+        setThreads((prev) => prev.map((item) => (getThreadId(item) === threadId ? updatedThread : item)));
+        if (activeThreadId && threadId === activeThreadId) {
+          setActiveThread(updatedThread);
+        }
+      } else {
+        await loadThreads(selectedCategory, { page });
+      }
     } catch (e) { alert(e.message || 'Failed to pin'); }
   };
 
   const lockToggle = async (thread, locked) => {
     try {
       if (!token) { alert('Please log in.'); return; }
-      await api.lockThread(token, getThreadId(thread), locked);
+      const response = await api.lockThread(token, getThreadId(thread), locked);
+      const updatedThread = response?.thread || null;
+      if (updatedThread) {
+        const threadId = getThreadId(updatedThread);
+        setThreads((prev) => prev.map((item) => (getThreadId(item) === threadId ? updatedThread : item)));
+        if (activeThreadId && threadId === activeThreadId) {
+          setActiveThread(updatedThread);
+        }
+      }
       const data = await api.getThreadById(getThreadId(thread));
       setActiveThread(data.thread);
       setThreadPosts(data.posts);
@@ -300,21 +332,31 @@ const Forums = () => {
             </div>
             {threads.length === 0 && <p>No threads yet. Be the first to post!</p>}
             <ul className="thread-list">
-              {threads.map(th => (
-                <li key={getThreadId(th)} className="thread-item">
-                  <div className="title" onClick={()=>openThread(th)}>
-                    {th.pinned ? '📌 ' : ''}{th.title}
-                  </div>
-                  <div className="meta">by {th.authorUsername || th.author} • {new Date(th.lastPostAt).toLocaleString()} • {th.replies||0} replies</div>
-                  {canModerate && (
-                    <div style={{display:'flex',gap:8,marginTop:6}}>
-                      <button onClick={()=>pinToggle(th, !th.pinned)}>{th.pinned?'Unpin':'Pin'}</button>
-                      <button onClick={()=>lockToggle(th, !th.locked)}>{th.locked?'Unlock':'Lock'}</button>
-                      <button onClick={()=>deleteThread(th)}>Delete</button>
+              {threads.map((th) => {
+                const threadId = getThreadId(th);
+                const isPinned = Boolean(th.pinned);
+                const isLocked = Boolean(th.locked);
+                const replyCount = th.replies || 0;
+                return (
+                  <li key={threadId} className="thread-item">
+                    <div className="thread-item-header" onClick={()=>openThread(th)}>
+                      <div className="thread-title">
+                        {isPinned && <span className="thread-chip pinned">Pinned</span>}
+                        {isLocked && <span className="thread-chip locked">Locked</span>}
+                        <span>{th.title}</span>
+                      </div>
+                      <div className="thread-meta">by {th.authorUsername || th.author || 'user'} • {new Date(th.lastPostAt).toLocaleString()} • {replyCount} replies</div>
                     </div>
-                  )}
-                </li>
-              ))}
+                    {canModerate && (
+                      <div className="thread-tool-row">
+                        <button onClick={()=>pinToggle(th, !th.pinned)}>{isPinned ? 'Unpin' : 'Pin'}</button>
+                        <button onClick={()=>lockToggle(th, !th.locked)}>{isLocked ? 'Unlock' : 'Lock'}</button>
+                        <button onClick={()=>deleteThread(th)}>Delete</button>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
             <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
               <button disabled={page<=1} onClick={()=> loadThreads(selectedCategory, { page: page-1 })}>Prev</button>
@@ -328,9 +370,15 @@ const Forums = () => {
           <div className="thread-view">
             <button className="back-link" onClick={()=>{ setActiveThread(null); setThreadPosts([]); }}>← Back to threads</button>
             <div className="thread-toolbar">
-              <div className="crumbs">{selectedCategory?.name} ▸ {activeThread.title}</div>
+              <div className="thread-heading">
+                <div className="crumbs">{selectedCategory?.name} ▸ {activeThread.title}</div>
+                <div className="thread-chip-row">
+                  {activeThread.pinned && <span className="thread-chip pinned">Pinned</span>}
+                  {activeThread.locked && <span className="thread-chip locked">Locked</span>}
+                </div>
+              </div>
               <div className="tools">
-                {canModerate && (
+                {canManageActiveThread && (
                   <>
                     <button className="btn btn-small" onClick={()=>pinToggle(activeThread, !activeThread.pinned)}>{activeThread.pinned? 'Unpin' : 'Pin'}</button>
                     <button className="btn btn-small" onClick={()=>lockToggle(activeThread, !activeThread.locked)}>{activeThread.locked? 'Unlock' : 'Lock'}</button>
@@ -341,6 +389,23 @@ const Forums = () => {
                 )}
               </div>
             </div>
+            {threadEvent && (
+              <div className="thread-event-card">
+                <div className="thread-event-summary">
+                  <div>
+                    <div className="thread-event-title">{threadEvent.title}</div>
+                    <div className="thread-event-meta">
+                      <span>📅 {threadEvent.date ? new Date(threadEvent.date).toLocaleDateString() : 'Date TBA'}</span>
+                      <span>📍 {threadEvent.location || 'TBD'}</span>
+                      <span>🧑‍💼 {String(threadEvent.createdByUserId) === String(currentUser?.id) ? 'You' : threadEvent.createdByUsername || 'Unknown'}</span>
+                    </div>
+                  </div>
+                  <div className="thread-event-actions">
+                    <button className="btn btn-small" onClick={()=>{ window.location.hash = `#/events?event=${threadEvent.id || (threadEvent._id && threadEvent._id.toString())}`; }}>Open Event</button>
+                  </div>
+                </div>
+              </div>
+            )}
             <ul className="post-list">
               {threadPosts.map((p, idx) => {
                 const author = p.authorUsername || p.author || 'user';
