@@ -84,6 +84,8 @@ Opened Milestone `359 MS 10`, kept the `dev → staging` rollup PR active, and b
 🏆 Accomplishments:  
 - Updated milestone metadata and project board to reflect the current sprint.
 - Added research summaries + rollout plans to the master log and epics without spawning new docs.
+- Implemented backend ownership enforcement (schema, RSVP/comment, backfill) and opened PR #133.
+- Replaced the frontend `mockApi` imports with the real API client (`client.js`) so all flows call the live backend; prepping UI follow-ups.
 - Merged documentation PR #131 after verifying the workflow through feature branch → dev.
 
 🔮 Next Steps:  

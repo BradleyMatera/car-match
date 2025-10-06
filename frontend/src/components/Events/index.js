@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import './Events.css';
-import mockApi from '../../api/mockApi';
+import api from '../../api/client';
 import AuthContext from '../../context/AuthContext';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
@@ -32,7 +32,7 @@ const Events = () => {
   useEffect(() => {
     const loadEvents = async () => {
       try {
-        const eventsData = await mockApi.getEvents();
+        const eventsData = await api.getEvents();
         setEvents(eventsData.map(event => ({
           ...event,
           start: new Date(event.date),
@@ -49,7 +49,7 @@ const Events = () => {
         setBgImages(imgs);
         // Preload RSVP status if logged in
         if (token) {
-          const myRsvps = await mockApi.getMyRsvps(token);
+          const myRsvps = await api.getMyRsvps(token);
           const map = new Map();
           myRsvps.forEach(r => map.set(String(r.eventId), true));
           setRsvpStatus(new Map(map));
@@ -74,7 +74,7 @@ const Events = () => {
     if (!eid) return;
     (async () => {
       try {
-        const ev = await mockApi.getEvent(eid);
+        const ev = await api.getEvent(eid);
         if (ev) setSelectedEvent(ev);
       } catch {}
     })();
@@ -85,7 +85,7 @@ const Events = () => {
     (async () => {
       try {
         if (!selectedEvent || !selectedEvent.threadId) { setForumPreview([]); return; }
-        const data = await mockApi.getThreadById(selectedEvent.threadId);
+        const data = await api.getThreadById(selectedEvent.threadId);
         const posts = Array.isArray(data?.posts) ? data.posts.slice(-3) : [];
         setForumPreview(posts);
       } catch { setForumPreview([]); }
@@ -93,7 +93,7 @@ const Events = () => {
   }, [selectedEvent, selectedEvent?.threadId]);
 
   const refreshEvents = async () => {
-    const refreshed = await mockApi.getEvents();
+    const refreshed = await api.getEvents();
     setEvents(refreshed.map(ev => ({ ...ev, start: new Date(ev.date), end: new Date(ev.date) })));
     if (selectedEvent) {
       const updated = refreshed.find(e => String(e.id) === String(selectedEvent.id));
@@ -107,14 +107,14 @@ const Events = () => {
       const key = String(eventId);
       const currentlyGoing = isRsvped(key);
       if (currentlyGoing) {
-        await mockApi.cancelRsvp(token, eventId);
+        await api.cancelRsvp(token, eventId);
         setRsvpStatus(prev => {
           const next = new Map(prev);
           next.set(key, false);
           return next;
         });
       } else {
-        await mockApi.rsvpToEvent(token, eventId);
+        await api.rsvpToEvent(token, eventId);
         setRsvpStatus(prev => {
           const next = new Map(prev);
           next.set(key, true);
@@ -123,7 +123,7 @@ const Events = () => {
       }
       await refreshEvents();
       // Ensure selected event detail is freshest from API
-      try { const ev = await mockApi.getEvent(eventId); setSelectedEvent(ev); } catch {}
+      try { const ev = await api.getEvent(eventId); setSelectedEvent(ev); } catch {}
     } catch (error) {
       console.error('Error handling RSVP:', error);
     }
@@ -186,7 +186,7 @@ const Events = () => {
             {events.slice(0, 10).map(event => (
               <div key={event.id} className="carousel-slide">
                 <div className="carousel-card" onClick={async () => {
-                  try { const ev = await mockApi.getEvent(event.id); setSelectedEvent(ev); } catch { setSelectedEvent(event); }
+                  try { const ev = await api.getEvent(event.id); setSelectedEvent(ev); } catch { setSelectedEvent(event); }
                 }}>
                   <img src={event.image} alt={event.title} className="card-img" />
                   <div className="carousel-content">
@@ -209,7 +209,7 @@ const Events = () => {
                       <button className="btn btn-small" onClick={async (e)=>{ 
                         e.stopPropagation(); 
                         try { 
-                          const ensured = event.threadId ? null : await mockApi.ensureEventThread(event.id);
+                          const ensured = event.threadId ? null : await api.ensureEventThread(event.id);
                           const tid = (event.threadId) || ensured?.threadId;
                           if (tid) window.location.hash = `#/forums?open=${tid}`;
                           else alert('Thread not ready; try again in a moment.');
@@ -340,14 +340,14 @@ const Events = () => {
                     <h4>Manage Event</h4>
                     <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
                       <button className="btn btn-small" onClick={()=>{ setEditingEvent(true); setEditData({ name: selectedEvent.name, description: selectedEvent.description, date: selectedEvent.date, location: selectedEvent.location }); }}>Edit</button>
-                      <button className="btn btn-small btn-warning" onClick={async ()=>{ if (!window.confirm('Delete this event?')) return; try { await mockApi.deleteEvent(token, selectedEvent.id); setSelectedEvent(null); await refreshEvents(); } catch (e){ alert(e.message||'Failed to delete'); } }}>Delete</button>
+                      <button className="btn btn-small btn-warning" onClick={async ()=>{ if (!window.confirm('Delete this event?')) return; try { await api.deleteEvent(token, selectedEvent.id); setSelectedEvent(null); await refreshEvents(); } catch (e){ alert(e.message||'Failed to delete'); } }}>Delete</button>
                     </div>
                   </div>
                 )}
                 {canModerate && editingEvent && (
                   <div className="side-card">
                     <h4>Edit Event</h4>
-                    <form onSubmit={async (e)=>{ e.preventDefault(); try { await mockApi.updateEvent(token, selectedEvent.id, editData); setEditingEvent(false); await refreshEvents(); const ev = await mockApi.getEvent(selectedEvent.id); setSelectedEvent(ev); } catch(err){ alert(err.message||'Failed to update'); } }}>
+                    <form onSubmit={async (e)=>{ e.preventDefault(); try { await api.updateEvent(token, selectedEvent.id, editData); setEditingEvent(false); await refreshEvents(); const ev = await api.getEvent(selectedEvent.id); setSelectedEvent(ev); } catch(err){ alert(err.message||'Failed to update'); } }}>
                       <input placeholder="Name" value={editData.name} onChange={e=>setEditData(d=>({...d,name:e.target.value}))} required />
                       <input placeholder="Date (YYYY-MM-DD)" value={editData.date} onChange={e=>setEditData(d=>({...d,date:e.target.value}))} required />
                       <input placeholder="Location" value={editData.location} onChange={e=>setEditData(d=>({...d,location:e.target.value}))} required />
@@ -375,13 +375,13 @@ const Events = () => {
             <form onSubmit={async (e)=>{
               e.preventDefault();
               try {
-                const res = await mockApi.createEvent(token, createData);
+                const res = await api.createEvent(token, createData);
                 const ev = res?.data || res;
                 setShowCreate(false);
                 setCreateData({ name:'', description:'', date:'', location:'', image:'' });
                 await refreshEvents();
                 if (ev && ev.id) {
-                  try { const fetched = await mockApi.getEvent(ev.id); setSelectedEvent(fetched); } catch { setSelectedEvent(ev); }
+                  try { const fetched = await api.getEvent(ev.id); setSelectedEvent(fetched); } catch { setSelectedEvent(ev); }
                 }
               } catch(err){ alert(err.message || 'Failed to create event'); }
             }}>

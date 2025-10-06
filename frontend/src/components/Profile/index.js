@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useContext } from 'react';
 import './Profile.css';
 import './profile.cards.css';
-import mockApi from '../../api/mockApi';
+import api from '../../api/client';
 import AuthContext from '../../context/AuthContext';
 import Section from '../Section';
 import Grid from '../Grid';
@@ -64,12 +64,12 @@ const Profile = () => {
     try {
       if (tab === 'system') {
         // Client-side filter for system messages from mock or a dedicated endpoint if available
-        const allInboxMessages = await mockApi.fetchMessages(token, 'inbox', {}); // Fetch all to find system
+        const allInboxMessages = await api.fetchMessages(token, 'inbox', {}); // Fetch all to find system
         clientSideMessages = allInboxMessages.filter(msg => msg.systemMessage === true && msg.recipientId === currentUser.id);
         setMessages(clientSideMessages);
       } else {
         const apiFilters = isEffectivelyPremium ? currentFilters : {};
-        const fetchedMessages = await mockApi.fetchMessages(token, categoryToFetch, apiFilters);
+        const fetchedMessages = await api.fetchMessages(token, categoryToFetch, apiFilters);
         setMessages(fetchedMessages);
       }
     } catch (err) {
@@ -90,10 +90,10 @@ const Profile = () => {
       setProfileError(null);
       try {
         if (token) {
-          const events = await mockApi.getUserEvents(currentUser.id);
+          const events = await api.getUserEvents(currentUser.id);
           setUserEvents(events);
           try {
-            const mine = await mockApi.getMyRsvps(token);
+            const mine = await api.getMyRsvps(token);
             const map = new Map();
             (mine || []).forEach(r => map.set(String(r.eventId), true));
             setMyRsvpMap(new Map(map));
@@ -132,7 +132,7 @@ const Profile = () => {
     }
     setLoadingMessages(true);
     try {
-      const response = await mockApi.sendMessage(token, recipientUsername, newMessageText);
+      const response = await api.sendMessage(token, recipientUsername, newMessageText);
       if (response.action === "upgradeRequired") {
         setShowUpgradeModal(true);
         setMessageError(response.message);
@@ -197,7 +197,7 @@ const Profile = () => {
       if (typeof updatedUser.biography === 'string') dataToSave.biography = updatedUser.biography;
       if (typeof updatedUser.profileImage === 'string') dataToSave.profileImage = updatedUser.profileImage;
       if (updatedUser.location && typeof updatedUser.location === 'object') dataToSave.location = updatedUser.location;
-      const resp = await mockApi.updateUser(token, currentUser.id, dataToSave);
+      const resp = await api.updateUser(token, currentUser.id, dataToSave);
       updateCurrentUser(resp.user || dataToSave);
       setEditing(false);
       alert('Profile updated.');
@@ -209,7 +209,7 @@ const Profile = () => {
   const handleUpgradePremium = async () => {
     if (!currentUser || !token) return;
     try {
-      const updatedUserData = await mockApi.upgradeToPremium(token, currentUser.id);
+      const updatedUserData = await api.upgradeToPremium(token, currentUser.id);
       updateCurrentUser(updatedUserData.user);
       setShowUpgradeModal(false);
       alert('Successfully upgraded to premium!');
@@ -224,14 +224,14 @@ const Profile = () => {
       const eid = String(eventId);
       const currentlyGoing = myRsvpMap instanceof Map && myRsvpMap.get(eid) === true;
       if (currentlyGoing) {
-        await mockApi.cancelRsvp(token, eid);
+        await api.cancelRsvp(token, eid);
         setMyRsvpMap(prev => {
           const next = new Map(prev);
           next.set(eid, false);
           return next;
         });
       } else {
-        await mockApi.rsvpToEvent(token, eid);
+        await api.rsvpToEvent(token, eid);
         setMyRsvpMap(prev => {
           const next = new Map(prev);
           next.set(eid, true);
@@ -239,7 +239,7 @@ const Profile = () => {
         });
       }
       // Refresh user events after RSVP change
-      try { const events = await mockApi.getUserEvents(currentUser.id); setUserEvents(events); } catch {}
+      try { const events = await api.getUserEvents(currentUser.id); setUserEvents(events); } catch {}
     } catch (e) {
       alert(e.message || 'Failed to toggle RSVP');
     }
@@ -265,7 +265,7 @@ const Profile = () => {
         msg.id === messageId ? { ...msg, read: !currentReadStatus } : msg
       )
     );
-    // Mock API call: await mockApi.markMessageAsReadUnread(token, messageId, !currentReadStatus);
+    // Mock API call: await api.markMessageAsReadUnread(token, messageId, !currentReadStatus);
   };
 
   const handleFilterChange = (e) => {
@@ -479,7 +479,7 @@ const Profile = () => {
         <button className="btn btn-danger" onClick={async ()=>{
           if (!token) { alert('Please log in.'); return; }
           if (!window.confirm('Are you sure you want to delete your account? This cannot be undone.')) return;
-          try { await mockApi.deleteUser(token, currentUser.id); alert('Account deleted.'); window.location.href = '#/login'; } catch(e){ alert(e.message||'Failed to delete account'); }
+          try { await api.deleteUser(token, currentUser.id); alert('Account deleted.'); window.location.href = '#/login'; } catch(e){ alert(e.message||'Failed to delete account'); }
         }}>Delete Account</button>
       </Section>
       )}

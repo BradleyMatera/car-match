@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
-import mockApi from '../api/mockApi'; // For any auth-related API calls if needed
+import api from '../api/client';
 
 const AuthContext = createContext(null);
 
@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (username, password) => {
-    const userData = await mockApi.loginUser(username, password).catch((e)=>{ throw e; }); // Fetches from backend
+    const userData = await api.loginUser(username, password).catch((e)=>{ throw e; });
     localStorage.setItem('authToken', userData.token);
     localStorage.setItem('currentUser', JSON.stringify(userData));
     setToken(userData.token);
