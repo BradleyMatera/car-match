@@ -1,11 +1,16 @@
 import React, { useEffect, useState, useContext, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import './Forums.css';
-import mockApi from '../../api/mockApi';
+import api from '../../api/client';
 import AuthContext from '../../context/AuthContext';
 
 const Forums = () => {
   const { currentUser, token } = useContext(AuthContext);
+  const userRole = currentUser?.role || (currentUser?.developerOverride ? 'admin' : 'user');
+  const canModerate = useMemo(
+    () => Boolean(currentUser && (currentUser.developerOverride || userRole === 'admin' || userRole === 'moderator')),
+    [currentUser, userRole]
+  );
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [threads, setThreads] = useState([]);
@@ -23,8 +28,6 @@ const Forums = () => {
   const location = useLocation();
   const [frontStats, setFrontStats] = useState([]);
   const [showEmoji, setShowEmoji] = useState(false);
-
-  const canModerate = useMemo(() => !!currentUser, [currentUser]);
   // Background images (rotates like Events)
   const bgImages = useMemo(() => ([
     'https://images.unsplash.com/photo-1514316454349-750a7fd3da3a',
@@ -41,18 +44,31 @@ const Forums = () => {
     () => (Array.isArray(bgImages) ? bgImages.at(bgIndex) ?? '' : ''),
     [bgImages, bgIndex]
   );
+  function getThreadId(t) {
+  return t?.id || t?._id || t?.threadId;
+}
+
+  const activeThreadId = activeThread ? getThreadId(activeThread) : null;
+  const canManageActiveThread = useMemo(() => {
+    if (!currentUser || !activeThread) return false;
+    if (canModerate) return true;
+    if (threadEvent?.createdByUserId) {
+      return String(threadEvent.createdByUserId) === String(currentUser.id);
+    }
+    return false;
+  }, [activeThread, canModerate, currentUser, threadEvent]);
 
   useEffect(() => {
     (async () => {
-      const cats = await mockApi.getForumCategories();
+      const cats = await api.getForumCategories();
       setCategories(cats);
       // Load front-page stats for category tiles
-      try { const stats = await mockApi.getForumStats(); setFrontStats(stats); } catch {}
+      try { const stats = await api.getForumStats(); setFrontStats(stats); } catch {}
       const params = new URLSearchParams(location.search);
       const open = params.get('open');
       if (open) {
         try {
-          const data = await mockApi.getThreadById(open);
+          const data = await api.getThreadById(open);
           if (data?.thread) {
             const cat = cats.find(c => c.id === data.thread.categoryId);
             if (cat) setSelectedCategory(cat);
@@ -71,7 +87,7 @@ const Forums = () => {
     const s = opts.search ?? search;
     const p = opts.page ?? page;
     try {
-      const resp = await mockApi.getThreadsByCategory(cat.id, { search: s, page: p, pageSize });
+      const resp = await api.getThreadsByCategory(cat.id, { search: s, page: p, pageSize });
       if (Array.isArray(resp)) {
         setThreads(resp);
         setThreadsTotal(resp.length);
@@ -86,10 +102,9 @@ const Forums = () => {
     }
   };
 
-  const getThreadId = (t) => t?.id || t?._id || t?.threadId;
 
   const openThread = async (thread) => {
-    const data = await mockApi.getThreadById(getThreadId(thread));
+    const data = await api.getThreadById(getThreadId(thread));
     setActiveThread(data.thread);
     setThreadPosts(data.posts);
     setThreadEvent(data.event || null);
@@ -115,10 +130,10 @@ const Forums = () => {
     let newThread;
     try {
       if (!token) { alert('Please log in.'); return; }
-      newThread = await mockApi.createThread(token, { categoryId: selectedCategory.id, title: newThreadTitle.trim() });
+      newThread = await api.createThread(token, { categoryId: selectedCategory.id, title: newThreadTitle.trim() });
       // Optionally create first post body if provided
       if (newThreadBody.trim()) {
-        await mockApi.addPostToThread(token, { threadId: getThreadId(newThread), body: newThreadBody.trim() });
+        await api.addPostToThread(token, { threadId: getThreadId(newThread), body: newThreadBody.trim() });
       }
       setNewThreadTitle('');
       setNewThreadBody('');
@@ -136,9 +151,9 @@ const Forums = () => {
     if (!activeThread || !newPostBody.trim()) return;
     try {
       if (!token) { alert('Please log in.'); return; }
-      await mockApi.addPostToThread(token, { threadId: getThreadId(activeThread), body: newPostBody.trim() });
+      await api.addPostToThread(token, { threadId: getThreadId(activeThread), body: newPostBody.trim() });
       setNewPostBody('');
-      const data = await mockApi.getThreadById(getThreadId(activeThread));
+      const data = await api.getThreadById(getThreadId(activeThread));
       setActiveThread(data.thread);
       setThreadPosts(data.posts);
     } catch (err) {
@@ -149,16 +164,33 @@ const Forums = () => {
   const pinToggle = async (thread, pinned) => {
     try {
       if (!token) { alert('Please log in.'); return; }
-      await mockApi.pinThread(token, getThreadId(thread), pinned);
-      await loadThreads(selectedCategory, { page });
+      const response = await api.pinThread(token, getThreadId(thread), pinned);
+      const updatedThread = response?.thread || null;
+      if (updatedThread) {
+        const threadId = getThreadId(updatedThread);
+        setThreads((prev) => prev.map((item) => (getThreadId(item) === threadId ? updatedThread : item)));
+        if (activeThreadId && threadId === activeThreadId) {
+          setActiveThread(updatedThread);
+        }
+      } else {
+        await loadThreads(selectedCategory, { page });
+      }
     } catch (e) { alert(e.message || 'Failed to pin'); }
   };
 
   const lockToggle = async (thread, locked) => {
     try {
       if (!token) { alert('Please log in.'); return; }
-      await mockApi.lockThread(token, getThreadId(thread), locked);
-      const data = await mockApi.getThreadById(getThreadId(thread));
+      const response = await api.lockThread(token, getThreadId(thread), locked);
+      const updatedThread = response?.thread || null;
+      if (updatedThread) {
+        const threadId = getThreadId(updatedThread);
+        setThreads((prev) => prev.map((item) => (getThreadId(item) === threadId ? updatedThread : item)));
+        if (activeThreadId && threadId === activeThreadId) {
+          setActiveThread(updatedThread);
+        }
+      }
+      const data = await api.getThreadById(getThreadId(thread));
       setActiveThread(data.thread);
       setThreadPosts(data.posts);
     } catch (e) { alert(e.message || 'Failed to lock'); }
@@ -168,7 +200,7 @@ const Forums = () => {
     if (!window.confirm('Delete this thread?')) return;
     try {
       if (!token) { alert('Please log in.'); return; }
-      await mockApi.deleteThread(token, getThreadId(thread));
+      await api.deleteThread(token, getThreadId(thread));
       setActiveThread(null);
       await loadThreads(selectedCategory, { page: 1 });
     } catch (e) { alert(e.message || 'Failed to delete'); }
@@ -177,7 +209,7 @@ const Forums = () => {
   const reportPost = async (post) => {
     try {
       if (!token) { alert('Please log in.'); return; }
-      await mockApi.reportPost(token, post.id, 'inappropriate');
+      await api.reportPost(token, post.id, 'inappropriate');
       alert('Reported');
     } catch (e) { alert(e.message || 'Failed to report'); }
   };
@@ -300,21 +332,31 @@ const Forums = () => {
             </div>
             {threads.length === 0 && <p>No threads yet. Be the first to post!</p>}
             <ul className="thread-list">
-              {threads.map(th => (
-                <li key={getThreadId(th)} className="thread-item">
-                  <div className="title" onClick={()=>openThread(th)}>
-                    {th.pinned ? '📌 ' : ''}{th.title}
-                  </div>
-                  <div className="meta">by {th.authorUsername || th.author} • {new Date(th.lastPostAt).toLocaleString()} • {th.replies||0} replies</div>
-                  {canModerate && (
-                    <div style={{display:'flex',gap:8,marginTop:6}}>
-                      <button onClick={()=>pinToggle(th, !th.pinned)}>{th.pinned?'Unpin':'Pin'}</button>
-                      <button onClick={()=>lockToggle(th, !th.locked)}>{th.locked?'Unlock':'Lock'}</button>
-                      <button onClick={()=>deleteThread(th)}>Delete</button>
+              {threads.map((th) => {
+                const threadId = getThreadId(th);
+                const isPinned = Boolean(th.pinned);
+                const isLocked = Boolean(th.locked);
+                const replyCount = th.replies || 0;
+                return (
+                  <li key={threadId} className="thread-item">
+                    <div className="thread-item-header" onClick={()=>openThread(th)}>
+                      <div className="thread-title">
+                        {isPinned && <span className="thread-chip pinned">Pinned</span>}
+                        {isLocked && <span className="thread-chip locked">Locked</span>}
+                        <span>{th.title}</span>
+                      </div>
+                      <div className="thread-meta">by {th.authorUsername || th.author || 'user'} • {new Date(th.lastPostAt).toLocaleString()} • {replyCount} replies</div>
                     </div>
-                  )}
-                </li>
-              ))}
+                    {canModerate && (
+                      <div className="thread-tool-row">
+                        <button onClick={()=>pinToggle(th, !th.pinned)}>{isPinned ? 'Unpin' : 'Pin'}</button>
+                        <button onClick={()=>lockToggle(th, !th.locked)}>{isLocked ? 'Unlock' : 'Lock'}</button>
+                        <button onClick={()=>deleteThread(th)}>Delete</button>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
             <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
               <button disabled={page<=1} onClick={()=> loadThreads(selectedCategory, { page: page-1 })}>Prev</button>
@@ -328,9 +370,15 @@ const Forums = () => {
           <div className="thread-view">
             <button className="back-link" onClick={()=>{ setActiveThread(null); setThreadPosts([]); }}>← Back to threads</button>
             <div className="thread-toolbar">
-              <div className="crumbs">{selectedCategory?.name} ▸ {activeThread.title}</div>
+              <div className="thread-heading">
+                <div className="crumbs">{selectedCategory?.name} ▸ {activeThread.title}</div>
+                <div className="thread-chip-row">
+                  {activeThread.pinned && <span className="thread-chip pinned">Pinned</span>}
+                  {activeThread.locked && <span className="thread-chip locked">Locked</span>}
+                </div>
+              </div>
               <div className="tools">
-                {canModerate && (
+                {canManageActiveThread && (
                   <>
                     <button className="btn btn-small" onClick={()=>pinToggle(activeThread, !activeThread.pinned)}>{activeThread.pinned? 'Unpin' : 'Pin'}</button>
                     <button className="btn btn-small" onClick={()=>lockToggle(activeThread, !activeThread.locked)}>{activeThread.locked? 'Unlock' : 'Lock'}</button>
@@ -341,6 +389,23 @@ const Forums = () => {
                 )}
               </div>
             </div>
+            {threadEvent && (
+              <div className="thread-event-card">
+                <div className="thread-event-summary">
+                  <div>
+                    <div className="thread-event-title">{threadEvent.title}</div>
+                    <div className="thread-event-meta">
+                      <span>📅 {threadEvent.date ? new Date(threadEvent.date).toLocaleDateString() : 'Date TBA'}</span>
+                      <span>📍 {threadEvent.location || 'TBD'}</span>
+                      <span>🧑‍💼 {String(threadEvent.createdByUserId) === String(currentUser?.id) ? 'You' : threadEvent.createdByUsername || 'Unknown'}</span>
+                    </div>
+                  </div>
+                  <div className="thread-event-actions">
+                    <button className="btn btn-small" onClick={()=>{ window.location.hash = `#/events?event=${threadEvent.id || (threadEvent._id && threadEvent._id.toString())}`; }}>Open Event</button>
+                  </div>
+                </div>
+              </div>
+            )}
             <ul className="post-list">
               {threadPosts.map((p, idx) => {
                 const author = p.authorUsername || p.author || 'user';

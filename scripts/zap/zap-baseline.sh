@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Usage: ./scripts/zap/zap-baseline.sh [target-url]
-# Requires: Docker, ZAP image will be pulled if missing.
+# Purpose: Run the OWASP ZAP baseline scan in Docker against a provided URL.
+# Usage:   ./scripts/zap/zap-baseline.sh <target-url>
+# Env:     ZAP_IMAGE (override image), ZAP_CONTEXT_FILE (bind-mount context),
+#          ZAP_CONFIG_ARGS (extra args passed to zap-baseline.py)
+# Requires: Docker installed locally with permission to run containers.
 
 TARGET_URL="${1:-}"
 if [[ -z "$TARGET_URL" ]]; then

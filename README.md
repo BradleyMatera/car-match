@@ -6,6 +6,23 @@ Live, working MVP for a car‑enthusiast community: profiles, events, forums, an
 
 Frontend‑first build with mock interaction logic and seamless backend integration. Supports real auth/messages/events via backend; forums persist when a MongoDB URI is configured.
 
+```mermaid
+graph TD
+  A[car-match root] --> B[frontend/]
+  A --> C[backend/]
+  A --> D[docs/]
+  A --> E[scripts/]
+  B --> B1[src/]
+  B --> B2[public/]
+  C --> C1[server.js]
+  C --> C2[middleware/]
+  C --> C3[models/]
+  D --> D1[research/]
+  D --> D2[logs]
+  E --> E1[setup-dev-https.sh]
+  E --> E2[zap/]
+```
+
 Owner: Bradley Matera — [Log](./docs/log.md) · New: [log2.md](./docs/log2.md)
 
 ## Community Features

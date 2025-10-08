@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect, useMemo } from 'react';
-// import mockApi from '../../api/mockApi'; // login will be called via context
+// import api from '../../api/client'; // login will be called via context
 import AuthContext from '../../context/AuthContext';
 import './Login.css';
 import { useNavigate } from 'react-router-dom'; // For redirecting after login

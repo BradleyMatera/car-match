@@ -5,6 +5,21 @@ Quick start
 - `npm i`
 - `npm start`
 
+```mermaid
+graph TD
+  SRC[src/] --> APP[App.js]
+  SRC --> API[api/]
+  SRC --> CTX[context/]
+  SRC --> CMP[components/]
+  CMP --> Layout[Layout/]
+  CMP --> Events[Events/]
+  CMP --> Forums[Forums/]
+  CMP --> Messages[Messages/]
+  CMP --> Profile[Profile/]
+  SRC --> Docs[docs/]
+  Public[public/] --> Index[public/index.html]
+```
+
 Environment (at build time)
 - `REACT_APP_API_BASE_URL` — backend base URL (Render)
 - `REACT_APP_USE_REAL_EVENTS=true` — use backend `/events` (otherwise mock)

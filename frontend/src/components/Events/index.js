@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useContext, useMemo } from 'react';
+import React, { useState, useEffect, useContext, useMemo, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import './Events.css';
-import mockApi from '../../api/mockApi';
+import api from '../../api/client';
 import AuthContext from '../../context/AuthContext';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
@@ -14,11 +14,27 @@ import Section from '../Section';
 const Events = () => {
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const assignSelectedEvent = useCallback((eventOrUpdater) => {
+    setSelectedEvent((prev) => {
+      const nextEvent = typeof eventOrUpdater === 'function' ? eventOrUpdater(prev) : eventOrUpdater;
+      if (!nextEvent) return null;
+      return {
+        ...nextEvent,
+        createdByUserId: nextEvent.createdByUserId ? String(nextEvent.createdByUserId) : undefined,
+      };
+    });
+  }, []);
   // Event-specific comment composer removed in favor of forum preview + link
   const [rsvpStatus, setRsvpStatus] = useState(() => new Map());
   const { currentUser, token } = useContext(AuthContext);
-  const isOwner = selectedEvent && currentUser && String(selectedEvent.createdByUserId) === String(currentUser.id);
-  const canModerate = isOwner || currentUser?.developerOverride;
+  const userId = currentUser?.id ? String(currentUser.id) : undefined;
+  const userRole = currentUser?.role || (currentUser?.developerOverride ? 'admin' : 'user');
+  const isEventOwner = useCallback(
+    (event) => Boolean(userId && event && event.createdByUserId && String(event.createdByUserId) === userId),
+    [userId]
+  );
+  const isOwner = isEventOwner(selectedEvent);
+  const canManageSelectedEvent = Boolean(isOwner || currentUser?.developerOverride || userRole === 'admin');
   const [showCreate, setShowCreate] = useState(false);
   const [createData, setCreateData] = useState({ name: '', description: '', date: '', location: '' });
   const [editingEvent, setEditingEvent] = useState(false);
@@ -32,11 +48,12 @@ const Events = () => {
   useEffect(() => {
     const loadEvents = async () => {
       try {
-        const eventsData = await mockApi.getEvents();
+        const eventsData = await api.getEvents();
         setEvents(eventsData.map(event => ({
           ...event,
-          start: new Date(event.date),
-          end: new Date(event.date)
+          createdByUserId: event.createdByUserId ? String(event.createdByUserId) : undefined,
+          start: event.date ? new Date(event.date) : null,
+          end: event.date ? new Date(event.date) : null,
         })));
         const imgs = Array.from(new Set(eventsData.map(e => e.image || e.thumbnail).filter(Boolean)));
         if (imgs.length === 0) {
@@ -49,9 +66,12 @@ const Events = () => {
         setBgImages(imgs);
         // Preload RSVP status if logged in
         if (token) {
-          const myRsvps = await mockApi.getMyRsvps(token);
+          const myRsvps = await api.getMyRsvps(token);
           const map = new Map();
-          myRsvps.forEach(r => map.set(String(r.eventId), true));
+          (myRsvps || []).forEach((rsvpEvent) => {
+            const eventKey = String(rsvpEvent.eventId ?? rsvpEvent.id);
+            map.set(eventKey, true);
+          });
           setRsvpStatus(new Map(map));
         }
       } catch (error) {
@@ -59,7 +79,7 @@ const Events = () => {
       }
     };
     loadEvents();
-  }, [token]);
+  }, [token, assignSelectedEvent]);
 
   useEffect(() => {
     if (!bgImages.length) return;
@@ -74,18 +94,18 @@ const Events = () => {
     if (!eid) return;
     (async () => {
       try {
-        const ev = await mockApi.getEvent(eid);
-        if (ev) setSelectedEvent(ev);
+        const ev = await api.getEvent(eid);
+        if (ev) assignSelectedEvent(ev);
       } catch {}
     })();
-  }, [routerLocation.search]);
+  }, [routerLocation.search, assignSelectedEvent]);
 
   // Load a small preview of the forum thread (latest 3 posts)
   useEffect(() => {
     (async () => {
       try {
         if (!selectedEvent || !selectedEvent.threadId) { setForumPreview([]); return; }
-        const data = await mockApi.getThreadById(selectedEvent.threadId);
+        const data = await api.getThreadById(selectedEvent.threadId);
         const posts = Array.isArray(data?.posts) ? data.posts.slice(-3) : [];
         setForumPreview(posts);
       } catch { setForumPreview([]); }
@@ -93,28 +113,58 @@ const Events = () => {
   }, [selectedEvent, selectedEvent?.threadId]);
 
   const refreshEvents = async () => {
-    const refreshed = await mockApi.getEvents();
-    setEvents(refreshed.map(ev => ({ ...ev, start: new Date(ev.date), end: new Date(ev.date) })));
+    const refreshed = await api.getEvents();
+    setEvents(refreshed.map(ev => ({
+      ...ev,
+      createdByUserId: ev.createdByUserId ? String(ev.createdByUserId) : undefined,
+      start: ev.date ? new Date(ev.date) : null,
+      end: ev.date ? new Date(ev.date) : null,
+    })));
     if (selectedEvent) {
       const updated = refreshed.find(e => String(e.id) === String(selectedEvent.id));
-      if (updated) setSelectedEvent(updated);
+      if (updated) assignSelectedEvent(updated);
     }
   };
+
+  const ensureEventThread = useCallback(async (event) => {
+    if (!event) return null;
+    if (event.threadId) return event.threadId;
+    const ensured = await api.ensureEventThread(event.id);
+    const threadId = ensured?.threadId;
+    if (threadId) {
+      setEvents((prev) => prev.map((ev) => (String(ev.id) === String(event.id) ? { ...ev, threadId } : ev)));
+      assignSelectedEvent((prev) => {
+        if (!prev || String(prev.id) !== String(event.id)) return prev;
+        return { ...prev, threadId };
+      });
+    }
+    return threadId;
+  }, [assignSelectedEvent]);
+
+  const ensureSelectedEventThread = useCallback(async () => {
+    if (!selectedEvent) return null;
+    return ensureEventThread(selectedEvent);
+  }, [selectedEvent, ensureEventThread]);
 
   const handleRsvpToggle = async (eventId) => {
     try {
       if (!token || !currentUser) { alert('Please login to RSVP'); return; }
       const key = String(eventId);
+      const targetEvent = events.find(e => String(e.id) === key);
+      if (targetEvent && userId && targetEvent.createdByUserId && String(targetEvent.createdByUserId) === userId) {
+        alert('Organizers are automatically listed for their events.');
+        return;
+      }
       const currentlyGoing = isRsvped(key);
       if (currentlyGoing) {
-        await mockApi.cancelRsvp(token, eventId);
+        await api.cancelRsvp(token, eventId);
         setRsvpStatus(prev => {
           const next = new Map(prev);
           next.set(key, false);
           return next;
         });
       } else {
-        await mockApi.rsvpToEvent(token, eventId);
+        await api.rsvpToEvent(token, eventId);
         setRsvpStatus(prev => {
           const next = new Map(prev);
           next.set(key, true);
@@ -123,25 +173,24 @@ const Events = () => {
       }
       await refreshEvents();
       // Ensure selected event detail is freshest from API
-      try { const ev = await mockApi.getEvent(eventId); setSelectedEvent(ev); } catch {}
+      try { const ev = await api.getEvent(eventId); assignSelectedEvent(ev); } catch {}
     } catch (error) {
       console.error('Error handling RSVP:', error);
     }
   };
 
   const handleDateClick = (date) => {
-    const eventForDate = events.find(event => 
-      date.toDateString() === new Date(event.date).toDateString()
-    );
-    setSelectedEvent(eventForDate);
+    const eventForDate = events.find((event) => event?.date && date.toDateString() === new Date(event.date).toDateString());
+    assignSelectedEvent(eventForDate);
   };
 
+  const isRsvped = (id) => rsvpStatus instanceof Map && rsvpStatus.get(String(id)) === true;
   const currentBackground = useMemo(
     () => (Array.isArray(bgImages) ? bgImages.at(bgIndex) ?? '' : ''),
     [bgImages, bgIndex]
   );
-
-  const isRsvped = (id) => rsvpStatus instanceof Map && rsvpStatus.get(String(id)) === true;
+  const selectedEventId = selectedEvent?.id ? String(selectedEvent.id) : undefined;
+  const selectedEventRsvped = selectedEventId ? isRsvped(selectedEventId) : false;
 
   const carouselSettings = {
     autoscroll: true,
@@ -183,52 +232,92 @@ const Events = () => {
         <h2 className="section-title">Upcoming Events</h2>
         <div className="carousel-container">
           <Slider {...carouselSettings}>
-            {events.slice(0, 10).map(event => (
-              <div key={event.id} className="carousel-slide">
-                <div className="carousel-card" onClick={async () => {
-                  try { const ev = await mockApi.getEvent(event.id); setSelectedEvent(ev); } catch { setSelectedEvent(event); }
-                }}>
-                  <img src={event.image} alt={event.title} className="card-img" />
-                  <div className="carousel-content">
-                    <h3>{event.title}</h3>
-                    <p className="event-date">
-                      {new Date(event.date).toLocaleDateString('en-US', {
-                        weekday: 'long', 
-                        month: 'long', 
-                        day: 'numeric'
-                      })}
-                    </p>
-                    <div className="event-meta">
-                      <span>📍 {event.location}</span>
-                      <span>👥 {event.rsvpCount} attending</span>
+            {events.slice(0, 10).map((event) => {
+              const eventId = String(event.id);
+              const isMine = isEventOwner(event);
+              const hasThread = Boolean(event.threadId);
+              const organizerDisplay = isMine ? 'You' : event.createdByUsername || 'Unknown';
+              const canEnsureThread = hasThread || isMine || currentUser?.developerOverride || userRole === 'admin';
+              const rsvpLabel = isMine ? 'Organizer' : (isRsvped(eventId) ? '✅ Going' : 'RSVP');
+
+              const handleCardClick = async () => {
+                try {
+                  const fresh = await api.getEvent(eventId);
+                  assignSelectedEvent(fresh);
+                } catch {
+                  assignSelectedEvent(event);
+                }
+              };
+
+              const handleDiscussionClick = async (e) => {
+                e.stopPropagation();
+                if (!canEnsureThread) {
+                  alert('Only organizers or admins can start a discussion.');
+                  return;
+                }
+                try {
+                  let threadId = event.threadId;
+                  if (!threadId) {
+                    threadId = await ensureEventThread(event);
+                  }
+                  if (threadId) {
+                    window.location.hash = `#/forums?open=${threadId}`;
+                  } else {
+                    alert('Thread not ready; try again in a moment.');
+                  }
+                } catch (err) {
+                  alert(err.message || 'Unable to open discussion right now.');
+                }
+              };
+
+              return (
+                <div key={eventId} className="carousel-slide">
+                  <div className="carousel-card" onClick={handleCardClick}>
+                    <img src={event.image} alt={event.title} className="card-img" />
+                    <div className="carousel-content">
+                      <div className="card-header">
+                        <h3>{event.title}</h3>
+                        <div className="event-badge-row">
+                          {isMine && <span className="event-owner-chip">Your event</span>}
+                          {!hasThread && canEnsureThread && <span className="event-status-chip">No thread yet</span>}
+                        </div>
+                      </div>
+                      <p className="event-date">
+                        {event.date
+                          ? new Date(event.date).toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              month: 'long',
+                              day: 'numeric',
+                            })
+                          : 'Date TBA'}
+                      </p>
+                      <div className="event-meta">
+                        <span>📍 {event.location || 'TBD'}</span>
+                        <span>👥 {event.rsvpCount || 0} attending</span>
+                      </div>
+                      <div className="organizer-meta">
+                        <span>Organizer: {organizerDisplay}</span>
+                      </div>
+                      <div className="event-actions">
+                        <button className="btn btn-small" onClick={handleDiscussionClick}>
+                          {hasThread ? 'View Discussion' : 'Start Discussion'}
+                        </button>
+                        <button
+                          className={`rsvp-button small ${isRsvped(eventId) ? 'rsvp-confirmed' : ''}`}
+                          disabled={isMine}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRsvpToggle(eventId);
+                          }}
+                        >
+                          {rsvpLabel}
+                        </button>
+                      </div>
                     </div>
-                    <div className="event-meta" style={{marginTop:6}}>
-                      <span>Organizer: {event.createdByUsername || 'Unknown'}</span>
-                    </div>
-                    <div style={{marginTop:8}}>
-                      <button className="btn btn-small" onClick={async (e)=>{ 
-                        e.stopPropagation(); 
-                        try { 
-                          const ensured = event.threadId ? null : await mockApi.ensureEventThread(event.id);
-                          const tid = (event.threadId) || ensured?.threadId;
-                          if (tid) window.location.hash = `#/forums?open=${tid}`;
-                          else alert('Thread not ready; try again in a moment.');
-                        } catch { alert('Unable to open discussion right now.'); }
-                      }}>View Discussion</button>
-                    </div>
-                    <button 
-                      className={`rsvp-button small ${isRsvped(event.id) ? 'rsvp-confirmed' : ''}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRsvpToggle(event.id);
-                      }}
-                    >
-                      {isRsvped(event.id) ? '✅ Going' : 'RSVP'}
-                    </button>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </Slider>
         </div>
       </Section>
@@ -239,9 +328,7 @@ const Events = () => {
             value={new Date()}
             onChange={handleDateClick}
             tileContent={({ date }) => {
-              const event = events.find(e => 
-                date.toDateString() === new Date(e.date).toDateString()
-              );
+              const event = events.find(e => e.date && date.toDateString() === new Date(e.date).toDateString());
               return event ? <div className="event-marker">•</div> : null;
             }}
           />
@@ -252,11 +339,15 @@ const Events = () => {
             {/* Hero */}
             <div className="event-hero" style={{backgroundImage:`url(${selectedEvent.image || selectedEvent.thumbnail})`}}>
               <div className="event-hero-overlay">
+                <div className="event-badges">
+                  {isOwner && <span className="event-owner-chip">Your event</span>}
+                  {!selectedEvent.threadId && canManageSelectedEvent && <span className="event-status-chip">No forum thread yet</span>}
+                </div>
                 <h2>{selectedEvent.title}</h2>
                 <div className="hero-meta">
-                  <span>📅 {new Date(selectedEvent.date).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}</span>
-                  <span>📍 {selectedEvent.location}</span>
-                  <span>👥 {selectedEvent.rsvpCount} attending</span>
+                  <span>📅 {selectedEvent.date ? new Date(selectedEvent.date).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' }) : 'Date TBA'}</span>
+                  <span>📍 {selectedEvent.location || 'TBD'}</span>
+                  <span>👥 {selectedEvent.rsvpCount || 0} attending</span>
                 </div>
               </div>
             </div>
@@ -309,17 +400,22 @@ const Events = () => {
               {/* Sidebar */}
               <aside className="event-side">
                 <div className="side-card">
-                  <button className={`rsvp-button ${isRsvped(selectedEvent.id) ? 'rsvp-confirmed' : ''}`} onClick={()=> handleRsvpToggle(selectedEvent.id)}>
-                    {isRsvped(selectedEvent.id) ? '✅ Going' : 'RSVP to Event'}
+                  <button
+                    className={`rsvp-button ${selectedEventRsvped ? 'rsvp-confirmed' : ''}`}
+                    disabled={isOwner}
+                    onClick={() => handleRsvpToggle(selectedEvent.id)}
+                  >
+                    {isOwner ? 'Organizer' : (selectedEventRsvped ? '✅ Going' : 'RSVP to Event')}
                   </button>
-                  {isRsvped(selectedEvent.id) && <p className="rsvp-confirmation">You are confirmed for this event!</p>}
+                  {selectedEventRsvped && !isOwner && <p className="rsvp-confirmation">You are confirmed for this event!</p>}
+                  {isOwner && <p className="rsvp-confirmation">Organizers are automatically listed for their events.</p>}
                 </div>
                 <div className="side-card">
                   <h4>Event at a Glance</h4>
                   <ul className="glance-list">
-                    <li>📅 {new Date(selectedEvent.date).toLocaleDateString()}</li>
-                    <li>📍 {selectedEvent.location}</li>
-                    <li>🧑‍💼 Organizer: {selectedEvent.createdByUsername || 'Unknown'}</li>
+                    <li>📅 {selectedEvent.date ? new Date(selectedEvent.date).toLocaleDateString() : 'Date TBA'}</li>
+                    <li>📍 {selectedEvent.location || 'TBD'}</li>
+                    <li>🧑‍💼 Organizer: {isOwner ? 'You' : selectedEvent.createdByUsername || 'Unknown'}</li>
                   </ul>
                 </div>
                 <div className="side-card">
@@ -332,22 +428,50 @@ const Events = () => {
                 </div>
                 <div className="side-card">
                   <h4>About Organizer</h4>
-                  <p><strong>{selectedEvent.createdByUsername || 'Unknown'}</strong></p>
-                  {selectedEvent.threadId && <Link to={`/forums?open=${selectedEvent.threadId}`} className="btn">View Discussion</Link>}
+                  <p><strong>{isOwner ? 'You' : selectedEvent.createdByUsername || 'Unknown'}</strong></p>
+                  {selectedEvent.threadId ? (
+                    <Link to={`/forums?open=${selectedEvent.threadId}`} className="btn">Open Discussion</Link>
+                  ) : canManageSelectedEvent ? (
+                    <button
+                      className="btn"
+                      onClick={async () => {
+                        try {
+                          const tid = await ensureSelectedEventThread();
+                          if (tid) window.location.hash = `#/forums?open=${tid}`;
+                        } catch (err) {
+                          alert(err.message || 'Unable to start a discussion');
+                        }
+                      }}
+                    >
+                      Start Discussion
+                    </button>
+                  ) : (
+                    <p className="muted">No forum discussion yet.</p>
+                  )}
                 </div>
-                {canModerate && !editingEvent && (
+                {canManageSelectedEvent && !editingEvent && (
                   <div className="side-card">
                     <h4>Manage Event</h4>
                     <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
                       <button className="btn btn-small" onClick={()=>{ setEditingEvent(true); setEditData({ name: selectedEvent.name, description: selectedEvent.description, date: selectedEvent.date, location: selectedEvent.location }); }}>Edit</button>
-                      <button className="btn btn-small btn-warning" onClick={async ()=>{ if (!window.confirm('Delete this event?')) return; try { await mockApi.deleteEvent(token, selectedEvent.id); setSelectedEvent(null); await refreshEvents(); } catch (e){ alert(e.message||'Failed to delete'); } }}>Delete</button>
+                      {!selectedEvent.threadId && (
+                        <button className="btn btn-small" onClick={async ()=>{
+                          try {
+                            const tid = await ensureSelectedEventThread();
+                            if (tid) window.location.hash = `#/forums?open=${tid}`;
+                          } catch (err) {
+                            alert(err.message || 'Unable to create forum thread');
+                          }
+                        }}>Create Forum Thread</button>
+                      )}
+                      <button className="btn btn-small btn-warning" onClick={async ()=>{ if (!window.confirm('Delete this event?')) return; try { await api.deleteEvent(token, selectedEvent.id); assignSelectedEvent(null); await refreshEvents(); } catch (e){ alert(e.message||'Failed to delete'); } }}>Delete</button>
                     </div>
                   </div>
                 )}
-                {canModerate && editingEvent && (
+                {canManageSelectedEvent && editingEvent && (
                   <div className="side-card">
                     <h4>Edit Event</h4>
-                    <form onSubmit={async (e)=>{ e.preventDefault(); try { await mockApi.updateEvent(token, selectedEvent.id, editData); setEditingEvent(false); await refreshEvents(); const ev = await mockApi.getEvent(selectedEvent.id); setSelectedEvent(ev); } catch(err){ alert(err.message||'Failed to update'); } }}>
+                    <form onSubmit={async (e)=>{ e.preventDefault(); try { await api.updateEvent(token, selectedEvent.id, editData); setEditingEvent(false); await refreshEvents(); const ev = await api.getEvent(selectedEvent.id); assignSelectedEvent(ev); } catch(err){ alert(err.message||'Failed to update'); } }}>
                       <input placeholder="Name" value={editData.name} onChange={e=>setEditData(d=>({...d,name:e.target.value}))} required />
                       <input placeholder="Date (YYYY-MM-DD)" value={editData.date} onChange={e=>setEditData(d=>({...d,date:e.target.value}))} required />
                       <input placeholder="Location" value={editData.location} onChange={e=>setEditData(d=>({...d,location:e.target.value}))} required />
@@ -375,13 +499,12 @@ const Events = () => {
             <form onSubmit={async (e)=>{
               e.preventDefault();
               try {
-                const res = await mockApi.createEvent(token, createData);
-                const ev = res?.data || res;
+                const ev = await api.createEvent(token, createData);
                 setShowCreate(false);
                 setCreateData({ name:'', description:'', date:'', location:'', image:'' });
                 await refreshEvents();
                 if (ev && ev.id) {
-                  try { const fetched = await mockApi.getEvent(ev.id); setSelectedEvent(fetched); } catch { setSelectedEvent(ev); }
+                  assignSelectedEvent(ev);
                 }
               } catch(err){ alert(err.message || 'Failed to create event'); }
             }}>
