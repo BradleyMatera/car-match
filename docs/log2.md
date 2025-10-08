@@ -87,6 +87,7 @@ Opened Milestone `359 MS 10`, kept the `dev → staging` rollup PR active, and b
 - Implemented backend ownership enforcement (schema, RSVP/comment, backfill) and opened PR #133.
 - Replaced the frontend `mockApi` imports with the real API client (`client.js`) so all flows call the live backend.
 - Hardened forum moderation backend (role enum, admin role assignment API, moderation logging/limits) and synced Atlas via `/admin/backfill-events-users`.
+- Refined Events & Forums UI to surface organizer badges, thread management tools, and live role-gated controls against the production API.
 - Merged documentation PR #131 after verifying the workflow through feature branch → dev.
 
 🔮 Next Steps:  
