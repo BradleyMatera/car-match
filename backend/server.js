@@ -249,6 +249,53 @@ const seedDemoData = () => {
 };
 seedDemoData();
 
+const syncInMemoryUsersWithDatabase = async () => {
+  if (mongoose.connection.readyState !== 1 || !UserModel) return;
+  for (let i = 0; i < users.length; i += 1) {
+    const memUser = users[i];
+    if (!memUser) continue;
+    const loginUsername = memUser.username;
+    const query = { username: loginUsername };
+    let dbUser = await UserModel.findOne(query);
+    if (!dbUser) {
+      dbUser = await UserModel.create({
+        mockId: String(memUser.id || i + 1),
+        username: loginUsername,
+        email: `${loginUsername}@example.com`,
+        password: memUser.password,
+        name: memUser.name,
+        displayTag: memUser.displayTag,
+        gender: memUser.gender,
+        location: memUser.location,
+        premiumStatus: memUser.premiumStatus,
+        developerOverride: memUser.developerOverride,
+        role: memUser.role || 'user',
+        activityMetadata: memUser.activityMetadata || { messageCountToday: 0, lastMessageDate: null },
+        biography: memUser.biography || '',
+        profileImage: memUser.profileImage || '',
+        carInterests: memUser.interests || [],
+      });
+    }
+    const canonicalId = dbUser._id.toString();
+    users[i] = {
+      ...memUser,
+      id: canonicalId,
+      password: dbUser.password,
+      premiumStatus: !!dbUser.premiumStatus,
+      developerOverride: !!dbUser.developerOverride,
+      role: dbUser.role || memUser.role || 'user',
+      activityMetadata: dbUser.activityMetadata || memUser.activityMetadata || { messageCountToday: 0, lastMessageDate: null },
+      tierSpecificHistory: dbUser.tierSpecificHistory || memUser.tierSpecificHistory || {},
+    };
+  }
+  const userByUsername = new Map(users.map(u => [u.username, u]));
+  events.forEach((event) => {
+    if (event.createdByUsername && userByUsername.has(event.createdByUsername)) {
+      event.createdByUserId = userByUsername.get(event.createdByUsername).id;
+    }
+  });
+};
+
 // MongoDB connection (optional but recommended for persistence)
 const MONGODB_URI = process.env.MONGODB_URI;
 if (MONGODB_URI) {
@@ -272,6 +319,7 @@ if (MONGODB_URI) {
       await EventModel.init().catch(()=>{});
       await MessageModel.init().catch(()=>{});
       await UserModel.init().catch(()=>{});
+      await syncInMemoryUsersWithDatabase();
 
       // Ensure every event has a forum thread under Events & Meetups (cat3)
       try {
@@ -658,52 +706,60 @@ app.post('/register', authLimiterMiddleware, async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, saltRounds);
-    const newUser = { 
-      id: users.length + 1, // simple id generation
-      username, 
+    const nextInMemoryId = users.length + 1;
+    const baseUser = {
+      username,
       password: hashedPassword,
       name,
       displayTag,
       gender,
-      location: { 
-        city, 
-        state, 
-        // Mock geoCoordinates for now. In a real app, this would come from a geocoding service or user input.
-        geoCoordinates: { lat: (Math.random() * 180 - 90), lon: (Math.random() * 360 - 180) } 
+      location: {
+        city,
+        state,
+        geoCoordinates: { lat: (Math.random() * 180 - 90), lon: (Math.random() * 360 - 180) },
       },
-      interests: [], // Default to empty, can be updated later
-      biography: "", // Default to empty
-      profileImage: "", // Default to empty
+      interests: [],
+      biography: "",
+      profileImage: "",
       lastLoginTimestamp: null,
-      premiumStatus: false, // Default to non-premium
-      developerOverride: false, // Default
+      premiumStatus: false,
+      developerOverride: false,
       role: 'user',
-      activityMetadata: { messageCountToday: 0, lastMessageDate: null }, // For daily limits
-      tierSpecificHistory: {}, // Default
-      createdAt: new Date().toISOString()
+      activityMetadata: { messageCountToday: 0, lastMessageDate: null },
+      tierSpecificHistory: {},
+      createdAt: new Date().toISOString(),
     };
-    users.push(newUser);
 
-    // Persist to Mongo if available
+    let persistentId = String(nextInMemoryId);
     if (mongoose.connection.readyState === 1 && UserModel) {
-      await UserModel.create({
-        mockId: String(newUser.id),
-        username: newUser.username,
-        email: rawEmail || (username.includes('@') ? username : undefined) || `${newUser.username}@example.com`,
-        password: newUser.password,
-        name: newUser.name,
-        displayTag: newUser.displayTag,
-        gender: newUser.gender,
-        location: newUser.location,
-        premiumStatus: newUser.premiumStatus,
-        developerOverride: newUser.developerOverride,
-        role: newUser.role,
-        activityMetadata: newUser.activityMetadata,
-        biography: newUser.biography,
-        profileImage: newUser.profileImage,
-        carInterests: newUser.interests,
+      const created = await UserModel.create({
+        mockId: String(nextInMemoryId),
+        username: baseUser.username,
+        email: rawEmail || (username.includes('@') ? username : undefined) || `${baseUser.username}@example.com`,
+        password: baseUser.password,
+        name: baseUser.name,
+        displayTag: baseUser.displayTag,
+        gender: baseUser.gender,
+        location: baseUser.location,
+        premiumStatus: baseUser.premiumStatus,
+        developerOverride: baseUser.developerOverride,
+        role: baseUser.role,
+        activityMetadata: baseUser.activityMetadata,
+        biography: baseUser.biography,
+        profileImage: baseUser.profileImage,
+        carInterests: baseUser.interests,
       });
+      persistentId = created._id.toString();
     }
+
+    const newUser = {
+      id: persistentId,
+      ...baseUser,
+    };
+    if (mongoose.connection.readyState === 1 && UserModel && mongoose.Types.ObjectId.isValid(persistentId)) {
+      newUser._id = new mongoose.Types.ObjectId(persistentId);
+    }
+    users.push(newUser);
 
     logger.info('User registered', { requestId: req.requestId, userId: newUser.id, username: newUser.username });
     res.status(201).json({ message: 'User registered successfully', userId: newUser.id });
@@ -722,11 +778,10 @@ app.post('/login', authLimiterMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'Username and password are required' });
     }
 
-    let user = users.find(u => u.username === username);
-    // If not found in-memory, try MongoDB
-    if (!user && mongoose.connection.readyState === 1 && UserModel) {
-      // Support login with username OR email
-      const loginId = String(username || '').trim();
+    const loginId = String(username || '').trim();
+    let authenticatedUser = null;
+
+    if (mongoose.connection.readyState === 1 && UserModel) {
       const query = loginId.includes('@') ? { email: loginId } : { username: loginId };
       const dbUser = await UserModel.findOne(query).lean();
       if (dbUser) {
@@ -735,65 +790,107 @@ app.post('/login', authLimiterMiddleware, async (req, res) => {
           securityEvent('Login failed (password mismatch)', { username: loginId, requestId: req.requestId, ip: req.ip });
           return res.status(401).json({ message: 'Invalid credentials (password mismatch)' });
         }
-        user = {
+        authenticatedUser = {
           id: dbUser._id.toString(),
           username: dbUser.username,
-          password: dbUser.password,
-          name: dbUser.name,
-          displayTag: dbUser.displayTag,
+          name: dbUser.name || dbUser.username,
+          displayTag: dbUser.displayTag || dbUser.username,
           gender: dbUser.gender,
-          location: dbUser.location,
+          location: dbUser.location || {},
           interests: dbUser.carInterests || [],
           biography: dbUser.biography || '',
           profileImage: dbUser.profileImage || '',
-          lastLoginTimestamp: null,
+          lastLoginTimestamp: new Date().toISOString(),
           premiumStatus: !!dbUser.premiumStatus,
           developerOverride: !!dbUser.developerOverride,
           role: dbUser.role || 'user',
           activityMetadata: dbUser.activityMetadata || { messageCountToday: 0, lastMessageDate: null },
-          tierSpecificHistory: {}, createdAt: new Date().toISOString()
+          tierSpecificHistory: dbUser.tierSpecificHistory || {},
+          createdAt: (dbUser.createdAt instanceof Date ? dbUser.createdAt : new Date()).toISOString(),
         };
+
+        const idx = users.findIndex(u => u.username === dbUser.username);
+        const cachePayload = {
+          id: authenticatedUser.id,
+          username: authenticatedUser.username,
+          password: dbUser.password,
+          name: authenticatedUser.name,
+          displayTag: authenticatedUser.displayTag,
+          gender: authenticatedUser.gender,
+          location: authenticatedUser.location,
+          interests: authenticatedUser.interests,
+          biography: authenticatedUser.biography,
+          profileImage: authenticatedUser.profileImage,
+          lastLoginTimestamp: authenticatedUser.lastLoginTimestamp,
+          premiumStatus: authenticatedUser.premiumStatus,
+          developerOverride: authenticatedUser.developerOverride,
+          role: authenticatedUser.role,
+          activityMetadata: authenticatedUser.activityMetadata,
+          tierSpecificHistory: authenticatedUser.tierSpecificHistory,
+          createdAt: authenticatedUser.createdAt,
+        };
+        if (idx > -1) {
+          users[idx] = cachePayload;
+        } else {
+          users.push(cachePayload);
+        }
       }
     }
-    if (!user) {
-      securityEvent('Login failed (user not found)', { username, requestId: req.requestId, ip: req.ip });
-      return res.status(401).json({ message: 'Invalid credentials (user not found)' });
+
+    if (!authenticatedUser) {
+      const cachedUser = users.find(u => u.username === loginId);
+      if (!cachedUser) {
+        securityEvent('Login failed (user not found)', { username: loginId, requestId: req.requestId, ip: req.ip });
+        return res.status(401).json({ message: 'Invalid credentials (user not found)' });
+      }
+      const isMatch = await bcrypt.compare(password, cachedUser.password);
+      if (!isMatch) {
+        securityEvent('Login failed (password mismatch)', { username: cachedUser.username, requestId: req.requestId, ip: req.ip });
+        return res.status(401).json({ message: 'Invalid credentials (password mismatch)' });
+      }
+      const canonicalId = mongoose.Types.ObjectId.isValid(cachedUser.id) ? cachedUser.id : String(cachedUser.id);
+      cachedUser.id = canonicalId;
+      cachedUser.lastLoginTimestamp = new Date().toISOString();
+      authenticatedUser = {
+        id: canonicalId,
+        username: cachedUser.username,
+        name: cachedUser.name,
+        displayTag: cachedUser.displayTag,
+        gender: cachedUser.gender,
+        location: cachedUser.location,
+        interests: cachedUser.interests,
+        biography: cachedUser.biography,
+        profileImage: cachedUser.profileImage,
+        lastLoginTimestamp: cachedUser.lastLoginTimestamp,
+        premiumStatus: cachedUser.premiumStatus,
+        developerOverride: cachedUser.developerOverride,
+        role: cachedUser.role || 'user',
+        activityMetadata: cachedUser.activityMetadata || { messageCountToday: 0, lastMessageDate: null },
+        tierSpecificHistory: cachedUser.tierSpecificHistory || {},
+        createdAt: cachedUser.createdAt || new Date().toISOString(),
+      };
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      securityEvent('Login failed (password mismatch)', { username: user.username, requestId: req.requestId, ip: req.ip });
-      return res.status(401).json({ message: 'Invalid credentials (password mismatch)' });
-    }
-
-    user.role = user.role || 'user';
-    // Update last login timestamp
-    user.lastLoginTimestamp = new Date().toISOString();
-
-    // Update last login timestamp
-    user.lastLoginTimestamp = new Date().toISOString();
-
-    // Include more user info in JWT payload
     const tokenPayload = { 
-      userId: user.id, 
-      username: user.username, 
-      premiumStatus: user.premiumStatus,
-      developerOverride: user.developerOverride,
-      role: user.role || 'user'
+      userId: String(authenticatedUser.id), 
+      username: authenticatedUser.username, 
+      premiumStatus: authenticatedUser.premiumStatus,
+      developerOverride: authenticatedUser.developerOverride,
+      role: authenticatedUser.role || 'user'
     };
     tokenPayload.tokenVersion = TOKEN_VERSION;
     const token = jwt.sign(tokenPayload, JWT_SECRET || 'dev-insecure-secret', { expiresIn: '1h' });
 
-    securityEvent('Login success', { userId: user.id, username: user.username, requestId: req.requestId, ip: req.ip });
+    securityEvent('Login success', { userId: tokenPayload.userId, username: authenticatedUser.username, requestId: req.requestId, ip: req.ip });
     res.json({ 
       token, 
-      userId: user.id, 
-      username: user.username,
-      name: user.name,
-      displayTag: user.displayTag,
-      premiumStatus: user.premiumStatus,
-      developerOverride: user.developerOverride,
-      role: user.role || 'user'
+      userId: tokenPayload.userId, 
+      username: authenticatedUser.username,
+      name: authenticatedUser.name,
+      displayTag: authenticatedUser.displayTag,
+      premiumStatus: authenticatedUser.premiumStatus,
+      developerOverride: authenticatedUser.developerOverride,
+      role: authenticatedUser.role || 'user'
     });
   } catch (error) {
     logger.error('Login error', { error, requestId: req.requestId, username: req.body?.username });
@@ -821,9 +918,17 @@ async function authenticateToken(req, res, next) {
       return res.status(401).json({ message: 'Token version expired. Please re-login.' });
     }
     // Find the full user object to get the most up-to-date status, including developerOverride
-    let fullUser = users.find(u => u.id === decodedPayload.userId || u.username === decodedPayload.username);
+    const payloadUserId = decodedPayload.userId ? String(decodedPayload.userId) : null;
+    let fullUser = users.find(u => String(u.id) === payloadUserId || u.username === decodedPayload.username);
     if (!fullUser && mongoose.connection.readyState === 1 && UserModel) {
-      const dbUser = await UserModel.findOne({ $or: [ { _id: decodedPayload.userId }, { username: decodedPayload.username } ] }).lean();
+      const orClauses = [];
+      if (payloadUserId && mongoose.Types.ObjectId.isValid(payloadUserId)) {
+        orClauses.push({ _id: new mongoose.Types.ObjectId(payloadUserId) });
+      }
+      if (decodedPayload.username) {
+        orClauses.push({ username: decodedPayload.username });
+      }
+      const dbUser = orClauses.length ? await UserModel.findOne({ $or: orClauses }).lean() : null;
       if (dbUser) {
         fullUser = {
           id: dbUser._id.toString(),
@@ -836,14 +941,37 @@ async function authenticateToken(req, res, next) {
           gender: dbUser.gender || 'other',
           name: dbUser.name || dbUser.username
         };
+        const idx = users.findIndex(u => u.username === dbUser.username);
+        const cachePayload = {
+          id: fullUser.id,
+          username: dbUser.username,
+          password: dbUser.password,
+          name: dbUser.name || dbUser.username,
+          displayTag: dbUser.displayTag || dbUser.username,
+          gender: dbUser.gender,
+          location: dbUser.location || {},
+          interests: dbUser.carInterests || [],
+          biography: dbUser.biography || '',
+          profileImage: dbUser.profileImage || '',
+          lastLoginTimestamp: new Date().toISOString(),
+          premiumStatus: !!dbUser.premiumStatus,
+          developerOverride: !!dbUser.developerOverride,
+          role: dbUser.role || 'user',
+          activityMetadata: dbUser.activityMetadata || { messageCountToday: 0, lastMessageDate: null },
+          tierSpecificHistory: dbUser.tierSpecificHistory || {},
+          createdAt: (dbUser.createdAt instanceof Date ? dbUser.createdAt : new Date()).toISOString(),
+        };
+        if (idx > -1) users[idx] = cachePayload; else users.push(cachePayload);
       }
     }
     if (!fullUser) {
       securityEvent('Authenticated user not found', { requestId: req.requestId, userId: decodedPayload.userId, username: decodedPayload.username });
       return res.sendStatus(401);
     }
+    const canonicalId = fullUser.id ? String(fullUser.id) : payloadUserId;
     req.user = {
       ...fullUser,
+      id: canonicalId,
       role: fullUser.role || decodedPayload.role || 'user',
     };
     next(); // proceed to the protected route
@@ -1139,6 +1267,11 @@ function getDistanceInMiles(lat1, lon1, lat2, lon2) {
 
 // --- Helpers: Events ---
 const isObjectIdLike = (v) => typeof v === 'string' && /^[a-fA-F0-9]{24}$/.test(v);
+const toObjectId = (value) => {
+  if (value == null) return null;
+  const str = String(value);
+  return mongoose.Types.ObjectId.isValid(str) ? new mongoose.Types.ObjectId(str) : null;
+};
 async function findEventByParam(eventIdParam) {
   // Prefer persistent DB if available
   const n = Number(eventIdParam);
@@ -1331,7 +1464,12 @@ app.get('/messages/inbox', authenticateToken, async (req, res) => {
 app.post('/events', eventWriteLimiter, authenticateToken, async (req, res) => {
   try {
     const { name, description, date, location, image, thumbnail, schedule = [], tags = [] } = req.body;
-    const createdByUserId = req.user.id || req.user.userId; // sanitized string id
+    const creatorRawId = req.user.id || req.user.userId;
+    const ownerObjectId = toObjectId(creatorRawId);
+    if (mongoose.connection.readyState === 1 && EventModel && !ownerObjectId) {
+      return res.status(400).json({ message: 'Authenticated user is missing a persistent identifier' });
+    }
+    const createdByUserId = ownerObjectId ? ownerObjectId.toString() : String(creatorRawId);
     const createdByUsername = req.user.username;
 
     if (!name || !description || !date || !location) {
@@ -1369,7 +1507,7 @@ app.post('/events', eventWriteLimiter, authenticateToken, async (req, res) => {
         thumbnail,
         schedule,
         tags,
-        createdByUserId,
+        createdByUserId: ownerObjectId,
         createdByUsername,
         rsvps: [],
         comments: [],
@@ -1400,6 +1538,10 @@ app.post('/events/:eventId/rsvp', rsvpLimiter, authenticateToken, async (req, re
   try {
     const eventIdParam = req.params.eventId;
     const rsvpUserId = String(req.user.id || req.user.userId);
+    const rsvpObjectId = toObjectId(rsvpUserId);
+    if (mongoose.connection.readyState === 1 && EventModel && !rsvpObjectId) {
+      return res.status(400).json({ message: 'Authenticated user is missing a persistent identifier' });
+    }
     const { ev, source } = await findEventByParam(eventIdParam);
     if (!ev) return res.status(404).json({ message: 'Event not found' });
 
@@ -1414,7 +1556,7 @@ app.post('/events/:eventId/rsvp', rsvpLimiter, authenticateToken, async (req, re
         return res.status(409).json({ message: 'Already RSVPed to this event' });
       }
 
-      await EventModel.updateOne({ _id: ev._id }, { $addToSet: { rsvps: rsvpUserId } });
+      await EventModel.updateOne({ _id: ev._id }, { $addToSet: { rsvps: rsvpObjectId } });
       const updated = await EventModel.findById(ev._id).lean();
       securityEvent('Event RSVP added', {
         requestId: req.requestId,
@@ -1444,11 +1586,15 @@ app.delete('/events/:eventId/rsvp', authenticateToken, async (req, res) => {
   try {
     const eventIdParam = req.params.eventId;
     const rsvpUserId = String(req.user.id || req.user.userId);
+    const rsvpObjectId = toObjectId(rsvpUserId);
+    if (mongoose.connection.readyState === 1 && EventModel && !rsvpObjectId) {
+      return res.status(400).json({ message: 'Authenticated user is missing a persistent identifier' });
+    }
     const { ev, source } = await findEventByParam(eventIdParam);
     if (!ev) return res.status(404).json({ message: 'Event not found' });
 
     if (source === 'db' && mongoose.connection.readyState === 1 && EventModel) {
-      await EventModel.updateOne({ _id: ev._id }, { $pull: { rsvps: rsvpUserId } });
+      await EventModel.updateOne({ _id: ev._id }, { $pull: { rsvps: rsvpObjectId } });
       const updated = await EventModel.findById(ev._id).lean();
       securityEvent('Event RSVP removed', {
         requestId: req.requestId,
@@ -1531,8 +1677,12 @@ app.post('/events/:eventId/ensure-thread', eventWriteLimiter, async (req, res) =
 app.get('/my-rsvps', authenticateToken, async (req, res) => {
   try {
     const rsvpUserId = String(req.user.id || req.user.userId);
+    const rsvpObjectId = toObjectId(rsvpUserId);
     if (mongoose.connection.readyState === 1 && EventModel) {
-      const docs = await EventModel.find({ rsvps: rsvpUserId }).lean();
+      if (!rsvpObjectId) {
+        return res.status(400).json({ message: 'Authenticated user is missing a persistent identifier' });
+      }
+      const docs = await EventModel.find({ rsvps: rsvpObjectId }).lean();
       return res.json(docs.map(normalizeEventRecord));
     }
 
