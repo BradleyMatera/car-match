@@ -41,16 +41,16 @@ const createRateLimits = () => {
   });
 
   const authLimiter = buildLimiter({
-    windowMs: 15 * 60 * 1000,
-    max: 10,
-    message: 'Too many authentication attempts. Please try again in 15 minutes.',
+    windowMs: 5 * 60 * 1000,
+    max: 50,
+    message: 'Too many authentication attempts. Please try again in a few minutes.',
   });
 
   const createSensitiveLimiter = (overrides = {}) =>
     buildLimiter({
-      windowMs: 60 * 60 * 1000,
-      max: 60,
-      message: 'Too many actions. Please wait before trying again.',
+      windowMs: 30 * 60 * 1000,
+      max: 180,
+      message: 'You are performing actions very quickly. Please slow down briefly and try again.',
       ...overrides,
     });
 

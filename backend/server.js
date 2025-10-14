@@ -1272,11 +1272,51 @@ const toObjectId = (value) => {
   const str = String(value);
   return mongoose.Types.ObjectId.isValid(str) ? new mongoose.Types.ObjectId(str) : null;
 };
+
+const computeNextEventId = async () => {
+  let nextId = events.length + 1;
+  if (mongoose.connection.readyState === 1 && EventModel) {
+    try {
+      const latest = await EventModel.findOne({}).sort({ id: -1 }).lean();
+      if (latest && typeof latest.id !== 'undefined') {
+        const numeric = Number(latest.id);
+        if (!Number.isNaN(numeric)) {
+          nextId = numeric + 1;
+        } else {
+          nextId = Date.now();
+        }
+      } else {
+        nextId = Math.max(nextId, 1);
+      }
+    } catch (e) {
+      logger.warn('Unable to compute next event id from Mongo', { error: e });
+      nextId = Math.max(nextId, Date.now());
+    }
+  }
+  return nextId;
+};
+
+const syncEventCache = (normalizedEvent) => {
+  if (!normalizedEvent || typeof normalizedEvent.id === 'undefined') return;
+  const key = String(normalizedEvent.id);
+  const index = events.findIndex((e) => String(e.id) === key);
+  if (index > -1) {
+    events[index] = {
+      ...events[index],
+      ...normalizedEvent,
+    };
+  } else {
+    events.push({ ...normalizedEvent });
+  }
+};
 async function findEventByParam(eventIdParam) {
   // Prefer persistent DB if available
   const n = Number(eventIdParam);
   if (!Number.isNaN(n) && mongoose.connection.readyState === 1 && EventModel) {
-    const doc = await EventModel.findOne({ id: n });
+    let doc = await EventModel.findOne({ id: n });
+    if (!doc) {
+      doc = await EventModel.findOne({ id: String(eventIdParam) });
+    }
     if (doc) return { ev: doc, source: 'db' };
   }
   if (mongoose.connection.readyState === 1 && EventModel && isObjectIdLike(eventIdParam)) {
@@ -1476,7 +1516,7 @@ app.post('/events', eventWriteLimiter, authenticateToken, async (req, res) => {
       return res.status(400).json({ message: 'Name, description, date, and location are required for an event' });
     }
 
-    const nextId = events.length + 1;
+    const nextId = await computeNextEventId();
     const newEvent = {
       id: nextId,
       name,
@@ -1493,6 +1533,8 @@ app.post('/events', eventWriteLimiter, authenticateToken, async (req, res) => {
       rsvps: [],
       comments: [],
     };
+    const existingIdx = events.findIndex((e) => String(e.id) === String(nextId));
+    if (existingIdx > -1) events.splice(existingIdx, 1);
     events.push({ ...newEvent });
     let saved = newEvent;
     if (mongoose.connection.readyState === 1 && EventModel) {
@@ -1525,6 +1567,7 @@ app.post('/events', eventWriteLimiter, authenticateToken, async (req, res) => {
       }
     }
     const normalized = normalizeEventRecord(saved);
+    syncEventCache(normalized);
     securityEvent('Event created', { requestId: req.requestId, eventId: normalized?.id, createdByUserId });
     res.status(201).json({ message: 'Event created successfully', data: normalized });
   } catch (error) {
@@ -1828,6 +1871,7 @@ app.delete('/events/:eventId', authenticateToken, async (req, res) => {
       }
       await EventModel.deleteOne({ _id: ev._id });
       securityEvent('Event deleted', { requestId: req.requestId, eventId: eventIdParam, userId });
+      events.splice(events.findIndex((e) => String(e.id) === String(eventIdParam)), 1);
       return res.json({ ok: true });
     }
     // Memory fallback
@@ -1870,14 +1914,16 @@ app.put('/events/:eventId', authenticateToken, async (req, res) => {
         }
       }
       securityEvent('Event updated', { requestId: req.requestId, eventId: eventIdParam, userId });
-      return res.json(normalizeEventRecord(doc));
+      const normalized = normalizeEventRecord(doc);
+      syncEventCache(normalized);
+      return res.json({ message: 'Event updated successfully', data: normalized });
     }
     // Memory fallback
     const idx = events.findIndex(e => String(e.id) === String(eventIdParam));
     if (idx === -1) return res.status(404).json({ message: 'Event not found' });
     Object.assign(events[idx], req.body || {});
     securityEvent('Event updated', { requestId: req.requestId, eventId: eventIdParam, userId });
-    res.json(normalizeEventRecord(events[idx]));
+    res.json({ message: 'Event updated successfully', data: normalizeEventRecord(events[idx]) });
   } catch (e) {
     logger.error('Update event error', { error: e, requestId: req.requestId, eventId: req.params.eventId });
     res.status(500).json({ message: 'Error updating event' });
