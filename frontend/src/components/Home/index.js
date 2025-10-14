@@ -101,7 +101,7 @@ const Home = () => {
       <div
         className="page-bg home-bg"
         style={{
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url(${currentBackground})`
+          backgroundImage: `linear-gradient(rgba(8,13,23,0.72), rgba(8,13,23,0.72)), url(${currentBackground})`
         }}
       />
       {/* Hero Section */}
@@ -115,6 +115,12 @@ const Home = () => {
           {/* Removed Events CTA to simplify hero */}
         </div>
       </section>
+
+      <Section>
+        <div className="beta-banner" role="status" aria-live="polite">
+          <strong>Beta tip:</strong> Start by creating an event or joining an existing discussion. Let us know if anything feels off!
+        </div>
+      </Section>
 
       {/* Snapshot */}
       <Section>

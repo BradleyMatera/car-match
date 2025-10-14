@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useContext, useMemo, useCallback, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import Calendar from 'react-calendar';
@@ -36,7 +36,7 @@ const Events = () => {
   const isOwner = isEventOwner(selectedEvent);
   const canManageSelectedEvent = Boolean(isOwner || currentUser?.developerOverride || userRole === 'admin');
   const [showCreate, setShowCreate] = useState(false);
-  const [createData, setCreateData] = useState({ name: '', description: '', date: '', location: '' });
+  const [createData, setCreateData] = useState({ name: '', description: '', date: '', location: '', image: '' });
   const [editingEvent, setEditingEvent] = useState(false);
   const [editData, setEditData] = useState({ name: '', description: '', date: '', location: '' });
   // Editing event comments removed from UI (still supported in API)
@@ -44,6 +44,10 @@ const Events = () => {
   const [bgImages, setBgImages] = useState([]);
   const [bgIndex, setBgIndex] = useState(0);
   const routerLocation = useLocation();
+  const [flash, setFlash] = useState(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [pendingRsvp, setPendingRsvp] = useState(null);
+  const modalNameRef = useRef(null);
 
   useEffect(() => {
     const loadEvents = async () => {
@@ -76,11 +80,35 @@ const Events = () => {
         }
       } catch (error) {
         console.error('Error loading events:', error);
+        setFlash({ type: 'error', message: 'We had trouble loading events. Please refresh or try again shortly.' });
       }
     };
     loadEvents();
   }, [token, assignSelectedEvent]);
 
+  const showFlash = useCallback((message, type = 'info') => {
+    setFlash({ id: Date.now(), message, type });
+  }, []);
+
+  useEffect(() => {
+    if (!flash) return;
+    const timer = setTimeout(() => setFlash(null), 4500);
+    return () => clearTimeout(timer);
+  }, [flash]);
+
+  useEffect(() => {
+    if (showCreate) {
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => {
+        if (modalNameRef.current) modalNameRef.current.focus();
+      }, 50);
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [showCreate]);
   useEffect(() => {
     if (!bgImages.length) return;
     const id = setInterval(() => setBgIndex(i => (i + 1) % bgImages.length), 8000);
@@ -148,13 +176,14 @@ const Events = () => {
 
   const handleRsvpToggle = async (eventId) => {
     try {
-      if (!token || !currentUser) { alert('Please login to RSVP'); return; }
+      if (!token || !currentUser) { showFlash('Please log in to RSVP.', 'info'); return; }
       const key = String(eventId);
       const targetEvent = events.find(e => String(e.id) === key);
       if (targetEvent && userId && targetEvent.createdByUserId && String(targetEvent.createdByUserId) === userId) {
-        alert('Organizers are automatically listed for their events.');
+        showFlash('Organizers are automatically counted for their own events.', 'info');
         return;
       }
+      setPendingRsvp(key);
       const currentlyGoing = isRsvped(key);
       if (currentlyGoing) {
         await api.cancelRsvp(token, eventId);
@@ -174,8 +203,12 @@ const Events = () => {
       await refreshEvents();
       // Ensure selected event detail is freshest from API
       try { const ev = await api.getEvent(eventId); assignSelectedEvent(ev); } catch {}
+      showFlash(currentlyGoing ? 'Your RSVP has been removed.' : 'You are marked as going!', 'success');
     } catch (error) {
       console.error('Error handling RSVP:', error);
+      showFlash(error.message || 'RSVP failed. Please try again.', 'error');
+    } finally {
+      setPendingRsvp(null);
     }
   };
 
@@ -214,7 +247,20 @@ const Events = () => {
 
   return (
     <div className="events-container">
-      <div className="events-bg" style={{ backgroundImage: `linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url(${currentBackground})` }} />
+      {flash && (
+        <div className={`page-flash page-flash-${flash.type}`} role="status" aria-live="polite">
+          <span>{flash.message}</span>
+          <button
+            type="button"
+            className="page-flash-dismiss"
+            onClick={() => setFlash(null)}
+            aria-label="Dismiss notification"
+          >
+            ×
+          </button>
+        </div>
+      )}
+      <div className="events-bg" style={{ backgroundImage: `linear-gradient(rgba(8,13,23,0.72), rgba(8,13,23,0.72)), url(${currentBackground})` }} />
       <header className="events-header">
         <h1>Car Community Events</h1>
         <p className="page-description">
@@ -226,7 +272,7 @@ const Events = () => {
       <Section>
         {currentUser && (
           <div style={{display:'flex',justifyContent:'flex-end',marginBottom:8}}>
-            <button className="btn" onClick={()=> setShowCreate(true)}>New Event</button>
+            <button className="btn" onClick={()=> setShowCreate(true)} aria-haspopup="dialog">New Event</button>
           </div>
         )}
         <h2 className="section-title">Upcoming Events</h2>
@@ -252,7 +298,7 @@ const Events = () => {
               const handleDiscussionClick = async (e) => {
                 e.stopPropagation();
                 if (!canEnsureThread) {
-                  alert('Only organizers or admins can start a discussion.');
+                  showFlash('Only organizers or admins can start a discussion for this event.', 'info');
                   return;
                 }
                 try {
@@ -263,10 +309,10 @@ const Events = () => {
                   if (threadId) {
                     window.location.hash = `#/forums?open=${threadId}`;
                   } else {
-                    alert('Thread not ready; try again in a moment.');
+                    showFlash('Thread isn’t ready yet—please try again in a moment.', 'info');
                   }
                 } catch (err) {
-                  alert(err.message || 'Unable to open discussion right now.');
+                  showFlash(err.message || 'Unable to open the discussion right now.', 'error');
                 }
               };
 
@@ -304,13 +350,14 @@ const Events = () => {
                         </button>
                         <button
                           className={`rsvp-button small ${isRsvped(eventId) ? 'rsvp-confirmed' : ''}`}
-                          disabled={isMine}
+                          disabled={isMine || pendingRsvp === eventId}
+                          aria-live="polite"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleRsvpToggle(eventId);
                           }}
                         >
-                          {rsvpLabel}
+                          {pendingRsvp === eventId ? 'Processing…' : rsvpLabel}
                         </button>
                       </div>
                     </div>
@@ -423,7 +470,7 @@ const Events = () => {
                   <div className="share-list">
                     <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(selectedEvent.title)}&url=${encodeURIComponent(window.location.href)}`} target="_blank" rel="noreferrer">Twitter</a>
                     <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`} target="_blank" rel="noreferrer">Facebook</a>
-                    <button className="btn" onClick={()=>{ navigator.clipboard.writeText(window.location.href); alert('Link copied'); }}>Copy Link</button>
+                    <button className="btn" onClick={()=>{ navigator.clipboard.writeText(window.location.href); showFlash('Event link copied to your clipboard.', 'success'); }}>Copy Link</button>
                   </div>
                 </div>
                 <div className="side-card">
@@ -439,7 +486,7 @@ const Events = () => {
                           const tid = await ensureSelectedEventThread();
                           if (tid) window.location.hash = `#/forums?open=${tid}`;
                         } catch (err) {
-                          alert(err.message || 'Unable to start a discussion');
+                          showFlash(err.message || 'Unable to start a discussion right now.', 'error');
                         }
                       }}
                     >
@@ -460,18 +507,40 @@ const Events = () => {
                             const tid = await ensureSelectedEventThread();
                             if (tid) window.location.hash = `#/forums?open=${tid}`;
                           } catch (err) {
-                            alert(err.message || 'Unable to create forum thread');
+                            showFlash(err.message || 'Unable to create a forum thread right now.', 'error');
                           }
                         }}>Create Forum Thread</button>
                       )}
-                      <button className="btn btn-small btn-warning" onClick={async ()=>{ if (!window.confirm('Delete this event?')) return; try { await api.deleteEvent(token, selectedEvent.id); assignSelectedEvent(null); await refreshEvents(); } catch (e){ alert(e.message||'Failed to delete'); } }}>Delete</button>
+                      <button className="btn btn-small btn-warning" onClick={async ()=>{
+                        if (!window.confirm('Delete this event?')) return;
+                        try {
+                          await api.deleteEvent(token, selectedEvent.id);
+                          assignSelectedEvent(null);
+                          await refreshEvents();
+                          showFlash('Event deleted.', 'success');
+                        } catch (e){
+                          showFlash(e.message || 'Failed to delete the event.', 'error');
+                        }
+                      }}>Delete</button>
                     </div>
                   </div>
                 )}
                 {canManageSelectedEvent && editingEvent && (
                   <div className="side-card">
                     <h4>Edit Event</h4>
-                    <form onSubmit={async (e)=>{ e.preventDefault(); try { await api.updateEvent(token, selectedEvent.id, editData); setEditingEvent(false); await refreshEvents(); const ev = await api.getEvent(selectedEvent.id); assignSelectedEvent(ev); } catch(err){ alert(err.message||'Failed to update'); } }}>
+                    <form onSubmit={async (e)=>{
+                      e.preventDefault();
+                      try {
+                        await api.updateEvent(token, selectedEvent.id, editData);
+                        setEditingEvent(false);
+                        await refreshEvents();
+                        const ev = await api.getEvent(selectedEvent.id);
+                        assignSelectedEvent(ev);
+                        showFlash('Event details updated.', 'success');
+                      } catch(err){
+                        showFlash(err.message || 'Failed to update the event.', 'error');
+                      }
+                    }}>
                       <input placeholder="Name" value={editData.name} onChange={e=>setEditData(d=>({...d,name:e.target.value}))} required />
                       <input placeholder="Date (YYYY-MM-DD)" value={editData.date} onChange={e=>setEditData(d=>({...d,date:e.target.value}))} required />
                       <input placeholder="Location" value={editData.location} onChange={e=>setEditData(d=>({...d,location:e.target.value}))} required />
@@ -498,6 +567,15 @@ const Events = () => {
             </header>
             <form onSubmit={async (e)=>{
               e.preventDefault();
+              if (!createData.name.trim() || !createData.description.trim()) {
+                showFlash('Please complete the name and description before creating your event.', 'error');
+                return;
+              }
+              if (!/^\d{4}-\d{2}-\d{2}$/.test(createData.date || '')) {
+                showFlash('Dates should use the format YYYY-MM-DD.', 'error');
+                return;
+              }
+              setIsCreating(true);
               try {
                 const ev = await api.createEvent(token, createData);
                 setShowCreate(false);
@@ -506,10 +584,15 @@ const Events = () => {
                 if (ev && ev.id) {
                   assignSelectedEvent(ev);
                 }
-              } catch(err){ alert(err.message || 'Failed to create event'); }
+                showFlash('Event created and ready to share!', 'success');
+              } catch(err){
+                showFlash(err.message || 'Failed to create event. Please try again.', 'error');
+              } finally {
+                setIsCreating(false);
+              }
             }}>
               <div className="content">
-                <input placeholder="Name" value={createData.name} onChange={e=>setCreateData(d=>({...d,name:e.target.value}))} required />
+                <input ref={modalNameRef} placeholder="Name" value={createData.name} onChange={e=>setCreateData(d=>({...d,name:e.target.value}))} required />
                 <input placeholder="Date (YYYY-MM-DD)" value={createData.date} onChange={e=>setCreateData(d=>({...d,date:e.target.value}))} required />
                 <input placeholder="Location (City, State)" value={createData.location} onChange={e=>setCreateData(d=>({...d,location:e.target.value}))} required />
                 <input placeholder="Image URL (optional)" value={createData.image} onChange={e=>setCreateData(d=>({...d,image:e.target.value}))} />
@@ -517,7 +600,9 @@ const Events = () => {
               </div>
               <footer>
                 <button type="button" className="btn" onClick={()=> setShowCreate(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Create Event</button>
+                <button type="submit" className="btn btn-primary" disabled={isCreating}>
+                  {isCreating ? 'Saving…' : 'Create Event'}
+                </button>
               </footer>
             </form>
           </div>

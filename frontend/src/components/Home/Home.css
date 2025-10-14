@@ -32,6 +32,15 @@
   z-index: 1;
 }
 
+.hero-content h1,
+.hero-content .hero-text {
+  color: var(--text-light);
+  text-shadow: 0 3px 18px rgba(0,0,0,0.45);
+}
+
+.beta-banner{background:linear-gradient(135deg, rgba(21,116,187,0.12), rgba(140,202,0,0.12));border:1px solid rgba(21,116,187,0.28);border-radius:var(--radius-md);padding:var(--space-md);display:flex;gap:var(--space-sm);align-items:flex-start;line-height:1.5;color:#1f2937;box-shadow:0 12px 30px rgba(15,23,42,0.08)}
+.beta-banner strong{color:var(--primary-color)}
+
 /* Section styling */
 .section-title {
   position: relative;

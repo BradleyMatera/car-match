@@ -25,6 +25,8 @@ const Forums = () => {
   const [showThreadModal, setShowThreadModal] = useState(false);
   const [newThreadBody, setNewThreadBody] = useState('');
   const [newPostBody, setNewPostBody] = useState('');
+  const [loadingCategories, setLoadingCategories] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const location = useLocation();
   const [frontStats, setFrontStats] = useState([]);
   const [showEmoji, setShowEmoji] = useState(false);
@@ -60,22 +62,31 @@ const Forums = () => {
 
   useEffect(() => {
     (async () => {
-      const cats = await api.getForumCategories();
-      setCategories(cats);
-      // Load front-page stats for category tiles
-      try { const stats = await api.getForumStats(); setFrontStats(stats); } catch {}
-      const params = new URLSearchParams(location.search);
-      const open = params.get('open');
-      if (open) {
-        try {
-          const data = await api.getThreadById(open);
-          if (data?.thread) {
-            const cat = cats.find(c => c.id === data.thread.categoryId);
-            if (cat) setSelectedCategory(cat);
-            setActiveThread(data.thread);
-            setThreadPosts(data.posts);
-          }
-        } catch {}
+      setLoadingCategories(true);
+      setLoadError(null);
+      try {
+        const cats = await api.getForumCategories();
+        setCategories(cats);
+        try { const stats = await api.getForumStats(); setFrontStats(stats); } catch {}
+        const params = new URLSearchParams(location.search);
+        const open = params.get('open');
+        if (open) {
+          try {
+            const data = await api.getThreadById(open);
+            if (data?.thread) {
+              const cat = cats.find(c => c.id === data.thread.categoryId);
+              if (cat) setSelectedCategory(cat);
+              setActiveThread(data.thread);
+              setThreadPosts(data.posts);
+            }
+          } catch {}
+        }
+      } catch (err) {
+        console.error('Unable to load forum categories', err);
+        setCategories([]);
+        setLoadError('Forums are still warming up. Please try again shortly or refresh the page.');
+      } finally {
+        setLoadingCategories(false);
       }
     })();
   }, [location.search]);
@@ -96,9 +107,11 @@ const Forums = () => {
         setThreadsTotal(resp.total || 0);
       }
       setPage(p);
+      setLoadError(null);
     } catch (e) {
       setThreads([]);
       setThreadsTotal(0);
+      setLoadError('We couldn\'t load threads right now. Please try again in a moment.');
     }
   };
 
@@ -268,103 +281,121 @@ const Forums = () => {
       <div
         className="page-bg forums-bg"
         style={{
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url(${currentBackground})`
+          backgroundImage: `linear-gradient(rgba(8,13,23,0.72), rgba(8,13,23,0.72)), url(${currentBackground})`
         }}
       />
       <aside className="forums-sidebar">
         <h2>Forums</h2>
-        <ul>
-          {categories.map(cat => (
-            <li key={cat.id} className={selectedCategory?.id === cat.id ? 'active' : ''}>
-              <button onClick={() => loadThreads(cat)}>{cat.name}</button>
-              <p className="cat-desc">{cat.description}</p>
-            </li>
-          ))}
-        </ul>
+        {loadingCategories ? (
+          <div className="forum-empty">Loading forums…</div>
+        ) : categories.length === 0 ? (
+          <div className="forum-empty">No categories yet. Check back soon!</div>
+        ) : (
+          <ul>
+            {categories.map(cat => (
+              <li key={cat.id} className={selectedCategory?.id === cat.id ? 'active' : ''}>
+                <button onClick={() => loadThreads(cat)}>{cat.name}</button>
+                <p className="cat-desc">{cat.description}</p>
+              </li>
+            ))}
+          </ul>
+        )}
       </aside>
-      <section className="forums-main">
-        <div className="forum-subnav">
-          <button className="btn btn-small">Guidelines</button>
-          <button className="btn btn-small">Staff</button>
-          <button className="btn btn-small">Online Users</button>
-          <div style={{marginLeft:'auto', display:'flex', gap:8}}>
-            <input type="search" placeholder="Search" value={search} onChange={e=>setSearch(e.target.value)} />
-            {selectedCategory ? (
-              <button className="btn" onClick={()=> loadThreads(selectedCategory, { page: 1, search })}>Search</button>
-            ) : (
-              <button className="btn" onClick={()=> { if (categories[0]) loadThreads(categories[0], { page:1, search }); }}>Go</button>
-            )}
+      <section className="forums-main" aria-live="polite">
+        {loadingCategories ? (
+          <div className="forum-empty">Loading forums…</div>
+        ) : loadError ? (
+          <div className="forum-empty" role="alert">{loadError}</div>
+        ) : categories.length === 0 ? (
+          <div className="forum-empty">
+            <h3>Forums are almost ready</h3>
+            <p>We’re still importing discussion topics. Check back soon or start an event discussion instead.</p>
           </div>
-        </div>
-        {!selectedCategory && (
-          <div className="forum-front">
-            <h1 className="forum-title">CarMatch Forums</h1>
-            <div className="forum-sections">
-              {categories.map(cat => {
-                const s = frontStats.find(x => x.id === cat.id) || { threads: 0, posts: 0 };
-                return (
-                  <div key={cat.id} className="forum-card" onClick={()=> loadThreads(cat, { page: 1 })}>
-                    <div className="forum-card-left">
-                      <div className="forum-card-title">{cat.name}</div>
-                      <div className="forum-card-desc">{cat.description}</div>
-                    </div>
-                    <div className="forum-card-right">
-                      <div className="forum-count"><strong>{s.posts}</strong><span>posts</span></div>
-                      <div className="forum-count"><strong>{s.threads}</strong><span>threads</span></div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-        {selectedCategory && !activeThread && (
-          <div className="threads-view">
-            <div className="threads-header">
-              <h3>{selectedCategory.name}</h3>
-              <div style={{display:'flex',gap:8,alignItems:'center'}}>
-                <input type="search" placeholder="Search threads" value={search} onChange={e=>setSearch(e.target.value)} />
-                <button onClick={()=> loadThreads(selectedCategory, { page: 1, search })}>Search</button>
+        ) : (
+          <>
+            <div className="forum-subnav">
+              <button className="btn btn-small">Guidelines</button>
+              <button className="btn btn-small">Staff</button>
+              <button className="btn btn-small">Online Users</button>
+              <div style={{marginLeft:'auto', display:'flex', gap:8}}>
+                <input type="search" placeholder="Search" value={search} onChange={e=>setSearch(e.target.value)} />
+                {selectedCategory ? (
+                  <button className="btn" onClick={()=> loadThreads(selectedCategory, { page: 1, search })}>Search</button>
+                ) : (
+                  <button className="btn" onClick={()=> { if (categories[0]) loadThreads(categories[0], { page:1, search }); }}>Go</button>
+                )}
               </div>
-              {currentUser && (
-                <button className="btn btn-primary" onClick={()=> setShowThreadModal(true)}>New Thread</button>
-              )}
             </div>
-            {threads.length === 0 && <p>No threads yet. Be the first to post!</p>}
-            <ul className="thread-list">
-              {threads.map((th) => {
-                const threadId = getThreadId(th);
-                const isPinned = Boolean(th.pinned);
-                const isLocked = Boolean(th.locked);
-                const replyCount = th.replies || 0;
-                return (
-                  <li key={threadId} className="thread-item">
-                    <div className="thread-item-header" onClick={()=>openThread(th)}>
-                      <div className="thread-title">
-                        {isPinned && <span className="thread-chip pinned">Pinned</span>}
-                        {isLocked && <span className="thread-chip locked">Locked</span>}
-                        <span>{th.title}</span>
+            {!selectedCategory && (
+              <div className="forum-front">
+                <h1 className="forum-title">CarMatch Forums</h1>
+                <div className="forum-sections">
+                  {categories.map(cat => {
+                    const s = frontStats.find(x => x.id === cat.id) || { threads: 0, posts: 0 };
+                    return (
+                      <div key={cat.id} className="forum-card" onClick={()=> loadThreads(cat, { page: 1 })}>
+                        <div className="forum-card-left">
+                          <div className="forum-card-title">{cat.name}</div>
+                          <div className="forum-card-desc">{cat.description}</div>
+                        </div>
+                        <div className="forum-card-right">
+                          <div className="forum-count"><strong>{s.posts}</strong><span>posts</span></div>
+                          <div className="forum-count"><strong>{s.threads}</strong><span>threads</span></div>
+                        </div>
                       </div>
-                      <div className="thread-meta">by {th.authorUsername || th.author || 'user'} • {new Date(th.lastPostAt).toLocaleString()} • {replyCount} replies</div>
-                    </div>
-                    {canModerate && (
-                      <div className="thread-tool-row">
-                        <button onClick={()=>pinToggle(th, !th.pinned)}>{isPinned ? 'Unpin' : 'Pin'}</button>
-                        <button onClick={()=>lockToggle(th, !th.locked)}>{isLocked ? 'Unlock' : 'Lock'}</button>
-                        <button onClick={()=>deleteThread(th)}>Delete</button>
-                      </div>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-            <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
-              <button disabled={page<=1} onClick={()=> loadThreads(selectedCategory, { page: page-1 })}>Prev</button>
-              <span>Page {page} {threadsTotal? `(~${threadsTotal} total)`:''}</span>
-              <button disabled={threads.length < pageSize} onClick={()=> loadThreads(selectedCategory, { page: page+1 })}>Next</button>
-            </div>
-          </div>
-        )}
+                    );
+                  })}
+                </div>
+                <div className="forum-empty-hint">Looking for something specific? Try the Events page to open a discussion from an event.</div>
+              </div>
+            )}
+            {selectedCategory && !activeThread && (
+              <div className="threads-view">
+                <div className="threads-header">
+                  <h3>{selectedCategory.name}</h3>
+                  <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                    <input type="search" placeholder="Search threads" value={search} onChange={e=>setSearch(e.target.value)} />
+                    <button onClick={()=> loadThreads(selectedCategory, { page: 1, search })}>Search</button>
+                  </div>
+                  {currentUser && (
+                    <button className="btn btn-primary" onClick={()=> setShowThreadModal(true)}>New Thread</button>
+                  )}
+                </div>
+                {threads.length === 0 && <p>No threads yet. Be the first to post!</p>}
+                <ul className="thread-list">
+                  {threads.map((th) => {
+                    const threadId = getThreadId(th);
+                    const isPinned = Boolean(th.pinned);
+                    const isLocked = Boolean(th.locked);
+                    const replyCount = th.replies || 0;
+                    return (
+                      <li key={threadId} className="thread-item">
+                        <div className="thread-item-header" onClick={()=>openThread(th)}>
+                          <div className="thread-title">
+                            {isPinned && <span className="thread-chip pinned">Pinned</span>}
+                            {isLocked && <span className="thread-chip locked">Locked</span>}
+                            <span>{th.title}</span>
+                          </div>
+                          <div className="thread-meta">by {th.authorUsername || th.author || 'user'} • {new Date(th.lastPostAt).toLocaleString()} • {replyCount} replies</div>
+                        </div>
+                        {canModerate && (
+                          <div className="thread-tool-row">
+                            <button onClick={()=>pinToggle(th, !th.pinned)}>{isPinned ? 'Unpin' : 'Pin'}</button>
+                            <button onClick={()=>lockToggle(th, !th.locked)}>{isLocked ? 'Unlock' : 'Lock'}</button>
+                            <button onClick={()=>deleteThread(th)}>Delete</button>
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+                <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
+                  <button disabled={page<=1} onClick={()=> loadThreads(selectedCategory, { page: page-1 })}>Prev</button>
+                  <span>Page {page} {threadsTotal? `(~${threadsTotal} total)`:''}</span>
+                  <button disabled={threads.length < pageSize} onClick={()=> loadThreads(selectedCategory, { page: page+1 })}>Next</button>
+                </div>
+              </div>
+            )}
 
         {selectedCategory && activeThread && (
           <div className="thread-view">
@@ -472,6 +503,8 @@ const Forums = () => {
             )}
             {activeThread.locked && <p>This thread is locked.</p>}
           </div>
+        )}
+        </>
         )}
       </section>
       {showThreadModal && (
