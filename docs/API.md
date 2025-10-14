@@ -22,9 +22,9 @@ Messages
 Events
 - GET /events
 - GET /events/:eventId
-- POST /events (auth) — { name, description, date, location }
-- PUT /events/:eventId (auth)
-- DELETE /events/:eventId (auth)
+- POST /events (auth) — { name, description, date, location, image? } → `{ message, data }`
+- PUT /events/:eventId (auth) — body mirrors creation payload (partial updates); responds `{ message, data }`
+- DELETE /events/:eventId (auth) — returns `{ ok: true }` on success
 - POST /events/:eventId/rsvp (auth)
 - DELETE /events/:eventId/rsvp (auth)
 - GET /my-rsvps (auth)
@@ -55,3 +55,4 @@ Auth header
 Notes
 - CORS is restricted via `ALLOWED_ORIGINS` on the server; allow host‑only origins (e.g., `https://bradleymatera.github.io`).
 - JWT payload includes `tokenVersion`; tokens with older versions are rejected when `TOKEN_VERSION` is bumped.
+- Default rate limits (beta): ~50 auth attempts per 5 minutes and ~180 sensitive actions per 30 minutes; exceeding the window yields HTTP 429.

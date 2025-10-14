@@ -95,3 +95,24 @@ Opened Milestone `359 MS 10`, kept the `dev → staging` rollup PR active, and b
 - Run backfill/seed updates once schema changes are in place.
 - Continue grooming the project board as tasks move from Ready → In progress → Done.
 _______
+
+### Week 5
+
+⚙️ Overview:  
+Closed the remaining ownership bugs raised during beta. Normalized event IDs between Atlas and the in-memory fallback, wired cache sync on create/update/delete, and relaxed the rate limiting configuration so QA can exercise organiser workflows without tripping 429s. Updated deployment docs and issue tracker to reflect the fixes.
+
+🌵 Challenges:  
+- New Atlas-backed events were colliding with seeded numeric IDs, preventing edit/delete from targeting the right document.  
+- Render beta testing kept hitting the old 10-attempt auth limit, slowing down multi-user verification.
+
+🏆 Accomplishments:  
+- Added `computeNextEventId` / `syncEventCache` helpers in `backend/server.js` to keep Mongo and in-memory stores aligned.  
+- Updated `findEventByParam` to resolve either numeric or string IDs so organiser checks always fire.  
+- Relaxed `authLimiter` and `createSensitiveLimiter` thresholds and documented the new numbers in troubleshooting.  
+- Polished the Events UI to show creation toasts, drawer auto-open, and inline success for edit/delete, plus refreshed the beta issue tracker and ownership rollout plan.
+
+🔮 Next Steps:  
+- Re-run beta smoke tests (create → edit → delete → RSVP) with the production build.  
+- Add UI messaging for 429 responses and surface “coming soon” labels on unfinished tabs (Garage, Messaging).  
+- Finish wiring the forum “New Thread” modal submit button.
+_______

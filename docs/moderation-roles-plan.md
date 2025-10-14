@@ -34,6 +34,7 @@ Source research: see `docs/research/R4-Notes.md` – [Moderation & Role Handling
   - Renders moderation toolbar (Pin/Unpin, Lock/Unlock, Delete) only when `currentUser.role !== 'user'`.
   - Locks reply composer when a thread is locked and surfaces status messaging for all viewers.
   - Provides success/error toasts after actions and syncs state with refreshed thread data.
+  - TODO: finalise the “New Thread” modal submit action so testers can post without leaving the page.
 
 ## Operational Checklist
 
@@ -42,6 +43,7 @@ Source research: see `docs/research/R4-Notes.md` – [Moderation & Role Handling
 3. **UI smoke test**:
    - Login as moderator: confirm badges & toolbar appear, actions succeed, and locked threads hide composer.
    - Login as standard user: ensure badges visible but no toolbar, locked threads show read-only notice.
+   - Once the submit CTA lands, verify the “New Thread” modal posts successfully from the category view.
 4. **Review logs**: Confirm `securityEvent` entries capture moderation actions and rate limiter logs note bursts.
 5. **Run automated tests**: `CI=true npm test -- --watch=false` (ensures Auth/Forums components render with new role data).
 

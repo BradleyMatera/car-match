@@ -37,11 +37,13 @@ graph TD
 - Project board helper: `scripts/update_project.sh` (adds issues to Project, helps update Status fields)
 - Roadmap population (dates/status): see Project updates in the repo history; items have Start/End dates based on issue activity and sprint due dates.
 
-## Status (September 2025)
+## Status (October 2025)
 
-- Pages deploys only from `main`.
-- Forums persist in prod when MongoDB URI is correctly URL‑encoded and configured on Render.
-- Week 2 focus: consolidate Settings into the Profile page; Profile UX polish; finalize forum persistence checks in prod.
+- 0.2.0 “Ownership & Moderation Rollout” is live on Render + GitHub Pages (main branch).
+- Event creation, edit, delete, and RSVP now flow through Atlas with organiser checks enforced end to end (`computeNextEventId`, `syncEventCache`).
+- Forums load categories/threads reliably; moderator tooling remains feature-complete while the “New Thread” submit CTA is the next UI enhancement.
+- Rate limits were relaxed for beta (≈50 auth attempts / 5 min; ≈180 sensitive actions / 30 min) and documented in troubleshooting.
+- Pages deploys only from `main`; Render autodeploys on push but can be redeployed manually after backend changes.
 
 ## Notes
 
