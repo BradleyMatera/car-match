@@ -581,8 +581,21 @@ const Events = () => {
                 setShowCreate(false);
                 setCreateData({ name:'', description:'', date:'', location:'', image:'' });
                 await refreshEvents();
-                if (ev && ev.id) {
-                  assignSelectedEvent(ev);
+                const createdEvent = ev?.data ?? ev;
+                if (createdEvent && createdEvent.id) {
+                  setEvents(prev => {
+                    const without = prev.filter(ev => String(ev.id) !== String(createdEvent.id));
+                    return [
+                      {
+                        ...createdEvent,
+                        createdByUserId: createdEvent.createdByUserId ? String(createdEvent.createdByUserId) : undefined,
+                        start: createdEvent.date ? new Date(createdEvent.date) : null,
+                        end: createdEvent.date ? new Date(createdEvent.date) : null,
+                      },
+                      ...without,
+                    ];
+                  });
+                  assignSelectedEvent(createdEvent);
                 }
                 showFlash('Event created and ready to share!', 'success');
               } catch(err){

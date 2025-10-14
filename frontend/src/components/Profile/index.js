@@ -325,7 +325,6 @@ const Profile = () => {
         </div>
       </Section>
       )}
-      )}
 
       {activeTab==='profile' && (
       <Section>
