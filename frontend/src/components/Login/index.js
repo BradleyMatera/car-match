@@ -3,6 +3,7 @@ import React, { useState, useContext, useEffect, useMemo } from 'react';
 import AuthContext from '../../context/AuthContext';
 import './Login.css';
 import { useNavigate } from 'react-router-dom'; // For redirecting after login
+import { applySEO } from '../../utils/seo';
 
 const Login = () => { // Removed onLoginSuccess prop
   const [username, setUsername] = useState('');
@@ -72,6 +73,14 @@ const Login = () => { // Removed onLoginSuccess prop
     () => (Array.isArray(bgImages) ? bgImages.at(bgIndex) ?? '' : ''),
     [bgImages, bgIndex]
   );
+
+  useEffect(() => {
+    return applySEO({
+      title: 'Log In',
+      description: 'Access your CarMatch dashboard to manage events, RSVP to drives, and engage with the community.',
+      canonical: 'https://bradleymatera.github.io/car-match/#/login'
+    });
+  }, []);
 
   return (
     <div className="login-container">

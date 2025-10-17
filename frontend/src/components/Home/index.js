@@ -4,6 +4,7 @@ import Section from '../Section';
 import Grid from '../Grid';
 import './Home.css';
 import api from '../../api/client';
+import { applySEO } from '../../utils/seo';
 
 const Home = () => {
   const [stats, setStats] = useState({ users: 0, threads: 0, posts: 0, events: 0 });
@@ -26,6 +27,24 @@ const Home = () => {
     () => (Array.isArray(bgImages) ? bgImages.at(bgIndex) ?? '' : ''),
     [bgImages, bgIndex]
   );
+
+  useEffect(() => {
+    return applySEO({
+      title: 'Discover',
+      description: 'CarMatch helps automotive enthusiasts connect through curated events, discussion forums, and personalized profiles. Explore the community and plan your next drive.',
+      jsonLd: {
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: 'CarMatch',
+        url: 'https://bradleymatera.github.io/car-match/',
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: 'https://bradleymatera.github.io/car-match/#/events?query={search_term_string}',
+          'query-input': 'required name=search_term_string'
+        }
+      }
+    });
+  }, []);
 
   useEffect(() => {
     (async () => {

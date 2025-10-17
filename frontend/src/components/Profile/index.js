@@ -6,6 +6,7 @@ import AuthContext from '../../context/AuthContext';
 import Section from '../Section';
 import Grid from '../Grid';
 import Spacing from '../Spacing';
+import { applySEO } from '../../utils/seo';
 
 const UpgradeModal = ({ show, onClose, onUpgrade }) => {
   if (!show) return null;
@@ -41,6 +42,14 @@ const Profile = () => {
   const [recipientUsername, setRecipientUsername] = useState('');
   // const [replyingTo, setReplyingTo] = useState(null); // replyingTo was unused
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  useEffect(() => {
+    return applySEO({
+      title: 'Profile',
+      description: 'Manage your CarMatch profile, garage, events, and messaging preferences. Update your bio and stay connected with fellow drivers.',
+      canonical: 'https://bradleymatera.github.io/car-match/#/profile'
+    });
+  }, []);
 
   const isEffectivelyPremium = currentUser?.premiumStatus || currentUser?.developerOverride;
   const [activeTab, setActiveTab] = useState('profile'); // profile|garage|events|settings|messages

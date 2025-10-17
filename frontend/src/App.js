@@ -1,5 +1,5 @@
-import React, { useContext } from 'react'; // Removed useState, useEffect from here
-import { HashRouter as Router, Route, Routes, Navigate, Link } from 'react-router-dom';
+import React, { useContext, useEffect } from 'react'; // Removed useState, useEffect from here
+import { HashRouter as Router, Route, Routes, Navigate, Link, useLocation } from 'react-router-dom';
 import './App.css';
 import Home from './components/Home';
 import Events from './components/Events';
@@ -12,10 +12,17 @@ import Login from './components/Login';
 import Layout from './components/Layout';
 import LayoutExample from './components/LayoutExample';
 import AuthContext, { AuthProvider } from './context/AuthContext';
+import { trackPageView } from './utils/analytics';
 
 function AppContent() { 
   const { currentUser, logout, loadingAuth } = useContext(AuthContext);
   const isLoggedIn = !!currentUser; // Determine login status from currentUser
+  const location = useLocation();
+
+  useEffect(() => {
+    const hash = window.location.hash || '';
+    trackPageView(`${location.pathname}${location.search}${hash}`);
+  }, [location]);
 
   if (loadingAuth) {
     return <div>Loading application...</div>; // Or a proper spinner

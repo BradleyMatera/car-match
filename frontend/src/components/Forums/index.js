@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import './Forums.css';
 import api from '../../api/client';
 import AuthContext from '../../context/AuthContext';
+import { applySEO } from '../../utils/seo';
 
 const Forums = () => {
   const { currentUser, token } = useContext(AuthContext);
@@ -30,6 +31,21 @@ const Forums = () => {
   const location = useLocation();
   const [frontStats, setFrontStats] = useState([]);
   const [showEmoji, setShowEmoji] = useState(false);
+  useEffect(() => {
+    return applySEO({
+      title: 'Forums',
+      description: 'Ask questions, share build logs, and collaborate with fellow automotive enthusiasts in the CarMatch forums.',
+      canonical: 'https://bradleymatera.github.io/car-match/#/forums',
+      jsonLd: {
+        '@context': 'https://schema.org',
+        '@type': 'DiscussionForumPosting',
+        name: 'CarMatch Forums',
+        url: 'https://bradleymatera.github.io/car-match/#/forums',
+        headline: 'CarMatch Community Forums',
+        description: 'Community-driven discussion boards for car owners and enthusiasts.'
+      }
+    });
+  }, []);
   // Background images (rotates like Events)
   const bgImages = useMemo(() => ([
     'https://images.unsplash.com/photo-1514316454349-750a7fd3da3a',

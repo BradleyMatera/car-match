@@ -10,6 +10,7 @@ import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 import Section from '../Section';
+import { applySEO } from '../../utils/seo';
 
 const Events = () => {
   const [events, setEvents] = useState([]);
@@ -48,6 +49,21 @@ const Events = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [pendingRsvp, setPendingRsvp] = useState(null);
   const modalNameRef = useRef(null);
+
+  useEffect(() => {
+    return applySEO({
+      title: 'Events',
+      description: 'Discover upcoming car meets, track days, and community drives. Create your own event and manage RSVPs in real time with organizer-only controls.',
+      canonical: 'https://bradleymatera.github.io/car-match/#/events',
+      jsonLd: {
+        '@context': 'https://schema.org',
+        '@type': 'CollectionPage',
+        name: 'CarMatch Events',
+        url: 'https://bradleymatera.github.io/car-match/#/events',
+        description: 'A curated list of events for automotive enthusiasts managed by the CarMatch community.'
+      }
+    });
+  }, []);
 
   useEffect(() => {
     const loadEvents = async () => {

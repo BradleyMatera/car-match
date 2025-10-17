@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 import AuthContext from '../../context/AuthContext';
 import './SignUp.css';
+import { applySEO } from '../../utils/seo';
 
 const SignUp = () => {
   const [formData, setFormData] = useState({
@@ -40,6 +41,14 @@ const SignUp = () => {
     () => (Array.isArray(bgImages) ? bgImages.at(bgIndex) ?? '' : ''),
     [bgImages, bgIndex]
   );
+
+  useEffect(() => {
+    return applySEO({
+      title: 'Create Account',
+      description: 'Join CarMatch to bookmark events, participate in forums, and connect with other car enthusiasts.',
+      canonical: 'https://bradleymatera.github.io/car-match/#/signup'
+    });
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
