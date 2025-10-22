@@ -32,6 +32,7 @@ graph TD
 - Research & Change Orders: `docs/research/` (see `ChangeOrders.md`)
 - Logs: `docs/log.md` (original, May), `docs/log2.md` (September), and monthly snapshot `docs/2025-09.md`
 - Launch checklist: `docs/launch-checklist.md`
+- Final handoff packet overview: `handoff/README.md`
 
 ## Project Ops
 

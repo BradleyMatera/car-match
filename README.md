@@ -34,6 +34,7 @@ Owner: Bradley Matera — [Log](./docs/log.md) · New: [log2.md](./docs/log2.md)
 
 ## Key Resources
 
+- Final Handoff Packet: [handoff/README.md](./handoff/README.md)
 - Live App: https://bradleymatera.github.io/car-match/
 - Repo: https://github.com/BradleyMatera/car-match
 - Deployment: [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)
@@ -42,6 +43,14 @@ Owner: Bradley Matera — [Log](./docs/log.md) · New: [log2.md](./docs/log2.md)
 - Designs: [docs/designs](./docs/designs)
  - Health: `GET /healthz` on the backend returns service/db readiness
  - Current Monthly Log: [docs/2025-09.md](./docs/2025-09.md) and [docs/log2.md](./docs/log2.md)
+
+## Final Handoff Packet
+- `handoff/README.md` — entry point with checklist, packaging instructions, and cross-links.
+- `handoff/INSTALLATION.md` — environment prep, deployment, seeding, and smoke-test guidance.
+- `handoff/MAINTENANCE_PLAN.md` — operations cadence, monitoring, backup strategy.
+- `handoff/ASSET_MANIFEST.md` — inventory of docs, marketing assets, logs, and scripts.
+- `handoff/BRANCH_CATALOG.md` — snapshot of every branch, their purpose, and next steps.
+- `scripts/package-handoff.sh` — use to create a `.tar.gz` or `.zip` archive without Git metadata for LMS submission or archival.
 
 ## Project Management
 
