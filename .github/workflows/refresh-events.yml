@@ -1,0 +1,28 @@
+name: Refresh Discovered Events
+
+on:
+  schedule:
+    # Run once daily at 6:00 AM UTC (midnight-ish US Central)
+    - cron: '0 6 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger backend refresh
+        run: |
+          RESPONSE=$(curl -sS -m 120 -w "\n%{http_code}" \
+            -X POST \
+            "${{ vars.CLOUD_RUN_URL }}/events/refresh-discovered" \
+            -H "Content-Type: application/json" \
+            -H "x-refresh-secret: ${{ secrets.REFRESH_SECRET }}")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          echo "HTTP Status: $HTTP_CODE"
+          echo "Response: $BODY"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Refresh failed with HTTP $HTTP_CODE"
+            exit 1
+          fi
+          echo "Discovered events refreshed successfully."

@@ -582,3 +582,87 @@
   border-radius: 8px;
   border: 1px solid #eee;
 }
+
+/* Discovered Events (real car events from SerpAPI) */
+.discovered-source-note {
+  color: #888;
+  font-size: 12px;
+  margin: 0 0 16px;
+}
+.discovered-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+.discovered-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.2s, transform 0.2s;
+  display: flex;
+  flex-direction: column;
+}
+.discovered-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  transform: translateY(-2px);
+}
+.discovered-card-img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+}
+.discovered-card-noimg {
+  width: 100%;
+  height: 140px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+}
+.discovered-card-body {
+  padding: 12px 14px;
+}
+.discovered-card-body h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  line-height: 1.3;
+}
+.discovered-card-date,
+.discovered-card-loc {
+  font-size: 12px;
+  color: #666;
+  margin: 2px 0;
+}
+.discovered-card-addr {
+  font-size: 11px;
+  color: #999;
+  margin: 2px 0;
+}
+.discovered-show-more {
+  text-align: center;
+  margin-top: 16px;
+}
+.discovered-skeleton {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+.discovered-skeleton-card {
+  background: #f8f8f8;
+  border-radius: 10px;
+  padding: 0;
+  overflow: hidden;
+}
+.skeleton-bar {
+  background: #e8e8e8;
+  border-radius: 4px;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}

@@ -513,6 +513,8 @@ const Events = () => {
         </div>
       </Section>
 
+      <DiscoveredEventsSection />
+
       <div className="events-layout">
         <div className="calendar-wrapper">
           <Calendar
@@ -783,6 +785,78 @@ const Events = () => {
         </div>
       )}
     </div>
+  );
+};
+
+// Real car events discovered via SerpAPI (cached in backend, refreshed daily)
+const DiscoveredEventsSection = () => {
+  const [discovered, setDiscovered] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showAll, setShowAll] = useState(false);
+
+  useEffect(() => {
+    const fetchDiscovered = async () => {
+      try {
+        const result = await api.getDiscoveredEvents({ limit: 50 });
+        setDiscovered(result.data || result || []);
+      } catch (err) {
+        setError(err.message || 'Failed to load discovered events.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDiscovered();
+  }, []);
+
+  const displayed = showAll ? discovered : discovered.slice(0, 6);
+
+  if (loading) {
+    return (
+      <Section>
+        <h2 className="section-title">Real Car Events Near You</h2>
+        <p className="discovered-source-note">Sourced from Google Events — refreshed daily</p>
+        <div className="discovered-skeleton">
+          {[0,1,2].map(i => <div key={i} className="discovered-skeleton-card"><div className="skeleton-bar" style={{width:'100%',height:'120px'}} /><div className="skeleton-bar" style={{width:'60%',height:'16px',marginTop:'8px'}} /><div className="skeleton-bar" style={{width:'40%',height:'12px',marginTop:'4px'}} /></div>)}
+        </div>
+      </Section>
+    );
+  }
+
+  if (error || discovered.length === 0) {
+    return null; // Don't show the section if no data or error — community events are still there
+  }
+
+  return (
+    <Section>
+      <h2 className="section-title">Real Car Events Near You</h2>
+      <p className="discovered-source-note">Sourced from Google Events — refreshed daily via SerpAPI</p>
+      <div className="discovered-grid">
+        {displayed.map((ev, i) => (
+          <a key={i} href={ev.link} target="_blank" rel="noopener noreferrer" className="discovered-card">
+            {ev.thumbnail && <img src={ev.thumbnail} alt={ev.title} className="discovered-card-img" onError={(e) => e.target.style.display = 'none'} />}
+            {!ev.thumbnail && <div className="discovered-card-noimg">🏁</div>}
+            <div className="discovered-card-body">
+              <h3>{ev.title}</h3>
+              {ev.dateText && <p className="discovered-card-date">📅 {ev.dateText}</p>}
+              {ev.location && (ev.location.name || (ev.location.address && ev.location.address[0])) && (
+                <p className="discovered-card-loc">📍 {ev.location.name || ev.location.address[0]}</p>
+              )}
+              {ev.location && ev.location.address && ev.location.address.length > 1 && (
+                <p className="discovered-card-addr">{ev.location.address.slice(1).join(', ')}</p>
+              )}
+            </div>
+          </a>
+        ))}
+      </div>
+      {discovered.length > 6 && (
+        <div className="discovered-show-more">
+          <button className="btn" onClick={() => setShowAll(s => !s)}>
+            {showAll ? 'Show Less' : `Show All ${discovered.length} Events`}
+          </button>
+        </div>
+      )}
+    </Section>
   );
 };
 

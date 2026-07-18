@@ -14,6 +14,7 @@ const { createRateLimits } = require('./middleware/rateLimits');
 const { ForumThread, ForumPost, ForumCategory, ForumReport } = require('./models/forum');
 let UserModel, EventModel, MessageModel; // loaded only when Mongo is configured
 let BusinessModel, ReviewModel, MarketplaceModel; // Business Directory + Marketplace models
+let DiscoveredEventModel; // SerpAPI-discovered real-world car events (cached)
 
 // Geocode a city+state into lat/lon using OpenStreetMap Nominatim (free, no API key).
 // Returns { lat, lon } or null on failure. Rate-limited to 1 req/sec by Nominatim fair-use policy.
@@ -95,6 +96,13 @@ const rsvpLimiter = useLimiter(
 // JWT: require secret in non-dev, allow fallback only in development
 const JWT_SECRET = process.env.JWT_SECRET;
 const TOKEN_VERSION = process.env.TOKEN_VERSION || '1';
+// SerpAPI key for Google Events discovery. Injected via Cloud Run --set-secrets from
+// GCP Secret Manager. Optional — the /events/refresh-discovered endpoint returns 503
+// when unset. See /events/refresh-discovered route for usage and budget notes.
+const SERPAPI_KEY = process.env.SERPAPI_KEY;
+// Shared secret for GitHub Actions cron to trigger discovered-events refresh
+// without needing a JWT. Injected via Cloud Run --set-secrets.
+const REFRESH_SECRET = process.env.REFRESH_SECRET;
 if (!JWT_SECRET) {
   if (process.env.NODE_ENV !== 'development') {
     logger.fatal('JWT_SECRET is required in production.');
@@ -351,6 +359,7 @@ if (MONGODB_URI) {
       EventModel = require('./models/event');
       MessageModel = require('./models/message');
       ({ BusinessModel, ReviewModel, MarketplaceModel } = require('./models/business'));
+      ({ DiscoveredEventModel } = require('./models/discoveredEvent'));
       // Seed demo forum threads if none
       const count = await ForumThread.countDocuments();
       if (count === 0) {
@@ -1878,6 +1887,47 @@ app.get('/events', async (req, res) => {
   }
 });
 
+// GET /events/discovered — public, no auth. Returns cached discovered events from SerpAPI.
+// MUST be registered before /events/:eventId to avoid the param route catching "discovered".
+app.get('/events/discovered', async (req, res) => {
+  try {
+    const { q } = req.query;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(200, Math.max(1, parseInt(req.query.limit, 10) || 50));
+    const skip = (page - 1) * limit;
+
+    if (mongoose.connection.readyState !== 1 || !DiscoveredEventModel) {
+      return res.json({ data: [], total: 0, page, limit });
+    }
+
+    const now = new Date();
+    const filter = {
+      $or: [
+        { dateStart: { $gte: now } },
+        { dateStart: null },
+        { dateStart: { $exists: false } },
+      ],
+    };
+    if (q && String(q).trim()) {
+      filter.title = { $regex: String(q).trim(), $options: 'i' };
+    }
+
+    const [total, docs] = await Promise.all([
+      DiscoveredEventModel.countDocuments(filter),
+      DiscoveredEventModel.find(filter)
+        .sort({ dateStart: 1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
+
+    return res.json({ data: docs, total, page, limit });
+  } catch (error) {
+    logger.error('GET /events/discovered error', { error: error?.message || error, requestId: req.requestId });
+    return res.status(500).json({ message: 'Error fetching discovered events' });
+  }
+});
+
 // Get single event (by numeric id or ObjectId)
 app.get('/events/:eventId', async (req, res) => {
   try {
@@ -2982,6 +3032,196 @@ app.patch('/marketplace/:id/sold', authenticateToken, async (req, res) => {
   } catch (error) {
     logger.error('Mark listing sold error', { error, requestId: req.requestId, listingId: req.params.id });
     res.status(500).json({ message: 'Error marking listing as sold' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Discovered Events (SerpAPI integration)
+//
+// This uses SerpAPI (https://serpapi.com) to query Google Events for real-world
+// car events (car shows, cars & coffee, auto shows, car meets, track days).
+//
+// Budget: SerpAPI free tier = 250 searches/month. Each refresh runs 5 searches,
+// so a daily cron refresh = ~150 searches/month, well within the free budget.
+//
+// Caching: Results are stored in MongoDB (DiscoveredEvent collection). User
+// traffic hits the cached GET /events/discovered endpoint and never touches
+// SerpAPI directly. Refresh should be triggered once daily via a cron job
+// (GitHub Actions) calling POST /events/refresh-discovered with an admin token.
+//
+// Secret: SERPAPI_KEY is loaded from the SERPAPI_KEY env var, which is injected
+// via Cloud Run's --set-secrets flag (backed by GCP Secret Manager).
+// ---------------------------------------------------------------------------
+
+// GET /events/discovered is registered earlier (before /events/:eventId) to
+// avoid the param route catching "discovered" as an event ID.
+
+// Best-effort parser for SerpAPI Google Events date text into a JS Date.
+// Handles "Today", "Tomorrow", "Yesterday", and common date formats. Returns
+// null when the text can't be confidently parsed.
+const parseSerpApiDateText = (text) => {
+  if (!text || typeof text !== 'string') return null;
+  const lower = text.toLowerCase();
+  const now = new Date();
+  try {
+    if (lower.startsWith('today')) {
+      const timeMatch = text.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);
+      const d = new Date(now);
+      d.setHours(0, 0, 0, 0);
+      if (timeMatch) {
+        let h = parseInt(timeMatch[1], 10);
+        const m = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;
+        const ap = timeMatch[3].toLowerCase();
+        if (ap === 'pm' && h !== 12) h += 12;
+        if (ap === 'am' && h === 12) h = 0;
+        d.setHours(h, m, 0, 0);
+      }
+      return d;
+    }
+    if (lower.startsWith('tomorrow')) {
+      const timeMatch = text.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);
+      const d = new Date(now);
+      d.setDate(d.getDate() + 1);
+      d.setHours(0, 0, 0, 0);
+      if (timeMatch) {
+        let h = parseInt(timeMatch[1], 10);
+        const m = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;
+        const ap = timeMatch[3].toLowerCase();
+        if (ap === 'pm' && h !== 12) h += 12;
+        if (ap === 'am' && h === 12) h = 0;
+        d.setHours(h, m, 0, 0);
+      }
+      return d;
+    }
+    if (lower.startsWith('yesterday')) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - 1);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+    // Try native Date parse for formats like "Mon, Jan 15, 2025" or "Jan 15, 2025"
+    const parsed = new Date(text);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed;
+    }
+    // Try extracting a date-like substring "Jan 15, 2025"
+    const dateSub = text.match(/[A-Za-z]{3,9}\s+\d{1,2},?\s+\d{4}/);
+    if (dateSub) {
+      const d2 = new Date(dateSub[0]);
+      if (!Number.isNaN(d2.getTime())) return d2;
+    }
+  } catch (e) {
+    // best-effort; leave null
+  }
+  return null;
+};
+
+// POST /events/refresh-discovered — auth required (admin JWT OR shared refresh secret).
+// Runs SerpAPI Google Events searches for car-event keywords and caches results.
+app.post('/events/refresh-discovered', async (req, res) => {
+  try {
+    // Allow shared secret (for GitHub Actions cron) as alternative to JWT
+    const hasRefreshSecret = REFRESH_SECRET && req.headers['x-refresh-secret'] === REFRESH_SECRET;
+    if (!hasRefreshSecret) {
+      // Fall back to JWT auth — need to manually verify since we're not using the middleware
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      try {
+        const decoded = jwt.verify(authHeader.split(' ')[1], JWT_SECRET);
+        const isAdmin = decoded.role === 'admin' || decoded.developerOverride === true;
+        if (!isAdmin) {
+          securityEvent('Unauthorized discovered-events refresh attempt', { requestId: req.requestId, userId: decoded.id || decoded.userId, ip: req.ip });
+          return res.status(403).json({ message: 'Forbidden: admin only' });
+        }
+      } catch (e) {
+        return res.status(401).json({ message: 'Invalid token' });
+      }
+    }
+
+    if (!SERPAPI_KEY) {
+      return res.status(503).json({ message: 'SerpAPI key not configured' });
+    }
+
+    const queries = ['car show', 'cars and coffee', 'auto show', 'car meet', 'track day'];
+    const searchUrl = (q) => `https://serpapi.com/search.json?engine=google_events&q=${encodeURIComponent(q)}&location=United+States&api_key=${encodeURIComponent(SERPAPI_KEY)}`;
+
+    const fetchSerpApi = async (query) => {
+      const url = searchUrl(query);
+      const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if (!resp.ok) {
+        throw new Error(`SerpAPI HTTP ${resp.status} for query "${query}"`);
+      }
+      const json = await resp.json();
+      return { query, json };
+    };
+
+    const settled = await Promise.allSettled(queries.map(fetchSerpApi));
+
+    const allDocs = [];
+    const results = [];
+    for (const r of settled) {
+      if (r.status !== 'fulfilled') {
+        const query = queries[settled.indexOf(r)];
+        logger.warn('SerpAPI query failed', { query, error: r.reason?.message || r.reason });
+        results.push({ query, found: 0, error: String(r.reason?.message || r.reason) });
+        continue;
+      }
+      const { query, json } = r.value;
+      const eventsResults = Array.isArray(json?.events_results) ? json.events_results : [];
+      for (const ev of eventsResults) {
+        const dateText = ev?.date?.when || ev?.date?.start_date || (typeof ev?.date === 'string' ? ev.date : null);
+        const addressArr = Array.isArray(ev?.location?.address) ? ev.location.address : [];
+        const cityMatch = addressArr.find((a) => /,\s*[A-Z]{2}\s*\d{0,5}$/.test(a || ''));
+        let city = '';
+        let state = '';
+        if (cityMatch) {
+          const parts = cityMatch.split(',').map((s) => s.trim());
+          city = parts[0] || '';
+          const stateZip = (parts[1] || '').trim().split(/\s+/);
+          state = stateZip[0] || '';
+        }
+        allDocs.push({
+          title: ev?.title || 'Untitled event',
+          dateText: dateText || '',
+          dateStart: parseSerpApiDateText(dateText),
+          location: {
+            name: ev?.location?.name || '',
+            address: addressArr,
+            city,
+            state,
+          },
+          link: ev?.link || '',
+          thumbnail: ev?.thumbnail || '',
+          description: ev?.description || '',
+          searchQuery: query,
+          source: 'google_events',
+        });
+      }
+      results.push({ query, found: eventsResults.length });
+    }
+
+    // Replace cache: delete all, then insert new ones (only if Mongo is connected)
+    if (mongoose.connection.readyState === 1 && DiscoveredEventModel) {
+      await DiscoveredEventModel.deleteMany({});
+      if (allDocs.length > 0) {
+        await DiscoveredEventModel.insertMany(allDocs, { ordered: false });
+      }
+    } else {
+      logger.warn('refresh-discovered: MongoDB not connected, results not persisted', { count: allDocs.length });
+    }
+
+    logger.info('Discovered events refreshed', { count: allDocs.length, queries: queries.length, requestId: req.requestId });
+    return res.json({
+      message: 'Discovered events refreshed',
+      count: allDocs.length,
+      queries: queries.length,
+      results,
+    });
+  } catch (error) {
+    logger.error('POST /events/refresh-discovered error', { error: error?.message || error, requestId: req.requestId });
+    return res.status(500).json({ message: 'Error refreshing discovered events' });
   }
 });
 

@@ -166,6 +166,10 @@ const api = {
     const events = await ok(await fetch(`${API_BASE_URL}/events`)).then(json);
     return Array.isArray(events) ? events.map(normalizeEvent) : [];
   },
+  getDiscoveredEvents: async (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return ok(await fetch(`${API_BASE_URL}/events/discovered${qs ? '?' + qs : ''}`)).then(json);
+  },
 
   getEvent: async (eventId) => combineEventResponse(await ok(await fetch(`${API_BASE_URL}/events/${encodeURIComponent(eventId)}`)).then(json)),
 
