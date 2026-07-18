@@ -29,7 +29,6 @@ Render's free tier spins the backend down after 15 min idle, causing multi-minut
 ```
 car-match/
 ├── AGENTS.md            # this file
-├── render.yaml          # LEGACY — Render spec, kept for history. Do not use for deploys.
 ├── .github/workflows/   # deploy-frontend.yml, keep-warm.yml, npm-audit.yml, zap-baseline.yml, codeql-analysis.yml
 ├── backend/             # Express API  (see backend/AGENTS.md)
 ├── frontend/            # React SPA    (see frontend/AGENTS.md)
