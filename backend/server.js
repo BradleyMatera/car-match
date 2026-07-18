@@ -3859,9 +3859,35 @@ app.post('/events/refresh-discovered', async (req, res) => {
 });
 
 const httpServer = http.createServer(app);
-httpServer.listen(port, () => {
-  logger.info('HTTP server listening', { port });
-});
+
+// When MongoDB is configured, wait for it to connect before listening so
+// the first requests on cold start don't hit a disconnected DB. If the DB
+// fails to connect within the timeout, start anyway (in-memory fallback).
+const startServer = () => {
+  httpServer.listen(port, () => {
+    logger.info('HTTP server listening', { port });
+  });
+};
+
+if (MONGODB_URI) {
+  // The mongoose.connect() promise resolves when connected. Wait for it
+  // (or a 10s timeout) before starting the HTTP server.
+  const mongoReady = new Promise((resolve) => {
+    if (mongoose.connection.readyState === 1) return resolve();
+    mongoose.connection.once('connected', () => resolve());
+    setTimeout(() => resolve(), 10000); // Don't block forever
+  });
+  mongoReady.then(() => {
+    if (mongoose.connection.readyState === 1) {
+      logger.info('MongoDB ready, starting HTTP server');
+    } else {
+      logger.warn('MongoDB not ready after 10s, starting HTTP server with in-memory fallback');
+    }
+    startServer();
+  });
+} else {
+  startServer();
+}
 
 if (devHttpsEnabled) {
   if (!devHttpsCertPath || !devHttpsKeyPath) {
