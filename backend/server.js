@@ -3260,14 +3260,46 @@ const parseSerpApiDateText = (text) => {
     }
     // Try native Date parse for formats like "Mon, Jan 15, 2025" or "Jan 15, 2025"
     const parsed = new Date(text);
-    if (!Number.isNaN(parsed.getTime())) {
+    if (!Number.isNaN(parsed.getTime()) && parsed.getFullYear() >= 2020) {
       return parsed;
     }
-    // Try extracting a date-like substring "Jan 15, 2025"
+    // Try extracting a full date "Jan 15, 2025"
     const dateSub = text.match(/[A-Za-z]{3,9}\s+\d{1,2},?\s+\d{4}/);
     if (dateSub) {
       const d2 = new Date(dateSub[0]);
       if (!Number.isNaN(d2.getTime())) return d2;
+    }
+    // Try "Jul 25" or "Jul 25 – Jul 26" (no year — assume current or next year)
+    const monthDayMatch = text.match(/([A-Za-z]{3,9})\s+(\d{1,2})(?:\s*[–-]\s*(?:[A-Za-z]{3,9}\s+)?(\d{1,2}))?/);
+    if (monthDayMatch) {
+      const monthStr = monthDayMatch[1];
+      const day = parseInt(monthDayMatch[2], 10);
+      const endDay = monthDayMatch[3] ? parseInt(monthDayMatch[3], 10) : day;
+      // Use start day for the event date
+      const yearGuess = now.getFullYear();
+      const d3 = new Date(`${monthStr} ${day}, ${yearGuess}`);
+      if (!Number.isNaN(d3.getTime())) {
+        // If the date is in the past by more than 30 days, assume next year
+        if (d3 < now && (now - d3) > 30 * 86400000) {
+          d3.setFullYear(yearGuess + 1);
+        }
+        d3.setHours(0, 0, 0, 0);
+        return d3;
+      }
+    }
+    // Try day-of-week only "Sat, 10 AM – 3 PM" — find next occurrence of that weekday
+    const dowMatch = text.match(/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)/i);
+    if (dowMatch) {
+      const dows = ['sun','mon','tue','wed','thu','fri','sat'];
+      const targetDow = dows.indexOf(dowMatch[1].toLowerCase());
+      if (targetDow >= 0) {
+        const d4 = new Date(now);
+        d4.setHours(0, 0, 0, 0);
+        let diff = (targetDow - d4.getDay() + 7) % 7;
+        if (diff === 0) diff = 7; // If today is that day, use next week
+        d4.setDate(d4.getDate() + diff);
+        return d4;
+      }
     }
   } catch (e) {
     // best-effort; leave null
@@ -3303,7 +3335,23 @@ app.post('/events/refresh-discovered', async (req, res) => {
       return res.status(503).json({ message: 'SerpAPI key not configured' });
     }
 
-    const queries = ['car show', 'cars and coffee', 'auto show', 'car meet', 'track day'];
+    // Core queries run daily (5 searches = 150/month, within free tier)
+    // Extended queries run weekly or on-demand to fill the calendar
+    const coreQueries = ['car show', 'cars and coffee', 'auto show', 'car meet', 'track day'];
+    const extendedQueries = [
+      'cruise night', 'car cruise', 'car rally', 'drag racing', 'drift event',
+      'car auction', 'swap meet', 'car corral', 'concours d elegance',
+      'hot rod show', 'classic car show', 'vintage car show', 'antique car show',
+      'car show Illinois', 'car show Chicago', 'car show Rockford IL',
+      'cars and coffee Chicago', 'car meet Wisconsin', 'car show Iowa',
+      'car show Indiana', 'car show Missouri', 'car show Minnesota',
+      'muscle car show', 'JDM car meet', 'truck show', 'motorcycle rally',
+      'electric vehicle show', 'import car show', 'lowrider show',
+      'car show near me',
+    ];
+    const isFullRefresh = req.query.full === '1' || req.query.full === 'true' || req.body?.full === true;
+    const queries = isFullRefresh ? [...coreQueries, ...extendedQueries] : coreQueries;
+    logger.info('Event refresh mode', { full: isFullRefresh, queryCount: queries.length, requestId: req.requestId });
     const searchUrl = (q) => `https://serpapi.com/search.json?engine=google_events&q=${encodeURIComponent(q)}&location=United+States&api_key=${encodeURIComponent(SERPAPI_KEY)}`;
 
     const fetchSerpApi = async (query) => {
@@ -3331,6 +3379,11 @@ app.post('/events/refresh-discovered', async (req, res) => {
       const eventsResults = Array.isArray(json?.events_results) ? json.events_results : [];
       for (const ev of eventsResults) {
         const dateText = ev?.date?.when || ev?.date?.start_date || (typeof ev?.date === 'string' ? ev.date : null);
+        // Try parsing the full "when" text first; fall back to start_date which is often "Jul 25"
+        let parsedDate = parseSerpApiDateText(ev?.date?.when);
+        if (!parsedDate && ev?.date?.start_date) {
+          parsedDate = parseSerpApiDateText(ev.date.start_date);
+        }
         const addressArr = Array.isArray(ev?.address) ? ev.address : [];
         const venueName = ev?.venue?.name || '';
         const cityMatch = addressArr.find((a) => /,\s*[A-Z]{2}/.test(a || ''));
@@ -3345,7 +3398,7 @@ app.post('/events/refresh-discovered', async (req, res) => {
         allDocs.push({
           title: ev?.title || 'Untitled event',
           dateText: dateText || '',
-          dateStart: parseSerpApiDateText(dateText),
+          dateStart: parsedDate,
           location: {
             name: venueName,
             address: addressArr,

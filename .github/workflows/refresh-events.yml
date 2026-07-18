@@ -2,19 +2,45 @@ name: Refresh Discovered Events
 
 on:
   schedule:
-    # Run once daily at 6:00 AM UTC (midnight-ish US Central)
+    # Daily: core queries (5 searches) at 6 AM UTC
     - cron: '0 6 * * *'
-  workflow_dispatch: # Allow manual trigger
+    # Weekly: full queries (33 searches) on Sundays at 7 AM UTC
+    - cron: '0 7 * * 0'
+  workflow_dispatch:
+    inputs:
+      full:
+        description: 'Full refresh (all queries)'
+        type: boolean
+        default: false
 
 jobs:
   refresh:
     runs-on: ubuntu-latest
     steps:
+      - name: Determine refresh mode
+        id: mode
+        run: |
+          # Check if this is the weekly Sunday run (7 AM UTC)
+          if [ "$(date -u +%H)" = "07" ] && [ "$(date -u +%u)" = "7" ]; then
+            echo "full=1" >> $GITHUB_OUTPUT
+            echo "Weekly full refresh detected"
+          elif [ "${{ github.event.inputs.full }}" = "true" ]; then
+            echo "full=1" >> $GITHUB_OUTPUT
+            echo "Manual full refresh requested"
+          else
+            echo "full=0" >> $GITHUB_OUTPUT
+            echo "Daily core refresh"
+          fi
+
       - name: Trigger backend refresh
         run: |
-          RESPONSE=$(curl -sS -m 120 -w "\n%{http_code}" \
+          FULL_PARAM=""
+          if [ "${{ steps.mode.outputs.full }}" = "1" ]; then
+            FULL_PARAM="?full=1"
+          fi
+          RESPONSE=$(curl -sS -m 300 -w "\n%{http_code}" \
             -X POST \
-            "${{ vars.CLOUD_RUN_URL }}/events/refresh-discovered" \
+            "${{ vars.CLOUD_RUN_URL }}/events/refresh-discovered${FULL_PARAM}" \
             -H "Content-Type: application/json" \
             -H "x-refresh-secret: ${{ secrets.REFRESH_SECRET }}")
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)
