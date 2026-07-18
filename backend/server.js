@@ -287,13 +287,7 @@ const seedDemoData = () => {
       });
     });
 
-    // Basic sample events to show if frontend switches to real events
-    const now = new Date();
-    const fmt = (d) => d.toISOString().slice(0,10);
-    events.push(
-      { id: 1, name: 'Demo Cars & Coffee', description: 'Meet local enthusiasts.', date: fmt(new Date(now.getTime()+7*86400000)), location: 'Los Angeles, CA', createdByUserId: '1', createdByUsername: 'demo', rsvps: [] },
-      { id: 2, name: 'Track Day Intro', description: 'Beginner-friendly track event.', date: fmt(new Date(now.getTime()+14*86400000)), location: 'San Francisco, CA', createdByUserId: '2', createdByUsername: 'jane', rsvps: [] }
-    );
+    // No fake/seed events — only real events from SerpAPI discovery
   } catch (e) {
     logger.error('Seed demo data failed', { error: e });
   }
@@ -383,15 +377,48 @@ if (MONGODB_URI) {
       await EventModel.init().catch(()=>{});
       await MessageModel.init().catch(()=>{});
       await UserModel.init().catch(()=>{});
-      await syncInMemoryUsersWithDatabase();
+      await syncInMemoryUsersWithDatabase().catch(e => logger.warn('syncInMemoryUsersWithDatabase failed', { error: e?.message || e }));
 
-      // Ensure every event has a forum thread under Events & Meetups (cat3)
+      // Delete all fake/seeded events — only keep real discovered events
+      try {
+        const fakeEvents = await EventModel.find({ tags: { $nin: ['discovered'] } }).lean();
+        if (fakeEvents.length > 0) {
+          // Delete associated forum threads and posts for fake events
+          const fakeThreadIds = fakeEvents.filter(e => e.threadId).map(e => e.threadId);
+          if (fakeThreadIds.length > 0) {
+            await ForumPost.deleteMany({ threadId: { $in: fakeThreadIds } });
+            await ForumThread.deleteMany({ _id: { $in: fakeThreadIds } });
+          }
+          await EventModel.deleteMany({ tags: { $nin: ['discovered'] } });
+          // Also remove from in-memory cache
+          for (let i = events.length - 1; i >= 0; i--) {
+            if (!events[i].tags || !events[i].tags.includes('discovered')) {
+              events.splice(i, 1);
+            }
+          }
+          logger.info('Deleted fake/seeded events', { count: fakeEvents.length });
+        }
+      } catch (fe) {
+        logger.warn('Fake event cleanup warning', { error: fe });
+      }
+
+      // Ensure every remaining (real) event has a forum thread under Events & Meetups (cat3)
       try {
         const evs = await EventModel.find({ $or: [ { threadId: { $exists: false } }, { threadId: null } ] }).lean();
         for (const e of evs) {
           const title = e.name || e.title || 'Event';
           const thread = await ForumThread.create({ categoryId: 'cat3', title, authorId: e.createdByUserId, authorUsername: e.createdByUsername });
           await EventModel.updateOne({ _id: e._id }, { $set: { threadId: thread._id } });
+        }
+        // Clean up orphaned threads in cat3 that no longer have a matching event
+        const allEventThreadIds = (await EventModel.find({ threadId: { $exists: true } }).lean()).map(e => e.threadId.toString());
+        const cat3Threads = await ForumThread.find({ categoryId: 'cat3' }).lean();
+        const orphanedThreads = cat3Threads.filter(t => !allEventThreadIds.includes(t._id.toString()));
+        if (orphanedThreads.length > 0) {
+          const orphanIds = orphanedThreads.map(t => t._id);
+          await ForumPost.deleteMany({ threadId: { $in: orphanIds } });
+          await ForumThread.deleteMany({ _id: { $in: orphanIds } });
+          logger.info('Deleted orphaned event threads', { count: orphanedThreads.length });
         }
       } catch (se) {
         logger.warn('Event-thread sync warning', { error: se });
@@ -3172,6 +3199,13 @@ app.post('/events/refresh-discovered', async (req, res) => {
     let createdCount = 0;
     if (mongoose.connection.readyState === 1 && EventModel) {
       // Delete previously discovered events (tagged with 'discovered')
+      // and their associated forum threads/posts
+      const oldDiscovered = await EventModel.find({ tags: 'discovered' }).lean();
+      const oldThreadIds = oldDiscovered.filter(e => e.threadId).map(e => e.threadId);
+      if (oldThreadIds.length > 0) {
+        await ForumPost.deleteMany({ threadId: { $in: oldThreadIds } });
+        await ForumThread.deleteMany({ _id: { $in: oldThreadIds } });
+      }
       await EventModel.deleteMany({ tags: 'discovered' });
       // Also remove from in-memory cache
       for (let i = events.length - 1; i >= 0; i--) {
@@ -3233,6 +3267,27 @@ app.post('/events/refresh-discovered', async (req, res) => {
             rsvps: [],
             comments: [],
           });
+
+          // Auto-create a discussion thread for this event
+          try {
+            const thread = await ForumThread.create({
+              categoryId: 'cat3',
+              title: doc.title,
+              authorId: systemUserId,
+              authorUsername: 'CarMatch_Discovered',
+            });
+            await EventModel.updateOne({ _id: eventDoc._id }, { $set: { threadId: thread._id } });
+            // Introductory post with event details
+            const introBody = `📅 ${doc.dateText || doc.dateStart?.toDateString() || 'Date TBD'}\n📍 ${locationStr}\n\n${doc.description || ''}${doc.link ? '\n\n🔗 More info: ' + doc.link : ''}`;
+            await ForumPost.create({
+              threadId: thread._id,
+              authorId: systemUserId,
+              authorUsername: 'CarMatch_Discovered',
+              body: introBody,
+            });
+          } catch (te) {
+            logger.warn('Auto thread create failed for discovered event', { title: doc.title, error: te?.message });
+          }
 
           // Also add to in-memory cache
           events.push(normalizeEventRecord(eventDoc));
