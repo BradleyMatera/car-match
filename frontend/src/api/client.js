@@ -299,6 +299,42 @@ const api = {
     ok(await fetch(`${API_BASE_URL}/vehicle/safety-ratings?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&year=${encodeURIComponent(year)}`)).then(json),
   getComplaints: async (make, model, year) =>
     ok(await fetch(`${API_BASE_URL}/vehicle/complaints?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&year=${encodeURIComponent(year)}`)).then(json),
+
+  // --- Business Directory ---
+  createBusiness: async (token, data) =>
+    ok(await fetch(`${API_BASE_URL}/businesses`, { method: 'POST', headers: { ...jsonHeader, ...authHeader(token) }, body: JSON.stringify(data) })).then(json),
+  getBusinesses: async (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return ok(await fetch(`${API_BASE_URL}/businesses${qs ? '?' + qs : ''}`)).then(json);
+  },
+  getBusiness: async (id) =>
+    ok(await fetch(`${API_BASE_URL}/businesses/${encodeURIComponent(id)}`)).then(json),
+  updateBusiness: async (token, id, data) =>
+    ok(await fetch(`${API_BASE_URL}/businesses/${encodeURIComponent(id)}`, { method: 'PATCH', headers: { ...jsonHeader, ...authHeader(token) }, body: JSON.stringify(data) })).then(json),
+  deleteBusiness: async (token, id) =>
+    ok(await fetch(`${API_BASE_URL}/businesses/${encodeURIComponent(id)}`, { method: 'DELETE', headers: { ...authHeader(token) } })).then(json),
+  addReview: async (token, businessId, rating, text) =>
+    ok(await fetch(`${API_BASE_URL}/businesses/${encodeURIComponent(businessId)}/reviews`, { method: 'POST', headers: { ...jsonHeader, ...authHeader(token) }, body: JSON.stringify({ rating, text }) })).then(json),
+  getReviews: async (businessId, params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return ok(await fetch(`${API_BASE_URL}/businesses/${encodeURIComponent(businessId)}/reviews${qs ? '?' + qs : ''}`)).then(json);
+  },
+
+  // --- Marketplace / Classifieds ---
+  createListing: async (token, data) =>
+    ok(await fetch(`${API_BASE_URL}/marketplace`, { method: 'POST', headers: { ...jsonHeader, ...authHeader(token) }, body: JSON.stringify(data) })).then(json),
+  getListings: async (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return ok(await fetch(`${API_BASE_URL}/marketplace${qs ? '?' + qs : ''}`)).then(json);
+  },
+  getListing: async (id) =>
+    ok(await fetch(`${API_BASE_URL}/marketplace/${encodeURIComponent(id)}`)).then(json),
+  updateListing: async (token, id, data) =>
+    ok(await fetch(`${API_BASE_URL}/marketplace/${encodeURIComponent(id)}`, { method: 'PATCH', headers: { ...jsonHeader, ...authHeader(token) }, body: JSON.stringify(data) })).then(json),
+  deleteListing: async (token, id) =>
+    ok(await fetch(`${API_BASE_URL}/marketplace/${encodeURIComponent(id)}`, { method: 'DELETE', headers: { ...authHeader(token) } })).then(json),
+  markListingSold: async (token, id) =>
+    ok(await fetch(`${API_BASE_URL}/marketplace/${encodeURIComponent(id)}/sold`, { method: 'PATCH', headers: { ...authHeader(token) } })).then(json),
 };
 
 export default api;

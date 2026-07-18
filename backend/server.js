@@ -13,6 +13,7 @@ const { logger, securityEvent } = require('./logger');
 const { createRateLimits } = require('./middleware/rateLimits');
 const { ForumThread, ForumPost, ForumCategory, ForumReport } = require('./models/forum');
 let UserModel, EventModel, MessageModel; // loaded only when Mongo is configured
+let BusinessModel, ReviewModel, MarketplaceModel; // Business Directory + Marketplace models
 
 // Geocode a city+state into lat/lon using OpenStreetMap Nominatim (free, no API key).
 // Returns { lat, lon } or null on failure. Rate-limited to 1 req/sec by Nominatim fair-use policy.
@@ -195,6 +196,11 @@ const messages = [];
 // In-memory store for events
 const events = [];
 
+// In-memory fallback stores for Business Directory + Marketplace (used when MongoDB is not connected)
+const businesses = [];
+const businessReviews = [];
+const marketplaceListings = [];
+
 // In-memory store for RSVPs
 const rsvps = [];
 
@@ -344,6 +350,7 @@ if (MONGODB_URI) {
       UserModel = require('./models/user');
       EventModel = require('./models/event');
       MessageModel = require('./models/message');
+      ({ BusinessModel, ReviewModel, MarketplaceModel } = require('./models/business'));
       // Seed demo forum threads if none
       const count = await ForumThread.countDocuments();
       if (count === 0) {
@@ -2305,6 +2312,677 @@ app.get('/vehicle/complaints', vehicleLimiter, async (req, res) => {
     numberOfDeaths: c.numberOfDeaths != null ? c.numberOfDeaths : (c.NumberOfDeaths != null ? c.NumberOfDeaths : 0),
   }));
   res.json({ count: simplified.length, results: simplified });
+});
+
+// ============================================================
+// Business Directory + Marketplace features
+// Routes for automotive business listings, reviews, and classifieds.
+// Follows the same dual-mode pattern (Mongo when connected, in-memory
+// fallback otherwise) as users/events/messages.
+// ============================================================
+
+// Escape a string for safe use inside a RegExp.
+const escapeRegExp = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// --- Helpers: Business / Marketplace ---
+const dbReady = () => mongoose.connection.readyState === 1;
+
+const normalizeBusiness = (raw) => {
+  if (!raw) return null;
+  const doc = raw.toObject ? raw.toObject() : raw;
+  return {
+    id: doc._id ? doc._id.toString() : doc.id,
+    ownerId: doc.ownerId,
+    ownerUsername: doc.ownerUsername,
+    businessName: doc.businessName,
+    category: doc.category,
+    description: doc.description,
+    services: doc.services || [],
+    address: doc.address,
+    city: doc.city,
+    state: doc.state,
+    zipCode: doc.zipCode,
+    geoCoordinates: doc.geoCoordinates || null,
+    phone: doc.phone,
+    email: doc.email,
+    website: doc.website,
+    hours: doc.hours,
+    logo: doc.logo,
+    photos: doc.photos || [],
+    certifications: doc.certifications || [],
+    verified: !!doc.verified,
+    rating: doc.rating || 0,
+    reviewCount: doc.reviewCount || 0,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  };
+};
+
+const normalizeReview = (raw) => {
+  if (!raw) return null;
+  const doc = raw.toObject ? raw.toObject() : raw;
+  return {
+    id: doc._id ? doc._id.toString() : doc.id,
+    businessId: doc.businessId ? doc.businessId.toString() : doc.businessId,
+    reviewerId: doc.reviewerId,
+    reviewerUsername: doc.reviewerUsername,
+    rating: doc.rating,
+    text: doc.text,
+    createdAt: doc.createdAt,
+  };
+};
+
+const normalizeListing = (raw) => {
+  if (!raw) return null;
+  const doc = raw.toObject ? raw.toObject() : raw;
+  return {
+    id: doc._id ? doc._id.toString() : doc.id,
+    sellerId: doc.sellerId,
+    sellerUsername: doc.sellerUsername,
+    sellerType: doc.sellerType,
+    title: doc.title,
+    description: doc.description,
+    category: doc.category,
+    price: doc.price,
+    condition: doc.condition,
+    location: doc.location || {},
+    photos: doc.photos || [],
+    contactPhone: doc.contactPhone,
+    contactEmail: doc.contactEmail,
+    status: doc.status,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  };
+};
+
+// --- Business Routes ---
+
+// POST /businesses - create a business listing (auth required)
+app.post('/businesses', authenticateToken, async (req, res) => {
+  try {
+    const {
+      businessName, category, description, services = [], address, city, state,
+      zipCode, phone, email, website, hours, logo, photos = [], certifications = [],
+    } = req.body;
+
+    if (!businessName || !category) {
+      return res.status(400).json({ message: 'businessName and category are required' });
+    }
+
+    const ownerId = String(req.user.id || req.user.userId);
+    const ownerUsername = req.user.username;
+
+    // Geocode city+state when available
+    let geoCoordinates = null;
+    if (city && state) {
+      geoCoordinates = await geocodeLocation(city, state);
+    }
+
+    const baseFields = {
+      ownerId,
+      ownerUsername,
+      businessName,
+      category,
+      description,
+      services,
+      address,
+      city,
+      state,
+      zipCode,
+      geoCoordinates,
+      phone,
+      email,
+      website,
+      hours,
+      logo,
+      photos,
+      certifications,
+      verified: false,
+      rating: 0,
+      reviewCount: 0,
+    };
+
+    let saved;
+    if (dbReady() && BusinessModel) {
+      saved = await BusinessModel.create(baseFields);
+    } else {
+      saved = {
+        id: `biz_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        ...baseFields,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      businesses.push(saved);
+    }
+
+    res.status(201).json({ message: 'Business created successfully', data: normalizeBusiness(saved) });
+  } catch (error) {
+    logger.error('Create business error', { error, requestId: req.requestId });
+    res.status(500).json({ message: 'Error creating business' });
+  }
+});
+
+// GET /businesses - list businesses with filters + pagination
+app.get('/businesses', async (req, res) => {
+  try {
+    const { category, city, state, q, page = 1, limit = 20 } = req.query;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+
+    if (dbReady() && BusinessModel) {
+      const filter = {};
+      if (category) filter.category = category;
+      if (city) filter.city = new RegExp(escapeRegExp(city), 'i');
+      if (state) filter.state = new RegExp(escapeRegExp(state), 'i');
+      if (q) {
+        filter.$or = [
+          { businessName: new RegExp(escapeRegExp(q), 'i') },
+          { description: new RegExp(escapeRegExp(q), 'i') },
+          { services: new RegExp(escapeRegExp(q), 'i') },
+        ];
+      }
+      const skip = (pageNum - 1) * limitNum;
+      const [docs, total] = await Promise.all([
+        BusinessModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean(),
+        BusinessModel.countDocuments(filter),
+      ]);
+      return res.json({
+        data: docs.map(normalizeBusiness),
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+      });
+    }
+
+    // In-memory fallback
+    let results = businesses.slice();
+    if (category) results = results.filter(b => b.category === category);
+    if (city) results = results.filter(b => b.city && b.city.toLowerCase().includes(city.toLowerCase()));
+    if (state) results = results.filter(b => b.state && b.state.toLowerCase().includes(state.toLowerCase()));
+    if (q) {
+      const ql = q.toLowerCase();
+      results = results.filter(b =>
+        (b.businessName && b.businessName.toLowerCase().includes(ql)) ||
+        (b.description && b.description.toLowerCase().includes(ql)) ||
+        (Array.isArray(b.services) && b.services.some(s => s.toLowerCase().includes(ql)))
+      );
+    }
+    results.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const total = results.length;
+    const start = (pageNum - 1) * limitNum;
+    return res.json({
+      data: results.slice(start, start + limitNum).map(normalizeBusiness),
+      page: pageNum,
+      limit: limitNum,
+      total,
+      totalPages: Math.ceil(total / limitNum),
+    });
+  } catch (error) {
+    logger.error('Get businesses error', { error, requestId: req.requestId });
+    res.status(500).json({ message: 'Error fetching businesses' });
+  }
+});
+
+// GET /businesses/:id - single business with reviews
+app.get('/businesses/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    let business = null;
+    let reviews = [];
+
+    if (dbReady() && BusinessModel) {
+      if (!isObjectIdLike(id)) return res.status(404).json({ message: 'Business not found' });
+      business = await BusinessModel.findById(id).lean();
+      if (!business) return res.status(404).json({ message: 'Business not found' });
+      if (ReviewModel) {
+        reviews = await ReviewModel.find({ businessId: business._id }).sort({ createdAt: -1 }).lean();
+      }
+      return res.json({ data: { ...normalizeBusiness(business), reviews: reviews.map(normalizeReview) } });
+    }
+
+    business = businesses.find(b => String(b.id) === String(id));
+    if (!business) return res.status(404).json({ message: 'Business not found' });
+    reviews = businessReviews.filter(r => String(r.businessId) === String(business.id));
+    return res.json({ data: { ...normalizeBusiness(business), reviews: reviews.map(normalizeReview) } });
+  } catch (error) {
+    logger.error('Get business error', { error, requestId: req.requestId, businessId: req.params.id });
+    res.status(500).json({ message: 'Error fetching business' });
+  }
+});
+
+// PATCH /businesses/:id - update a business (owner or admin only)
+app.patch('/businesses/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = String(req.user.id || req.user.userId);
+    const isAdmin = req.user.role === 'admin';
+    const allowed = ['businessName', 'category', 'description', 'services', 'address', 'city', 'state', 'zipCode', 'phone', 'email', 'website', 'hours', 'logo', 'photos', 'certifications'];
+    const updates = {};
+    for (const k of allowed) {
+      if (req.body[k] !== undefined) updates[k] = req.body[k];
+    }
+
+    // Re-geocode if city/state changed
+    if ((updates.city || updates.state) && (req.body.city || req.body.state)) {
+      const city = updates.city || req.body.existingCity;
+      const state = updates.state || req.body.existingState;
+      if (city && state) {
+        const geo = await geocodeLocation(city, state);
+        if (geo) updates.geoCoordinates = geo;
+      }
+    }
+
+    if (dbReady() && BusinessModel) {
+      if (!isObjectIdLike(id)) return res.status(404).json({ message: 'Business not found' });
+      const doc = await BusinessModel.findById(id);
+      if (!doc) return res.status(404).json({ message: 'Business not found' });
+      if (String(doc.ownerId) !== userId && !isAdmin) {
+        securityEvent('Unauthorized business update attempt', { requestId: req.requestId, businessId: id, userId });
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+      Object.keys(updates).forEach(k => { doc[k] = updates[k]; });
+      doc.updatedAt = new Date();
+      await doc.save();
+      return res.json({ message: 'Business updated successfully', data: normalizeBusiness(doc) });
+    }
+
+    const idx = businesses.findIndex(b => String(b.id) === String(id));
+    if (idx === -1) return res.status(404).json({ message: 'Business not found' });
+    if (String(businesses[idx].ownerId) !== userId && !isAdmin) {
+      securityEvent('Unauthorized business update attempt', { requestId: req.requestId, businessId: id, userId });
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    businesses[idx] = { ...businesses[idx], ...updates, updatedAt: new Date() };
+    return res.json({ message: 'Business updated successfully', data: normalizeBusiness(businesses[idx]) });
+  } catch (error) {
+    logger.error('Update business error', { error, requestId: req.requestId, businessId: req.params.id });
+    res.status(500).json({ message: 'Error updating business' });
+  }
+});
+
+// DELETE /businesses/:id - delete a business (owner or admin only)
+app.delete('/businesses/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = String(req.user.id || req.user.userId);
+    const isAdmin = req.user.role === 'admin';
+
+    if (dbReady() && BusinessModel) {
+      if (!isObjectIdLike(id)) return res.status(404).json({ message: 'Business not found' });
+      const doc = await BusinessModel.findById(id);
+      if (!doc) return res.status(404).json({ message: 'Business not found' });
+      if (String(doc.ownerId) !== userId && !isAdmin) {
+        securityEvent('Unauthorized business delete attempt', { requestId: req.requestId, businessId: id, userId });
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+      await BusinessModel.deleteOne({ _id: doc._id });
+      if (ReviewModel) await ReviewModel.deleteMany({ businessId: doc._id });
+      return res.json({ message: 'Business deleted successfully' });
+    }
+
+    const idx = businesses.findIndex(b => String(b.id) === String(id));
+    if (idx === -1) return res.status(404).json({ message: 'Business not found' });
+    if (String(businesses[idx].ownerId) !== userId && !isAdmin) {
+      securityEvent('Unauthorized business delete attempt', { requestId: req.requestId, businessId: id, userId });
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    businesses.splice(idx, 1);
+    for (let i = businessReviews.length - 1; i >= 0; i--) {
+      if (String(businessReviews[i].businessId) === String(id)) businessReviews.splice(i, 1);
+    }
+    return res.json({ message: 'Business deleted successfully' });
+  } catch (error) {
+    logger.error('Delete business error', { error, requestId: req.requestId, businessId: req.params.id });
+    res.status(500).json({ message: 'Error deleting business' });
+  }
+});
+
+// POST /businesses/:id/reviews - add a review (auth required)
+app.post('/businesses/:id/reviews', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rating, text } = req.body;
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ message: 'rating (1-5) is required' });
+    }
+    const reviewerId = String(req.user.id || req.user.userId);
+    const reviewerUsername = req.user.username;
+
+    if (dbReady() && BusinessModel && ReviewModel) {
+      if (!isObjectIdLike(id)) return res.status(404).json({ message: 'Business not found' });
+      const business = await BusinessModel.findById(id);
+      if (!business) return res.status(404).json({ message: 'Business not found' });
+      const review = await ReviewModel.create({
+        businessId: business._id,
+        reviewerId,
+        reviewerUsername,
+        rating: Number(rating),
+        text,
+      });
+      // Recompute average rating + count
+      const agg = await ReviewModel.aggregate([
+        { $match: { businessId: business._id } },
+        { $group: { _id: null, avg: { $avg: '$rating' }, count: { $sum: 1 } } },
+      ]);
+      business.rating = agg.length ? Math.round(agg[0].avg * 10) / 10 : 0;
+      business.reviewCount = agg.length ? agg[0].count : 0;
+      business.updatedAt = new Date();
+      await business.save();
+      return res.status(201).json({ message: 'Review added successfully', data: normalizeReview(review) });
+    }
+
+    const business = businesses.find(b => String(b.id) === String(id));
+    if (!business) return res.status(404).json({ message: 'Business not found' });
+    const review = {
+      id: `rev_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      businessId: business.id,
+      reviewerId,
+      reviewerUsername,
+      rating: Number(rating),
+      text,
+      createdAt: new Date(),
+    };
+    businessReviews.push(review);
+    const all = businessReviews.filter(r => String(r.businessId) === String(business.id));
+    business.reviewCount = all.length;
+    business.rating = Math.round((all.reduce((s, r) => s + r.rating, 0) / all.length) * 10) / 10;
+    business.updatedAt = new Date();
+    return res.status(201).json({ message: 'Review added successfully', data: normalizeReview(review) });
+  } catch (error) {
+    logger.error('Create business review error', { error, requestId: req.requestId, businessId: req.params.id });
+    res.status(500).json({ message: 'Error creating review' });
+  }
+});
+
+// GET /businesses/:id/reviews - list reviews for a business (paginated)
+app.get('/businesses/:id/reviews', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { page = 1, limit = 20 } = req.query;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+
+    if (dbReady() && ReviewModel) {
+      if (!isObjectIdLike(id)) return res.status(404).json({ message: 'Business not found' });
+      const skip = (pageNum - 1) * limitNum;
+      const [docs, total] = await Promise.all([
+        ReviewModel.find({ businessId: id }).sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean(),
+        ReviewModel.countDocuments({ businessId: id }),
+      ]);
+      return res.json({
+        data: docs.map(normalizeReview),
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+      });
+    }
+
+    let results = businessReviews.filter(r => String(r.businessId) === String(id));
+    results.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const total = results.length;
+    const start = (pageNum - 1) * limitNum;
+    return res.json({
+      data: results.slice(start, start + limitNum).map(normalizeReview),
+      page: pageNum,
+      limit: limitNum,
+      total,
+      totalPages: Math.ceil(total / limitNum),
+    });
+  } catch (error) {
+    logger.error('Get business reviews error', { error, requestId: req.requestId, businessId: req.params.id });
+    res.status(500).json({ message: 'Error fetching reviews' });
+  }
+});
+
+// --- Marketplace Routes ---
+
+// POST /marketplace - create a listing (auth required)
+app.post('/marketplace', authenticateToken, async (req, res) => {
+  try {
+    const {
+      sellerType = 'individual', title, description, category, price, condition,
+      location = {}, photos = [], contactPhone, contactEmail,
+    } = req.body;
+
+    if (!title || !description || !category) {
+      return res.status(400).json({ message: 'title, description, and category are required' });
+    }
+
+    const sellerId = String(req.user.id || req.user.userId);
+    const sellerUsername = req.user.username;
+
+    const baseFields = {
+      sellerId,
+      sellerUsername,
+      sellerType,
+      title,
+      description,
+      category,
+      price: price != null ? Number(price) : undefined,
+      condition,
+      location,
+      photos,
+      contactPhone,
+      contactEmail,
+      status: 'active',
+    };
+
+    let saved;
+    if (dbReady() && MarketplaceModel) {
+      saved = await MarketplaceModel.create(baseFields);
+    } else {
+      saved = {
+        id: `mkt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        ...baseFields,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      marketplaceListings.push(saved);
+    }
+
+    res.status(201).json({ message: 'Listing created successfully', data: normalizeListing(saved) });
+  } catch (error) {
+    logger.error('Create marketplace listing error', { error, requestId: req.requestId });
+    res.status(500).json({ message: 'Error creating listing' });
+  }
+});
+
+// GET /marketplace - list active listings with filters + pagination
+app.get('/marketplace', async (req, res) => {
+  try {
+    const { category, q, condition, minPrice, maxPrice, page = 1, limit = 20 } = req.query;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+
+    if (dbReady() && MarketplaceModel) {
+      const filter = { status: 'active' };
+      if (category) filter.category = category;
+      if (condition) filter.condition = condition;
+      if (minPrice != null || maxPrice != null) {
+        filter.price = {};
+        if (minPrice != null) filter.price.$gte = Number(minPrice);
+        if (maxPrice != null) filter.price.$lte = Number(maxPrice);
+      }
+      if (q) {
+        filter.$or = [
+          { title: new RegExp(escapeRegExp(q), 'i') },
+          { description: new RegExp(escapeRegExp(q), 'i') },
+        ];
+      }
+      const skip = (pageNum - 1) * limitNum;
+      const [docs, total] = await Promise.all([
+        MarketplaceModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean(),
+        MarketplaceModel.countDocuments(filter),
+      ]);
+      return res.json({
+        data: docs.map(normalizeListing),
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+      });
+    }
+
+    let results = marketplaceListings.filter(l => l.status === 'active');
+    if (category) results = results.filter(l => l.category === category);
+    if (condition) results = results.filter(l => l.condition === condition);
+    if (minPrice != null) results = results.filter(l => l.price != null && l.price >= Number(minPrice));
+    if (maxPrice != null) results = results.filter(l => l.price != null && l.price <= Number(maxPrice));
+    if (q) {
+      const ql = q.toLowerCase();
+      results = results.filter(l =>
+        (l.title && l.title.toLowerCase().includes(ql)) ||
+        (l.description && l.description.toLowerCase().includes(ql))
+      );
+    }
+    results.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const total = results.length;
+    const start = (pageNum - 1) * limitNum;
+    return res.json({
+      data: results.slice(start, start + limitNum).map(normalizeListing),
+      page: pageNum,
+      limit: limitNum,
+      total,
+      totalPages: Math.ceil(total / limitNum),
+    });
+  } catch (error) {
+    logger.error('Get marketplace listings error', { error, requestId: req.requestId });
+    res.status(500).json({ message: 'Error fetching listings' });
+  }
+});
+
+// GET /marketplace/:id - single listing
+app.get('/marketplace/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (dbReady() && MarketplaceModel) {
+      if (!isObjectIdLike(id)) return res.status(404).json({ message: 'Listing not found' });
+      const doc = await MarketplaceModel.findById(id).lean();
+      if (!doc) return res.status(404).json({ message: 'Listing not found' });
+      return res.json({ data: normalizeListing(doc) });
+    }
+    const listing = marketplaceListings.find(l => String(l.id) === String(id));
+    if (!listing) return res.status(404).json({ message: 'Listing not found' });
+    return res.json({ data: normalizeListing(listing) });
+  } catch (error) {
+    logger.error('Get marketplace listing error', { error, requestId: req.requestId, listingId: req.params.id });
+    res.status(500).json({ message: 'Error fetching listing' });
+  }
+});
+
+// PATCH /marketplace/:id - update a listing (seller or admin only)
+app.patch('/marketplace/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = String(req.user.id || req.user.userId);
+    const isAdmin = req.user.role === 'admin';
+    const allowed = ['title', 'description', 'category', 'price', 'condition', 'location', 'photos', 'contactPhone', 'contactEmail'];
+    const updates = {};
+    for (const k of allowed) {
+      if (req.body[k] !== undefined) updates[k] = req.body[k];
+    }
+    if (updates.price != null) updates.price = Number(updates.price);
+
+    if (dbReady() && MarketplaceModel) {
+      if (!isObjectIdLike(id)) return res.status(404).json({ message: 'Listing not found' });
+      const doc = await MarketplaceModel.findById(id);
+      if (!doc) return res.status(404).json({ message: 'Listing not found' });
+      if (String(doc.sellerId) !== userId && !isAdmin) {
+        securityEvent('Unauthorized listing update attempt', { requestId: req.requestId, listingId: id, userId });
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+      Object.keys(updates).forEach(k => { doc[k] = updates[k]; });
+      doc.updatedAt = new Date();
+      await doc.save();
+      return res.json({ message: 'Listing updated successfully', data: normalizeListing(doc) });
+    }
+
+    const idx = marketplaceListings.findIndex(l => String(l.id) === String(id));
+    if (idx === -1) return res.status(404).json({ message: 'Listing not found' });
+    if (String(marketplaceListings[idx].sellerId) !== userId && !isAdmin) {
+      securityEvent('Unauthorized listing update attempt', { requestId: req.requestId, listingId: id, userId });
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    marketplaceListings[idx] = { ...marketplaceListings[idx], ...updates, updatedAt: new Date() };
+    return res.json({ message: 'Listing updated successfully', data: normalizeListing(marketplaceListings[idx]) });
+  } catch (error) {
+    logger.error('Update marketplace listing error', { error, requestId: req.requestId, listingId: req.params.id });
+    res.status(500).json({ message: 'Error updating listing' });
+  }
+});
+
+// DELETE /marketplace/:id - soft delete a listing (seller or admin only)
+app.delete('/marketplace/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = String(req.user.id || req.user.userId);
+    const isAdmin = req.user.role === 'admin';
+
+    if (dbReady() && MarketplaceModel) {
+      if (!isObjectIdLike(id)) return res.status(404).json({ message: 'Listing not found' });
+      const doc = await MarketplaceModel.findById(id);
+      if (!doc) return res.status(404).json({ message: 'Listing not found' });
+      if (String(doc.sellerId) !== userId && !isAdmin) {
+        securityEvent('Unauthorized listing delete attempt', { requestId: req.requestId, listingId: id, userId });
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+      doc.status = 'removed';
+      doc.updatedAt = new Date();
+      await doc.save();
+      return res.json({ message: 'Listing removed successfully' });
+    }
+
+    const idx = marketplaceListings.findIndex(l => String(l.id) === String(id));
+    if (idx === -1) return res.status(404).json({ message: 'Listing not found' });
+    if (String(marketplaceListings[idx].sellerId) !== userId && !isAdmin) {
+      securityEvent('Unauthorized listing delete attempt', { requestId: req.requestId, listingId: id, userId });
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    marketplaceListings[idx].status = 'removed';
+    marketplaceListings[idx].updatedAt = new Date();
+    return res.json({ message: 'Listing removed successfully' });
+  } catch (error) {
+    logger.error('Delete marketplace listing error', { error, requestId: req.requestId, listingId: req.params.id });
+    res.status(500).json({ message: 'Error removing listing' });
+  }
+});
+
+// PATCH /marketplace/:id/sold - mark a listing as sold (seller or admin only)
+app.patch('/marketplace/:id/sold', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = String(req.user.id || req.user.userId);
+    const isAdmin = req.user.role === 'admin';
+
+    if (dbReady() && MarketplaceModel) {
+      if (!isObjectIdLike(id)) return res.status(404).json({ message: 'Listing not found' });
+      const doc = await MarketplaceModel.findById(id);
+      if (!doc) return res.status(404).json({ message: 'Listing not found' });
+      if (String(doc.sellerId) !== userId && !isAdmin) {
+        securityEvent('Unauthorized listing sold attempt', { requestId: req.requestId, listingId: id, userId });
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+      doc.status = 'sold';
+      doc.updatedAt = new Date();
+      await doc.save();
+      return res.json({ message: 'Listing marked as sold', data: normalizeListing(doc) });
+    }
+
+    const idx = marketplaceListings.findIndex(l => String(l.id) === String(id));
+    if (idx === -1) return res.status(404).json({ message: 'Listing not found' });
+    if (String(marketplaceListings[idx].sellerId) !== userId && !isAdmin) {
+      securityEvent('Unauthorized listing sold attempt', { requestId: req.requestId, listingId: id, userId });
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    marketplaceListings[idx].status = 'sold';
+    marketplaceListings[idx].updatedAt = new Date();
+    return res.json({ message: 'Listing marked as sold', data: normalizeListing(marketplaceListings[idx]) });
+  } catch (error) {
+    logger.error('Mark listing sold error', { error, requestId: req.requestId, listingId: req.params.id });
+    res.status(500).json({ message: 'Error marking listing as sold' });
+  }
 });
 
 const httpServer = http.createServer(app);

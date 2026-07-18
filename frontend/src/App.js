@@ -10,6 +10,8 @@ import Forums from './components/Forums';
 import SignUp from './components/SignUp'; // Import the new SignUp component
 import Login from './components/Login';
 import VehicleLookup from './components/VehicleLookup';
+import BusinessDirectory from './components/BusinessDirectory';
+import Marketplace from './components/Marketplace';
 import Layout from './components/Layout';
 import AuthContext, { AuthProvider } from './context/AuthContext';
 import { trackPageView } from './utils/analytics';
@@ -38,6 +40,8 @@ function AppContent() {
               <li><Link to="/">Discover</Link></li>
               <li><Link to="/events">Events</Link></li>
               <li><Link to="/forums">Forums</Link></li>
+              <li><Link to="/marketplace">Marketplace</Link></li>
+              <li><Link to="/businesses">Shops</Link></li>
               <li><Link to="/vehicle-lookup">Garage Tools</Link></li>
               {/* Messages moved under Profile; remove header link */}
               <li><Link to="/profile">Profile</Link></li>
@@ -61,6 +65,8 @@ function AppContent() {
               <Route path="/events" element={<Layout><Events /></Layout>} />
               <Route path="/forums" element={<Layout><Forums /></Layout>} />
               <Route path="/vehicle-lookup" element={<Layout><VehicleLookup /></Layout>} />
+              <Route path="/businesses" element={<Layout><BusinessDirectory /></Layout>} />
+              <Route path="/marketplace" element={<Layout><Marketplace /></Layout>} />
               {/* Messages page removed; handled within Profile */}
               <Route path="/profile" element={<Layout><Profile /></Layout>} />
               {/* Settings merged into Profile; route removed */}
