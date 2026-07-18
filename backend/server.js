@@ -255,14 +255,242 @@ app.get('/healthz', healthHandler);
 // and is the path used by keep-warm pingers and monitoring.
 app.get('/health', healthHandler);
 
-// Seed a few demo users and basic events in-memory so the app "feels real"
+// Geo coordinates for known cities (used by seed data)
+const CITY_GEO = {
+  'Los Angeles': { lat: 34.0522, lon: -118.2437 },
+  'San Francisco': { lat: 37.7749, lon: -122.4194 },
+  'San Diego': { lat: 32.7157, lon: -117.1611 },
+  'Chicago': { lat: 41.8781, lon: -87.6298 },
+  'Milwaukee': { lat: 43.0389, lon: -87.9065 },
+  'Madison': { lat: 43.0731, lon: -89.4012 },
+  'Rockford': { lat: 42.2711, lon: -89.0940 },
+  'Davis': { lat: 42.0575, lon: -89.4237 },
+  'Freeport': { lat: 42.2967, lon: -89.6212 },
+  'Galena': { lat: 42.4164, lon: -90.4290 },
+  'Dubuque': { lat: 42.5006, lon: -90.6646 },
+  'Cedar Rapids': { lat: 41.9778, lon: -91.6656 },
+  'Aurora': { lat: 41.7606, lon: -88.3201 },
+  'Naperville': { lat: 41.7508, lon: -88.1535 },
+  'Indianapolis': { lat: 39.7684, lon: -86.1581 },
+  'Detroit': { lat: 42.3314, lon: -83.0458 },
+  'St. Louis': { lat: 38.6270, lon: -90.1994 },
+  'Minneapolis': { lat: 44.9778, lon: -93.2650 },
+};
+
+// Seed demo users with rich, realistic data so the app "feels real"
 const seedDemoData = () => {
   if (users.length > 0) return; // already seeded
   try {
     const demoUsers = [
-      { username: 'demo', password: 'password123', name: 'Demo User', displayTag: 'Demo', gender: 'other', city: 'Los Angeles', state: 'CA' },
-      { username: 'jane', password: 'password123', name: 'Jane Smith', displayTag: 'JSpeed', gender: 'female', city: 'San Francisco', state: 'CA' },
-      { username: 'mike', password: 'password123', name: 'Mike Davis', displayTag: 'MDrives', gender: 'male', city: 'San Diego', state: 'CA' },
+      {
+        username: 'demo', password: 'password123', name: 'Bradley Matera', displayTag: 'Demo',
+        gender: 'male', city: 'Davis', state: 'IL',
+        email: 'demo@carmatch.app',
+        biography: 'Founder of CarMatch and lifelong car enthusiast. Started this community to connect drivers across the Midwest. Currently restoring a 1968 Mustang Fastback and tracking a 2023 GR Corolla. Always down to talk cars, meet up at shows, or help with build advice.',
+        carInterests: ['Muscle Cars', 'JDM', 'Track Days', 'Restoration', 'Drag Racing', 'Car Shows'],
+        profileImage: '',
+        premiumStatus: false,
+        developerOverride: true,
+        role: 'admin',
+        cars: [
+          { id: 1, name: 'The Project', make: 'Ford', model: 'Mustang Fastback', year: 1968, description: 'Numbers-matching 289 V8 with a C4 auto trans. Frame-off restoration in progress — about 60% done. Original Wimbledon White, adding a subtle modern suspension upgrade while keeping the classic look.', photos: [] },
+          { id: 2, name: 'Daily Driver', make: 'Toyota', model: 'GR Corolla Circuit Edition', year: 2023, description: 'Intake, cat-back exhaust, and E85 tune. 320whp on the dyno. Track day weapon that still gets 28 mpg on the highway. Heavy white with red accents.', photos: [] },
+        ],
+        preferences: {
+          notifications: { messagesEmail: true, forumRepliesEmail: true, eventRemindersEmail: true },
+          privacy: { showProfile: true, showEmail: false, searchable: true },
+          display: { theme: 'dark', textSize: 'normal' },
+          connections: { instagram: '@carmatch.app', twitter: '@carmatchapp', website: 'https://bradleymatera.github.io/car-match/' },
+        },
+      },
+      {
+        username: 'jane', password: 'password123', name: 'Jane Smith', displayTag: 'JSpeed',
+        gender: 'female', city: 'Chicago', state: 'IL',
+        email: 'jane@carmatch.app',
+        biography: 'Track instructor at Autobahn Country Club and HPDE coach. Been racing for 12 years — started in autocross, moved to time attack, now instructing. Big believer that seat time beats horsepower every time. My GT3 is my third 911 and I will never not own a flat-six.',
+        carInterests: ['Track Days', 'Porsche', 'Autocross', 'Time Attack', 'HPDE', 'European'],
+        profileImage: '',
+        premiumStatus: true,
+        developerOverride: false,
+        role: 'moderator',
+        cars: [
+          { id: 1, name: 'Track Weapon', make: 'Porsche', model: '911 GT3', year: 2023, description: 'Spec: 992.1 GT3, 6-speed manual (yes, I chose the stick). Guards Red with black leather. PCS coilovers, Pagid RSL29 pads, Recaro buckets. 1:32.4 at Autobahn full course.', photos: [] },
+          { id: 2, name: 'Winter Beater', make: 'Subaru', model: 'WRX', year: 2019, description: 'Base model WRX, 6MT. Winter setup with Blizzaks. It is not fast but it gets me to the track in January.', photos: [] },
+        ],
+        preferences: {
+          notifications: { messagesEmail: true, forumRepliesEmail: true, eventRemindersEmail: true },
+          privacy: { showProfile: true, showEmail: false, searchable: true },
+          display: { theme: 'dark', textSize: 'normal' },
+          connections: { instagram: '@jspeed_racing', twitter: '@janesmith', website: '' },
+        },
+      },
+      {
+        username: 'mike', password: 'password123', name: 'Mike Davis', displayTag: 'MDrives',
+        gender: 'male', city: 'Milwaukee', state: 'WI',
+        email: 'mike@carmatch.app',
+        biography: 'Diesel truck guy turned JDM convert. Started with a lifted F-250, then drove my buddy\'s STI and never looked back. Now building an EJ255 swapped GC8 Impreza coupe in my two-car garage. Welding, fabrication, and questionable wiring are my specialties.',
+        carInterests: ['JDM', 'Subaru', 'Engine Swaps', 'Fabrication', 'Rally', 'Drift'],
+        profileImage: '',
+        premiumStatus: false,
+        developerOverride: false,
+        role: 'user',
+        cars: [
+          { id: 1, name: 'GC8 Swap Project', make: 'Subaru', model: 'Impreza Coupe', year: 1998, description: 'EJ255 from a 2008 WRX, 5-speed manual, R180 rear diff. Full weld-in roll cage, coilovers, two-tone paint (WRC blue and white). About 80% done — just need to finish wiring and interior.', photos: [] },
+          { id: 2, name: 'The Tow Rig', make: 'Ford', model: 'F-250 Super Duty', year: 2014, description: '6.7 Power Stroke, deleted, tuned, straight piped. Hauls the Impreza to track days and pulls my buddy\'s drift car too. 200k miles and still going strong.', photos: [] },
+        ],
+        preferences: {
+          notifications: { messagesEmail: true, forumRepliesEmail: false, eventRemindersEmail: true },
+          privacy: { showProfile: true, showEmail: false, searchable: true },
+          display: { theme: 'system', textSize: 'normal' },
+          connections: { instagram: '@mdrives_garage', twitter: '', website: '' },
+        },
+      },
+      {
+        username: 'tony', password: 'password123', name: 'Tony Reyes', displayTag: 'TReyes',
+        gender: 'male', city: 'Rockford', state: 'IL',
+        email: 'tony@carmatch.app',
+        biography: 'Third-generation mechanic — my grandpa opened Reyes Auto Repair in 1962 and I took over in 2015. I work on everything but my passion is American muscle from the 60s and 70s. Currently own a numbers-matching 1970 Chevelle SS 396 and a 1965 GTO project.',
+        carInterests: ['Muscle Cars', 'Classic Restoration', 'American V8', 'Car Shows', 'Drag Racing', 'Mechanic'],
+        profileImage: '',
+        premiumStatus: true,
+        developerOverride: false,
+        role: 'user',
+        cars: [
+          { id: 1, name: 'Big Block', make: 'Chevrolet', model: 'Chevelle SS 396', year: 1970, description: 'Numbers-matching L78 396/375hp, M22 rock crusher 4-speed, 3.73 Posi. Cortez Silver with black stripes. Show-quality restoration completed in 2021. Best of Show at Rockford Autofest 2022.', photos: [] },
+          { id: 2, name: 'The Goat Project', make: 'Pontiac', model: 'GTO', year: 1965, description: '389 Tri-Power, 4-speed, basket case when I bought it for $4k. Slowly restoring it in the shop between customer cars. Maybe 2 years out from done.', photos: [] },
+        ],
+        preferences: {
+          notifications: { messagesEmail: true, forumRepliesEmail: true, eventRemindersEmail: true },
+          privacy: { showProfile: true, showEmail: false, searchable: true },
+          display: { theme: 'light', textSize: 'large' },
+          connections: { instagram: '@reyesauto_rockford', twitter: '', website: 'https://reyesautorepair.com' },
+        },
+      },
+      {
+        username: 'sarah', password: 'password123', name: 'Sarah Chen', displayTag: 'SChen',
+        gender: 'female', city: 'Madison', state: 'WI',
+        email: 'sarah@carmatch.app',
+        biography: 'Automotive photographer and content creator. I shoot for a few local dealerships and magazines, but my real love is grassroots car meets and track days. Currently building an E36 M3 track car with my boyfriend — first time doing a full build and documenting everything on YouTube.',
+        carInterests: ['BMW', 'Track Days', 'Car Photography', 'E36', 'European', 'Content Creation'],
+        profileImage: '',
+        premiumStatus: false,
+        developerOverride: false,
+        role: 'user',
+        cars: [
+          { id: 1, name: 'Track Build', make: 'BMW', model: 'M3', year: 1997, description: 'E36 M3, S52 with Schrick cams, coilovers, big brakes, half-cage, Recaro Pole Positions. Dakar Yellow. Purpose-built for HPDE and time attack. 245whp on the dyno.', photos: [] },
+          { id: 2, name: 'Camera Hauler', make: 'Volkswagen', model: 'Golf GTI', year: 2020, description: 'MK7.5 GTI, 6-speed. APR Stage 1, intake, and coilovers. Daily driver and gear hauler. Surprisingly quick and practical.', photos: [] },
+        ],
+        preferences: {
+          notifications: { messagesEmail: true, forumRepliesEmail: true, eventRemindersEmail: true },
+          privacy: { showProfile: true, showEmail: false, searchable: true },
+          display: { theme: 'dark', textSize: 'normal' },
+          connections: { instagram: '@sarahchenphoto', twitter: '@sarahchenphoto', website: 'https://sarahchenphoto.com' },
+        },
+      },
+      {
+        username: 'derek', password: 'password123', name: 'Derek Johnson', displayTag: 'DJett',
+        gender: 'male', city: 'Indianapolis', state: 'IN',
+        email: 'derek@carmatch.app',
+        biography: 'Drag racer through and through. Grew up at Muncie Dragway watching my dad run a 1969 Dart. Now I campaign a 2015 Mustang GT with a ProCharger in the 10-second index. Best pass: 10.43 at 131 mph. Looking to break into the 9s next season with a built bottom end.',
+        carInterests: ['Drag Racing', 'Mustang', 'Forced Induction', 'American V8', 'Track Days', 'Engine Building'],
+        profileImage: '',
+        premiumStatus: false,
+        developerOverride: false,
+        role: 'user',
+        cars: [
+          { id: 1, name: 'Ten-Second Toy', make: 'Ford', model: 'Mustang GT', year: 2015, description: '5.0 Coyote with ProCharger D1SC, 10psi, ID1300 injectors, BAP, JLT intake, long tubes, off-road X-pipe, Magnaflow Competition. MT82-D4 trans, 4.10 gears, Mickey Thompson ET Street R. 10.43 @ 131 on pump gas.', photos: [] },
+          { id: 2, name: 'Trailer Queen Hauler', make: 'Chevrolet', model: 'Silverado 2500HD', year: 2018, description: '6.0 LQ4, tow rig for the Mustang. Nothing fancy but it gets the job done. 130k miles of reliable hauling.', photos: [] },
+        ],
+        preferences: {
+          notifications: { messagesEmail: false, forumRepliesEmail: true, eventRemindersEmail: true },
+          privacy: { showProfile: true, showEmail: false, searchable: true },
+          display: { theme: 'dark', textSize: 'normal' },
+          connections: { instagram: '@djett_racing', twitter: '', website: '' },
+        },
+      },
+      {
+        username: 'maria', password: 'password123', name: 'Maria Gonzalez', displayTag: 'MGonz',
+        gender: 'female', city: 'Aurora', state: 'IL',
+        email: 'maria@carmatch.app',
+        biography: 'JDM all the way. My first car was a 1992 Civic Si and I never stopped loving Hondas. Currently building a K-swap EG hatch for autocross and dailying an FK8 Type R. I can talk about VTEC, camber, and tire pressures for hours. Also a huge fan of the local cars-and-coffee scene.',
+        carInterests: ['JDM', 'Honda', 'Autocross', 'K-Swap', 'Cars & Coffee', 'VTEC'],
+        profileImage: '',
+        premiumStatus: true,
+        developerOverride: false,
+        role: 'user',
+        cars: [
+          { id: 1, name: 'K-Swap Hatch', make: 'Honda', model: 'Civic Hatchback Si', year: 1993, description: 'EG hatch with K24A2 swap, RBC intake, SSR headers, K-Tuned exhaust, Hondata FlashPro. 230whp. Coilovers, rear sway, 15x9 RPF1s with 225 RS4s. Autocross build in Street Touring class.', photos: [] },
+          { id: 2, name: 'Daily Type R', make: 'Honda', model: 'Civic Type R', year: 2018, description: 'FK8, Championship White. Stock turbo, intake, and FlashPro tune. 320whp. Daily driver that also does track days. Best FWD car ever made, fight me.', photos: [] },
+        ],
+        preferences: {
+          notifications: { messagesEmail: true, forumRepliesEmail: true, eventRemindersEmail: true },
+          privacy: { showProfile: true, showEmail: false, searchable: true },
+          display: { theme: 'dark', textSize: 'normal' },
+          connections: { instagram: '@mgonz_vtec', twitter: '@maria_gonzalez', website: '' },
+        },
+      },
+      {
+        username: 'kevin', password: 'password123', name: 'Kevin O\'Brien', displayTag: 'KOB',
+        gender: 'male', city: 'Dubuque', state: 'IA',
+        email: 'kevin@carmatch.app',
+        biography: 'Truck guy, off-roader, and overland enthusiast. Built my Tacoma over 3 years and now it goes everywhere — Moab, Colorado, the UP. Also have a 1979 Bronco that is my forever project. If it has 4WD and a lift, I want to see it.',
+        carInterests: ['Off-Road', 'Trucks', 'Overlanding', 'Toyota', 'Ford Bronco', 'Rock Crawling'],
+        profileImage: '',
+        premiumStatus: false,
+        developerOverride: false,
+        role: 'user',
+        cars: [
+          { id: 1, name: 'Overland Rig', make: 'Toyota', model: 'Tacoma TRD Off-Road', year: 2018, description: '3-inch lift, 33-inch BFG KO2s, C4 bumper, Warn Zeon 10-S, Total Chaos UCAs, skid plates, bed rack with RTT, dual battery, fridge. 80k miles of adventures and counting.', photos: [] },
+          { id: 2, name: 'Forever Project', make: 'Ford', model: 'Bronco', year: 1979, description: '351M, C6 auto, 4-inch lift, 35s. Rust repair in progress — floors, rockers, and tailpan. Going to be a trail rig when done, not a show truck.', photos: [] },
+        ],
+        preferences: {
+          notifications: { messagesEmail: true, forumRepliesEmail: false, eventRemindersEmail: true },
+          privacy: { showProfile: true, showEmail: false, searchable: true },
+          display: { theme: 'system', textSize: 'large' },
+          connections: { instagram: '@kob_overland', twitter: '', website: '' },
+        },
+      },
+      {
+        username: 'ashley', password: 'password123', name: 'Ashley Turner', displayTag: 'ATurn',
+        gender: 'female', city: 'Naperville', state: 'IL',
+        email: 'ashley@carmatch.app',
+        biography: 'Newer to the car scene but all in. Started with a stock Mazda3 in 2021, now I have a lowered GR86 with full bolt-ons and I autocross monthly. Love the community aspect — everyone is so welcoming and willing to teach. Hoping to do my first track day this summer.',
+        carInterests: ['Autocross', 'Toyota', 'GR86', 'Cars & Coffee', 'European', 'Track Days'],
+        profileImage: '',
+        premiumStatus: false,
+        developerOverride: false,
+        role: 'user',
+        cars: [
+          { id: 1, name: 'Autocross Toy', make: 'Toyota', model: 'GR86', year: 2023, description: 'Intake, cat-back, coilovers, 18x8.5 wheels with 245/40 RE71RS. Lowered 1.5 inches. Running CS class in autocross. Still learning but getting faster every event.', photos: [] },
+        ],
+        preferences: {
+          notifications: { messagesEmail: true, forumRepliesEmail: true, eventRemindersEmail: true },
+          privacy: { showProfile: true, showEmail: false, searchable: true },
+          display: { theme: 'dark', textSize: 'normal' },
+          connections: { instagram: '@aturn_cars', twitter: '', website: '' },
+        },
+      },
+      {
+        username: 'jordan', password: 'password123', name: 'Jordan Bailey', displayTag: 'JBay',
+        gender: 'other', city: 'Detroit', state: 'MI',
+        email: 'jordan@carmatch.app',
+        biography: 'I work at a supplier for the Big Three and I have gasoline in my veins. Grew up in the Motor City, currently daily a Hellcat and weekend a Fox Body Mustang. Big into cars and coffee, Woodward Dream Cruise, and anything with a V8. Also dabble in EV conversions — heresy, I know.',
+        carInterests: ['Muscle Cars', 'Mopar', 'Hellcat', 'Fox Body', 'Woodward Cruise', 'EV Conversions'],
+        profileImage: '',
+        premiumStatus: false,
+        developerOverride: false,
+        role: 'user',
+        cars: [
+          { id: 1, name: 'The Hellcat', make: 'Dodge', model: 'Challenger R/T Scat Pack', year: 2020, description: '392 Hemi, 6-speed manual (yes I know the Hellcat is faster, I like the stick). Go Mango orange. Cat-back, intake, and a tune. 485hp at the crank, sounds like thunder.', photos: [] },
+          { id: 2, name: 'Fox Body', make: 'Ford', model: 'Mustang LX 5.0', year: 1991, description: '302 HO, T5, 3.73s. Stock-ish with bolt-ons and a cam. Oxford White with pony wheels. My weekend cruiser and Woodward Dream Cruise car.', photos: [] },
+        ],
+        preferences: {
+          notifications: { messagesEmail: true, forumRepliesEmail: true, eventRemindersEmail: true },
+          privacy: { showProfile: true, showEmail: false, searchable: true },
+          display: { theme: 'dark', textSize: 'normal' },
+          connections: { instagram: '@jbay_motorcity', twitter: '@jordanbailey', website: '' },
+        },
+      },
     ];
     demoUsers.forEach((u) => {
       const hashed = bcrypt.hashSync(u.password, 10);
@@ -273,15 +501,19 @@ const seedDemoData = () => {
         name: u.name,
         displayTag: u.displayTag,
         gender: u.gender,
-        location: { city: u.city, state: u.state, geoCoordinates: {
-          'Los Angeles': { lat: 34.0522, lon: -118.2437 },
-          'San Francisco': { lat: 37.7749, lon: -122.4194 },
-          'San Diego': { lat: 32.7157, lon: -117.1611 },
-        }[u.city] || { lat: 0, lon: 0 } },
-        interests: [], biography: '', profileImage: '', lastLoginTimestamp: null,
-        premiumStatus: u.username === 'jane',
-        developerOverride: u.username === 'demo',
-        role: u.username === 'demo' ? 'admin' : 'user',
+        email: u.email,
+        location: { city: u.city, state: u.state, geoCoordinates: CITY_GEO[u.city] || { lat: 0, lon: 0 } },
+        interests: u.carInterests || [], biography: u.biography || '', profileImage: u.profileImage || '', lastLoginTimestamp: null,
+        premiumStatus: u.premiumStatus || false,
+        developerOverride: u.developerOverride || false,
+        role: u.role || 'user',
+        cars: u.cars || [],
+        preferences: u.preferences || {
+          notifications: { messagesEmail: true, forumRepliesEmail: true, eventRemindersEmail: true },
+          privacy: { showProfile: true, showEmail: false, searchable: true },
+          display: { theme: 'system', textSize: 'normal' },
+          connections: { instagram: '', twitter: '', website: '' },
+        },
         activityMetadata: { messageCountToday: 0, lastMessageDate: null },
         tierSpecificHistory: {}, createdAt: new Date().toISOString()
       });
@@ -306,7 +538,7 @@ const syncInMemoryUsersWithDatabase = async () => {
       dbUser = await UserModel.create({
         mockId: String(memUser.id || i + 1),
         username: loginUsername,
-        email: `${loginUsername}@example.com`,
+        email: memUser.email || `${loginUsername}@example.com`,
         password: memUser.password,
         name: memUser.name,
         displayTag: memUser.displayTag,
@@ -319,7 +551,28 @@ const syncInMemoryUsersWithDatabase = async () => {
         biography: memUser.biography || '',
         profileImage: memUser.profileImage || '',
         carInterests: memUser.interests || [],
+        cars: memUser.cars || [],
+        preferences: memUser.preferences || {
+          notifications: { messagesEmail: true, forumRepliesEmail: true, eventRemindersEmail: true },
+          privacy: { showProfile: true, showEmail: false, searchable: true },
+          display: { theme: 'system', textSize: 'normal' },
+          connections: { instagram: '', twitter: '', website: '' },
+        },
       });
+    } else {
+      // Backfill rich seed data (cars, preferences, bio, interests) for existing DB users
+      // that were created before the seed data was expanded. Only updates fields that are
+      // empty/missing so we never overwrite user-made changes.
+      const updates = {};
+      if ((!dbUser.biography || dbUser.biography === '') && memUser.biography) updates.biography = memUser.biography;
+      if ((!dbUser.carInterests || dbUser.carInterests.length === 0) && memUser.interests?.length) updates.carInterests = memUser.interests;
+      if ((!dbUser.cars || dbUser.cars.length === 0) && memUser.cars?.length) updates.cars = memUser.cars;
+      if (!dbUser.preferences && memUser.preferences) updates.preferences = memUser.preferences;
+      if ((!dbUser.email || dbUser.email === `${loginUsername}@example.com`) && memUser.email) updates.email = memUser.email;
+      if (Object.keys(updates).length > 0) {
+        await UserModel.updateOne({ _id: dbUser._id }, { $set: updates });
+        dbUser = await UserModel.findOne(query);
+      }
     }
     const canonicalId = dbUser._id.toString();
     users[i] = {
@@ -331,6 +584,12 @@ const syncInMemoryUsersWithDatabase = async () => {
       role: dbUser.role || memUser.role || 'user',
       activityMetadata: dbUser.activityMetadata || memUser.activityMetadata || { messageCountToday: 0, lastMessageDate: null },
       tierSpecificHistory: dbUser.tierSpecificHistory || memUser.tierSpecificHistory || {},
+      cars: dbUser.cars || memUser.cars || [],
+      preferences: dbUser.preferences || memUser.preferences || {},
+      biography: dbUser.biography || memUser.biography || '',
+      profileImage: dbUser.profileImage || memUser.profileImage || '',
+      interests: dbUser.carInterests || memUser.interests || [],
+      email: dbUser.email || memUser.email || '',
     };
   }
   const userByUsername = new Map(users.map(u => [u.username, u]));
@@ -942,6 +1201,9 @@ app.post('/login', authLimiterMiddleware, async (req, res) => {
           interests: dbUser.carInterests || [],
           biography: dbUser.biography || '',
           profileImage: dbUser.profileImage || '',
+          cars: dbUser.cars || [],
+          preferences: dbUser.preferences || {},
+          email: dbUser.email || '',
           lastLoginTimestamp: new Date().toISOString(),
           premiumStatus: !!dbUser.premiumStatus,
           developerOverride: !!dbUser.developerOverride,
@@ -963,6 +1225,9 @@ app.post('/login', authLimiterMiddleware, async (req, res) => {
           interests: authenticatedUser.interests,
           biography: authenticatedUser.biography,
           profileImage: authenticatedUser.profileImage,
+          cars: authenticatedUser.cars,
+          preferences: authenticatedUser.preferences,
+          email: authenticatedUser.email,
           lastLoginTimestamp: authenticatedUser.lastLoginTimestamp,
           premiumStatus: authenticatedUser.premiumStatus,
           developerOverride: authenticatedUser.developerOverride,
@@ -1003,6 +1268,9 @@ app.post('/login', authLimiterMiddleware, async (req, res) => {
         interests: cachedUser.interests,
         biography: cachedUser.biography,
         profileImage: cachedUser.profileImage,
+        cars: cachedUser.cars || [],
+        preferences: cachedUser.preferences || {},
+        email: cachedUser.email || '',
         lastLoginTimestamp: cachedUser.lastLoginTimestamp,
         premiumStatus: cachedUser.premiumStatus,
         developerOverride: cachedUser.developerOverride,
@@ -1095,6 +1363,9 @@ async function authenticateToken(req, res, next) {
           interests: dbUser.carInterests || [],
           biography: dbUser.biography || '',
           profileImage: dbUser.profileImage || '',
+          cars: dbUser.cars || [],
+          preferences: dbUser.preferences || {},
+          email: dbUser.email || '',
           lastLoginTimestamp: new Date().toISOString(),
           premiumStatus: !!dbUser.premiumStatus,
           developerOverride: !!dbUser.developerOverride,
@@ -1274,6 +1545,7 @@ app.patch('/users/:userId', authenticateToken, async (req, res) => {
     const allow = ['name','displayTag','gender','biography','profileImage'];
     allow.forEach(k => { if (b[k] !== undefined) set[k] = b[k]; });
     if (b.carInterests) set.carInterests = Array.isArray(b.carInterests) ? b.carInterests : [];
+    if (b.cars) set.cars = Array.isArray(b.cars) ? b.cars : [];
     if (b.location) {
       set.location = { ...req.user.location, ...b.location };
     }

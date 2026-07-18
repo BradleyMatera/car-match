@@ -1,6 +1,7 @@
 /* ═══════════════════════════════════════════════
-   profile.cards.css — CarMatch Dark Theme
+   profile.cards.css — CarMatch Dark Theme (Reworked)
    Cards, subnav, badges, inputs, event & msg cards
+   Modern glassmorphism visual upgrade
    ═══════════════════════════════════════════════ */
 
 /* ── Container ───────────────────────────────── */
@@ -9,9 +10,11 @@
   margin: 0 auto;
 }
 
-/* ── Cards ───────────────────────────────────── */
+/* ── Cards (Glassmorphism) ───────────────────── */
 .card {
-  background: var(--gradient-card);
+  background: rgba(20, 20, 31, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: var(--space-lg);
@@ -26,7 +29,9 @@
 }
 
 .card.danger {
-  background: var(--error-bg);
+  background: rgba(255, 56, 96, 0.05);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-color: rgba(255, 56, 96, 0.3);
 }
 
@@ -40,6 +45,10 @@
   text-align: center;
   color: var(--text-secondary);
   padding: var(--space-2xl) var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
 }
 
 .card.empty .h3 {
@@ -49,20 +58,37 @@
   margin-bottom: var(--space-sm);
 }
 
+/* Empty state illustration */
+.empty-illustration {
+  font-size: 3rem;
+  opacity: 0.4;
+  margin-bottom: var(--space-sm);
+}
+
+.empty-text {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  max-width: 320px;
+}
+
 /* ── Buttons ─────────────────────────────────── */
 .btn {
   border: 1px solid var(--border);
   background: var(--bg-elevated);
   color: var(--text-primary);
   padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-weight: 600;
   font-size: 0.9rem;
   transition: all var(--transition-slow);
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   text-decoration: none;
+  gap: var(--space-xs);
 }
 
 .btn:hover {
@@ -104,11 +130,15 @@
 
 /* ── Badges ──────────────────────────────────── */
 .badge {
-  display: inline-block;
-  padding: 3px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 4px 12px;
   border-radius: var(--radius-full);
   border: 1px solid var(--border);
-  background: var(--bg-elevated);
+  background: rgba(28, 28, 46, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: var(--text-secondary);
   font-size: 0.75rem;
   font-weight: 600;
@@ -124,16 +154,27 @@
   box-shadow: 0 0 12px var(--accent-glow);
 }
 
+.badge.premium::before {
+  content: '★';
+  font-size: 0.8rem;
+}
+
+.badge-free {
+  background: rgba(28, 28, 46, 0.6);
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
 /* ── Sub Navigation / Tabs ───────────────────── */
 .subnav {
   position: sticky;
   top: 56px;
-  background: var(--bg-surface);
+  background: rgba(20, 20, 31, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
   z-index: 5;
   margin-bottom: var(--space-xl);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 }
 
 .subnav .tabs {
@@ -141,11 +182,13 @@
   gap: var(--space-xs);
   padding: var(--space-sm) var(--space-md);
   flex-wrap: wrap;
+  max-width: var(--container-lg);
+  margin: 0 auto;
 }
 
 .subnav .tab {
   padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   border: 1px solid transparent;
   background: transparent;
   color: var(--text-muted);
@@ -153,11 +196,16 @@
   font-weight: 500;
   font-size: 0.9rem;
   transition: all var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  position: relative;
 }
 
 .subnav .tab:hover {
-  background: var(--bg-hover);
+  background: rgba(36, 36, 58, 0.5);
   color: var(--text-primary);
+  border-color: var(--border);
 }
 
 .subnav .tab:focus-visible {
@@ -166,11 +214,24 @@
 }
 
 .subnav .tab.active {
-  color: var(--text-primary);
-  border-color: var(--border);
-  background: var(--bg-elevated);
+  color: #fff;
+  border-color: var(--primary);
+  background: rgba(225, 6, 0, 0.12);
   font-weight: 700;
-  box-shadow: var(--shadow-sm), inset 0 2px 0 var(--primary);
+  box-shadow: 0 0 16px var(--primary-glow);
+}
+
+/* Active tab indicator bar */
+.subnav .tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 2px;
+  background: var(--gradient-red);
+  border-radius: var(--radius-full);
 }
 
 /* ── Form Inputs ─────────────────────────────── */
@@ -181,7 +242,7 @@
   padding: var(--space-sm) var(--space-md);
   background: var(--bg-input);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: 0.95rem;
   transition: border-color var(--transition), box-shadow var(--transition);
@@ -223,9 +284,25 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: var(--space-lg);
-  background: var(--gradient-card);
+  background: rgba(20, 20, 31, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   box-shadow: var(--shadow-card);
   transition: transform var(--transition-slow), box-shadow var(--transition-slow), border-color var(--transition-slow);
+  position: relative;
+  overflow: hidden;
+}
+
+.event-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--gradient-red);
+  opacity: 0;
+  transition: opacity var(--transition-slow);
 }
 
 .event-card:hover {
@@ -234,10 +311,15 @@
   border-color: var(--accent);
 }
 
+.event-card:hover::before {
+  opacity: 1;
+}
+
 .event-card .title {
   font-weight: 700;
   font-size: 1.15rem;
   color: var(--text-primary);
+  letter-spacing: -0.01em;
 }
 
 .event-card .meta {
@@ -258,24 +340,95 @@
   display: flex;
   gap: var(--space-sm);
   flex-wrap: wrap;
+  margin-top: var(--space-xs);
+}
+
+/* RSVP status badge on event card */
+.rsvp-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-full);
+  background: var(--success-bg);
+  color: var(--success);
+  border: 1px solid rgba(0, 217, 126, 0.2);
+}
+
+.rsvp-status.not-going {
+  background: rgba(28, 28, 46, 0.5);
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+
+/* RSVP toggle button animation */
+.rsvp-toggle {
+  position: relative;
+  overflow: hidden;
+  transition: all var(--transition-slow);
+}
+
+.rsvp-toggle.going {
+  background: var(--success);
+  color: var(--text-inverse);
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(0, 217, 126, 0.25);
+}
+
+.rsvp-toggle.going:hover {
+  background: #00c470;
+  box-shadow: 0 6px 20px rgba(0, 217, 126, 0.35);
+}
+
+/* ── Event Section Headers ───────────────────── */
+.event-section-header {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-md);
+  margin-top: var(--space-lg);
+  padding-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.event-section-header:first-child {
+  margin-top: 0;
+}
+
+.event-section-count {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  padding: 2px var(--space-sm);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
 }
 
 /* ── Message Cards ───────────────────────────── */
 .msg-card {
   border: 1px solid var(--border);
-  background: var(--bg-elevated);
+  background: rgba(28, 28, 46, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-radius: var(--radius-lg);
   padding: var(--space-md);
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
   box-shadow: var(--shadow-sm);
-  transition: border-color var(--transition), box-shadow var(--transition);
+  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
 .msg-card:hover {
   border-color: var(--bg-hover);
   box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
 .msg-card .head {
@@ -295,8 +448,10 @@
 .composer {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: var(--space-md);
-  background: var(--bg-elevated);
+  padding: var(--space-lg);
+  background: rgba(28, 28, 46, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
@@ -305,6 +460,87 @@
 .composer .input,
 .composer .textarea {
   background: var(--bg-input);
+}
+
+/* ── Garage Add Vehicle Modal ────────────────── */
+.add-vehicle-modal {
+  background: var(--gradient-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  box-shadow: var(--shadow-xl);
+  width: 90%;
+  max-width: 540px;
+  animation: slideInUp 0.3s ease-out;
+}
+
+.add-vehicle-modal h3 {
+  color: var(--text-primary);
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: var(--space-lg);
+}
+
+.add-vehicle-form {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.add-vehicle-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+}
+
+.add-vehicle-form label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+
+.add-vehicle-form input,
+.add-vehicle-form textarea {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  box-sizing: border-box;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.add-vehicle-form input:focus,
+.add-vehicle-form textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+  outline: none;
+}
+
+.add-vehicle-form input::placeholder,
+.add-vehicle-form textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.add-vehicle-actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+/* ── Animations ──────────────────────────────── */
+@keyframes slideInUp {
+  from { transform: translateY(30px) scale(0.97); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* ═══════════════════════════════════════════════
@@ -317,7 +553,7 @@
     padding: 0 var(--space-xs);
   }
 
-  /* Cards — single column, reduced padding */
+  /* Cards — reduced padding */
   .card {
     padding: var(--space-md);
   }
@@ -375,7 +611,7 @@
     font-size: 0.9rem;
   }
 
-  /* Event cards — single column, reduced padding */
+  /* Event cards — reduced padding */
   .event-card {
     padding: var(--space-md);
   }
@@ -417,6 +653,23 @@
     min-height: 44px;
   }
 
+  /* Add vehicle modal */
+  .add-vehicle-modal {
+    width: 95%;
+    padding: var(--space-lg);
+  }
+  .add-vehicle-form-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-sm);
+  }
+  .add-vehicle-actions {
+    flex-direction: column;
+  }
+  .add-vehicle-actions .btn {
+    width: 100%;
+    min-height: 44px;
+  }
+
   /* Button groups — stack vertically */
   .event-card .actions,
   .msg-card .actions {
@@ -444,6 +697,9 @@
   /* Empty state — minimal */
   .empty {
     padding: var(--space-md) var(--space-sm);
+  }
+  .empty-illustration {
+    font-size: 2.5rem;
   }
 
   /* Buttons — minimal */
@@ -491,5 +747,10 @@
   .select,
   .textarea {
     font-size: 0.85rem;
+  }
+
+  /* Add vehicle modal — minimal */
+  .add-vehicle-modal {
+    padding: var(--space-md);
   }
 }

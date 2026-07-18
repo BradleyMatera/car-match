@@ -498,6 +498,70 @@ const Profile = () => {
     );
   };
 
+  const formatMemberSince = (dateStr) => {
+    if (!dateStr) return 'Recently';
+    try {
+      return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    } catch {
+      return 'Recently';
+    }
+  };
+
+  const renderSocialLinks = () => {
+    const conns = prefs?.connections || currentUser?.preferences?.connections || {};
+    const links = [];
+    if (conns.instagram) {
+      links.push(
+        <a key="ig" className="social-link social-link-ig" href={`https://instagram.com/${conns.instagram.replace('@','')}`} target="_blank" rel="noopener noreferrer" title="Instagram" aria-label="Instagram">
+          <span>IG</span>
+        </a>
+      );
+    }
+    if (conns.twitter) {
+      links.push(
+        <a key="tw" className="social-link social-link-tw" href={`https://twitter.com/${conns.twitter.replace('@','')}`} target="_blank" rel="noopener noreferrer" title="Twitter" aria-label="Twitter">
+          <span>X</span>
+        </a>
+      );
+    }
+    if (conns.website) {
+      const url = conns.website.startsWith('http') ? conns.website : `https://${conns.website}`;
+      links.push(
+        <a key="web" className="social-link" href={url} target="_blank" rel="noopener noreferrer" title="Website" aria-label="Website">
+          <span>🔗</span>
+        </a>
+      );
+    }
+    return links.length > 0 ? <div className="profile-social-links">{links}</div> : null;
+  };
+
+  const renderStatsRow = () => {
+    const carCount = (currentUser.cars || []).length;
+    const eventCount = (userEvents || []).length;
+    const forumPosts = currentUser.forumPosts || currentUser.posts || 0;
+    const memberSince = formatMemberSince(currentUser.createdAt || currentUser.joinedDate);
+    return (
+      <div className="profile-stats-row">
+        <div className="stat-card">
+          <div className="stat-value">{carCount}</div>
+          <div className="stat-label">Cars in Garage</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value">{eventCount}</div>
+          <div className="stat-label">Events Created</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value">{forumPosts}</div>
+          <div className="stat-label">Forum Posts</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value" style={{ fontSize: '1.1rem', lineHeight: 1.4 }}>{memberSince}</div>
+          <div className="stat-label">Member Since</div>
+        </div>
+      </div>
+    );
+  };
+
   if (loadingProfileData) return <div className="profile-container">Loading profile...</div>;
   if (!currentUser) return <div className="profile-container">Please log in to view your profile.</div>;
   if (profileError) return <div className="profile-container">{profileError}</div>;
@@ -511,7 +575,7 @@ const Profile = () => {
     else if (tabName === 'sent') count = messageCounts.sent;
     else if (tabName === 'system') count = messageCounts.system;
     else if (tabName === 'locked') count = messageCounts.locked;
-    return count > 0 ? `${label} (${count})` : label;
+    return count > 0 ? <>{label} <span className="tab-count-badge">{count}</span></> : label;
   };
 
   return (
@@ -530,7 +594,9 @@ const Profile = () => {
       <Section>
         <div className="profile-header">
           <div className="profile-photo-container">
-            {renderProfilePhoto()}
+            <div className="profile-avatar-ring">
+              {renderProfilePhoto()}
+            </div>
             <div className="profile-photo-edit" onClick={() => document.getElementById('profile-photo-input')?.click()} style={{ cursor: 'pointer' }} title="Update profile photo"><span>📷</span></div>
             <input id="profile-photo-input" type="file" accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
               const file = e.target.files?.[0];
@@ -549,34 +615,51 @@ const Profile = () => {
             }} />
           </div>
           <div className="profile-info">
-            <h1>{currentUser.name || currentUser.username}, {currentUser.age || 'N/A'}</h1>
-            <p className="location">
-              <span>📍</span> {currentUser.location?.city || 'Unknown City'}, {currentUser.location?.state || 'N/A'}
-            </p>
+            <div className="profile-name-row">
+              <h1>{currentUser.name || currentUser.username}, {currentUser.age || 'N/A'}</h1>
+              <span className={`badge ${currentUser.premiumStatus ? 'premium' : 'badge-free'}`}>{currentUser.premiumStatus ? 'Premium' : 'Free'}</span>
+            </div>
+            {currentUser.displayTag && <span className="profile-display-tag">@{currentUser.displayTag}</span>}
+            <div className="profile-meta-row">
+              <p className="location">
+                <span>📍</span> {currentUser.location?.city || 'Unknown City'}, {currentUser.location?.state || 'N/A'}
+              </p>
+              <span className="profile-member-since">🗓 Member since {formatMemberSince(currentUser.createdAt || currentUser.joinedDate)}</span>
+            </div>
             <div className="car-interests">
               {(currentUser.carInterests || []).map((interest) => (
                 <span key={interest} className="interest-tag">{interest}</span>
               ))}
             </div>
+            {renderSocialLinks()}
             <div className="premium-status-display">
-              <span className={`badge ${currentUser.premiumStatus ? 'premium' : ''}`}>{currentUser.premiumStatus ? 'Premium' : 'Free'}</span>
-              {!currentUser.premiumStatus && <button onClick={handleUpgradePremium} className="btn btn-primary" style={{marginLeft:8}}>Upgrade</button>}
+              {!currentUser.premiumStatus && <button onClick={handleUpgradePremium} className="btn btn-primary">Upgrade to Premium</button>}
             </div>
           </div>
         </div>
+        {renderStatsRow()}
       </Section>
       )}
 
       {activeTab==='profile' && (
       <Section>
         <h2>About Me</h2>
-        <p className="bio">{currentUser.bio || 'No bio yet.'}</p>
+        <p className="bio">{currentUser.bio || currentUser.biography || 'No bio yet.'}</p>
         {editing && (
           <div className="edit-section">
             <label>Bio:
               <textarea name="bio" value={updatedUser.bio || ''} onChange={handleInputChange} rows="4" maxLength={500}/>
             </label>
             <div className="bio-char-count">{(updatedUser.bio || '').length} / 500</div>
+            <div className="bio-actions">
+              <button className="btn btn-primary btn-small" onClick={handleSave} disabled={saving}>{saving ? "Saving..." : "Save Bio"}</button>
+              <button className="btn btn-small" onClick={() => { setEditing(false); setUpdatedUser(currentUser); }}>Cancel</button>
+            </div>
+          </div>
+        )}
+        {!editing && (
+          <div className="bio-actions">
+            <button className="btn btn-primary btn-small" onClick={() => setEditing(true)}>Edit Bio</button>
           </div>
         )}
       </Section>
@@ -587,26 +670,40 @@ const Profile = () => {
         <h2>My Garage</h2>
         {(currentUser.cars || []).length === 0 && !showAddVehicle && (
           <div className="card empty">
-            <div className="h3">No vehicles in your garage yet. Add your first ride!</div>
-            <button className="btn btn-primary" style={{marginTop:8}} onClick={() => setShowAddVehicle(true)}>Add Vehicle</button>
+            <div className="empty-illustration">🚗</div>
+            <div className="h3">No vehicles in your garage yet</div>
+            <div className="empty-text">Add your first ride to show off your build to the community.</div>
+            <button className="btn btn-primary" onClick={() => setShowAddVehicle(true)}>Add Vehicle</button>
           </div>
         )}
         {showAddVehicle && (
-          <div className="card" style={{ marginBottom: 16 }}>
-            <h3>Add a Vehicle</h3>
-            <div style={{ display: 'grid', gap: 8, marginTop: 8 }}>
-              <input placeholder="Vehicle name (e.g. My Track Build)" value={newVehicle.name} onChange={e => setNewVehicle(v => ({ ...v, name: e.target.value }))} />
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                <input placeholder="Make (e.g. Honda)" value={newVehicle.make} onChange={e => setNewVehicle(v => ({ ...v, make: e.target.value }))} />
-                <input placeholder="Model (e.g. Civic Type R)" value={newVehicle.model} onChange={e => setNewVehicle(v => ({ ...v, model: e.target.value }))} />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                <input placeholder="Year (e.g. 2023)" value={newVehicle.year} onChange={e => setNewVehicle(v => ({ ...v, year: e.target.value }))} />
-              </div>
-              <textarea placeholder="Description (mods, history, etc.)" value={newVehicle.description} onChange={e => setNewVehicle(v => ({ ...v, description: e.target.value }))} rows={3} />
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary" onClick={handleAddVehicle}>Save Vehicle</button>
-                <button className="btn" onClick={() => setShowAddVehicle(false)}>Cancel</button>
+          <div className="modal-backdrop" onClick={(e) => { if (e.target.className === 'modal-backdrop') setShowAddVehicle(false); }}>
+            <div className="add-vehicle-modal">
+              <h3>Add a Vehicle</h3>
+              <div className="add-vehicle-form">
+                <label>Vehicle Name
+                  <input placeholder="e.g. My Track Build" value={newVehicle.name} onChange={e => setNewVehicle(v => ({ ...v, name: e.target.value }))} />
+                </label>
+                <div className="add-vehicle-form-row">
+                  <label>Make
+                    <input placeholder="e.g. Honda" value={newVehicle.make} onChange={e => setNewVehicle(v => ({ ...v, make: e.target.value }))} />
+                  </label>
+                  <label>Model
+                    <input placeholder="e.g. Civic Type R" value={newVehicle.model} onChange={e => setNewVehicle(v => ({ ...v, model: e.target.value }))} />
+                  </label>
+                </div>
+                <div className="add-vehicle-form-row">
+                  <label>Year
+                    <input placeholder="e.g. 2023" value={newVehicle.year} onChange={e => setNewVehicle(v => ({ ...v, year: e.target.value }))} />
+                  </label>
+                </div>
+                <label>Description
+                  <textarea placeholder="Mods, history, etc." value={newVehicle.description} onChange={e => setNewVehicle(v => ({ ...v, description: e.target.value }))} rows={3} />
+                </label>
+                <div className="add-vehicle-actions">
+                  <button className="btn btn-primary" onClick={handleAddVehicle}>Save Vehicle</button>
+                  <button className="btn" onClick={() => setShowAddVehicle(false)}>Cancel</button>
+                </div>
               </div>
             </div>
           </div>
@@ -621,6 +718,13 @@ const Profile = () => {
                 <div key={car.id || index} className="card vehicle-card">
                   <img src={car.photos?.[0] || 'https://via.placeholder.com/300x200.png?text=No+Image'} alt={car.name} />
                   <h3>{car.name}</h3>
+                  {(car.make || car.model || car.year) && (
+                    <div className="vehicle-meta">
+                      {car.make && <span className="vehicle-meta-tag">{car.make}</span>}
+                      {car.model && <span className="vehicle-meta-tag">{car.model}</span>}
+                      {car.year && <span className="vehicle-meta-tag">{car.year}</span>}
+                    </div>
+                  )}
                   <p>{car.description}</p>
                   {editingVehicleId === car.id ? (
                     <div className="vehicle-edit-form">
@@ -661,12 +765,13 @@ const Profile = () => {
               return (
                 <div key={eid} className="event-card">
                   <div className="title">{ev.title}</div>
+                  {going && <span className="rsvp-status">✅ You're Attending</span>}
                   <div className="meta">
                     <span>📅 {ev.date ? new Date(ev.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : 'TBD'}</span>
                     <span>📍 {ev.location || 'TBD'}</span>
                   </div>
                   <div className="actions">
-                    <button className={`btn btn-small ${going ? 'btn-primary' : ''}`} onClick={()=> toggleRsvp(eid)}>
+                    <button className={`btn btn-small rsvp-toggle ${going ? 'going' : ''}`} onClick={()=> toggleRsvp(eid)}>
                       {going ? '✅ Going (Cancel)' : 'RSVP'}
                     </button>
                     <a className="btn btn-small" href={`#/events?event=${encodeURIComponent(eid)}`}>View</a>
@@ -677,7 +782,10 @@ const Profile = () => {
           </Grid>
         ) : (
           <div className="card empty">
-            <div className="h3">You haven't created any events yet.</div>
+            <div className="empty-illustration">📅</div>
+            <div className="h3">You haven't created any events yet</div>
+            <div className="empty-text">Create an event to bring the community together.</div>
+            <a className="btn btn-primary" href="#/events">Browse Events</a>
           </div>
         )}
       </Section>
@@ -686,6 +794,9 @@ const Profile = () => {
       {activeTab==='settings' && (
       <Section background="light">
         <h2>Account Settings</h2>
+        <div className="settings-sections">
+        <div className="settings-section-card">
+        <div className="settings-section-title">Account Information</div>
         {editing ? (
           <div className="settings-form">
             <label>Name: <input type="text" name="name" value={updatedUser.name || ''} onChange={handleInputChange}/></label>
@@ -726,73 +837,99 @@ const Profile = () => {
             <button className="btn btn-primary" onClick={() => setEditing(true)}>Edit Settings</button>
           </div>
         )}
-      </Section>
-      )}
-
-      {activeTab==='settings' && (
-      <Section>
-        <h2>Preferences</h2>
-        <div className="settings-form">
-          <h4>Notifications</h4>
-          <label><input type="checkbox" checked={!!prefs.notifications?.messagesEmail} onChange={e=> persistPrefs({ ...prefs, notifications: { ...(prefs.notifications||{}), messagesEmail: e.target.checked } })}/> Email me for messages</label>
-          <label><input type="checkbox" checked={!!prefs.notifications?.forumRepliesEmail} onChange={e=> persistPrefs({ ...prefs, notifications: { ...(prefs.notifications||{}), forumRepliesEmail: e.target.checked } })}/> Email me for forum replies</label>
-          <label><input type="checkbox" checked={!!prefs.notifications?.eventRemindersEmail} onChange={e=> persistPrefs({ ...prefs, notifications: { ...(prefs.notifications||{}), eventRemindersEmail: e.target.checked } })}/> Email me event reminders</label>
-          <h4>Privacy</h4>
-          <label><input type="checkbox" checked={prefs.privacy?.showProfile !== false} onChange={e=> persistPrefs({ ...prefs, privacy: { ...(prefs.privacy||{}), showProfile: e.target.checked } })}/> Show my profile</label>
-          <label><input type="checkbox" checked={!!prefs.privacy?.showEmail} onChange={e=> persistPrefs({ ...prefs, privacy: { ...(prefs.privacy||{}), showEmail: e.target.checked } })}/> Show my email</label>
-          <label><input type="checkbox" checked={prefs.privacy?.searchable !== false} onChange={e=> persistPrefs({ ...prefs, privacy: { ...(prefs.privacy||{}), searchable: e.target.checked } })}/> Allow search indexing</label>
-          <h4>Display & Accessibility</h4>
-          <label>Theme:
-            <select value={prefs.display?.theme || 'system'} onChange={e=> persistPrefs({ ...prefs, display: { ...(prefs.display||{}), theme: e.target.value } })}>
-              <option value="system">System</option>
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-            </select>
-          </label>
-          <label>Text Size:
-            <select value={prefs.display?.textSize || 'normal'} onChange={e=> persistPrefs({ ...prefs, display: { ...(prefs.display||{}), textSize: e.target.value } })}>
-              <option value="normal">Normal</option>
-              <option value="large">Large</option>
-            </select>
-          </label>
-          <h4>Connections</h4>
-          <label>Instagram: <input value={prefs.connections?.instagram || ''} onChange={e=> setPrefs(p=> ({...p, connections:{...(p.connections||{}), instagram:e.target.value}}))} onBlur={()=> persistPrefs({ ...prefs, connections: { ...(prefs.connections||{}), instagram: prefs.connections?.instagram || '' } })}/></label>
-          <label>Twitter: <input value={prefs.connections?.twitter || ''} onChange={e=> setPrefs(p=> ({...p, connections:{...(p.connections||{}), twitter:e.target.value}}))} onBlur={()=> persistPrefs({ ...prefs, connections: { ...(prefs.connections||{}), twitter: prefs.connections?.twitter || '' } })}/></label>
-          <label>Website: <input value={prefs.connections?.website || ''} onChange={e=> setPrefs(p=> ({...p, connections:{...(p.connections||{}), website:e.target.value}}))} onBlur={()=> persistPrefs({ ...prefs, connections: { ...(prefs.connections||{}), website: prefs.connections?.website || '' } })}/></label>
+        </div>
         </div>
       </Section>
       )}
 
       {activeTab==='settings' && (
       <Section>
-        <h2>Change Password</h2>
-        <form className="settings-form" onSubmit={handlePasswordChange}>
-          <label>Current Password: <input type="password" value={passwordForm.current} onChange={e => setPasswordForm(p => ({ ...p, current: e.target.value }))} required /></label>
-          <label>New Password: <input type="password" value={passwordForm.new} onChange={e => setPasswordForm(p => ({ ...p, new: e.target.value }))} required /></label>
-          <label>Confirm New Password: <input type="password" value={passwordForm.confirm} onChange={e => setPasswordForm(p => ({ ...p, confirm: e.target.value }))} required /></label>
-          <div className="settings-actions">
-            <button type="submit" className="btn btn-primary">Change Password</button>
+        <h2>Preferences</h2>
+        <div className="settings-sections">
+          <div className="settings-section-card">
+            <div className="settings-section-title">Notifications</div>
+            <div className="settings-form">
+              <label><input type="checkbox" checked={!!prefs.notifications?.messagesEmail} onChange={e=> persistPrefs({ ...prefs, notifications: { ...(prefs.notifications||{}), messagesEmail: e.target.checked } })}/> Email me for messages</label>
+              <label><input type="checkbox" checked={!!prefs.notifications?.forumRepliesEmail} onChange={e=> persistPrefs({ ...prefs, notifications: { ...(prefs.notifications||{}), forumRepliesEmail: e.target.checked } })}/> Email me for forum replies</label>
+              <label><input type="checkbox" checked={!!prefs.notifications?.eventRemindersEmail} onChange={e=> persistPrefs({ ...prefs, notifications: { ...(prefs.notifications||{}), eventRemindersEmail: e.target.checked } })}/> Email me event reminders</label>
+            </div>
           </div>
-        </form>
+          <div className="settings-section-card">
+            <div className="settings-section-title">Privacy</div>
+            <div className="settings-form">
+              <label><input type="checkbox" checked={prefs.privacy?.showProfile !== false} onChange={e=> persistPrefs({ ...prefs, privacy: { ...(prefs.privacy||{}), showProfile: e.target.checked } })}/> Show my profile</label>
+              <label><input type="checkbox" checked={!!prefs.privacy?.showEmail} onChange={e=> persistPrefs({ ...prefs, privacy: { ...(prefs.privacy||{}), showEmail: e.target.checked } })}/> Show my email</label>
+              <label><input type="checkbox" checked={prefs.privacy?.searchable !== false} onChange={e=> persistPrefs({ ...prefs, privacy: { ...(prefs.privacy||{}), searchable: e.target.checked } })}/> Allow search indexing</label>
+            </div>
+          </div>
+          <div className="settings-section-card">
+            <div className="settings-section-title">Display & Accessibility</div>
+            <div className="settings-form">
+              <label>Theme:
+                <select value={prefs.display?.theme || 'system'} onChange={e=> persistPrefs({ ...prefs, display: { ...(prefs.display||{}), theme: e.target.value } })}>
+                  <option value="system">System</option>
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                </select>
+              </label>
+              <label>Text Size:
+                <select value={prefs.display?.textSize || 'normal'} onChange={e=> persistPrefs({ ...prefs, display: { ...(prefs.display||{}), textSize: e.target.value } })}>
+                  <option value="normal">Normal</option>
+                  <option value="large">Large</option>
+                </select>
+              </label>
+            </div>
+          </div>
+          <div className="settings-section-card">
+            <div className="settings-section-title">Connections</div>
+            <div className="settings-form">
+              <label>Instagram: <input value={prefs.connections?.instagram || ''} onChange={e=> setPrefs(p=> ({...p, connections:{...(p.connections||{}), instagram:e.target.value}}))} onBlur={()=> persistPrefs({ ...prefs, connections: { ...(prefs.connections||{}), instagram: prefs.connections?.instagram || '' } })}/></label>
+              <label>Twitter: <input value={prefs.connections?.twitter || ''} onChange={e=> setPrefs(p=> ({...p, connections:{...(p.connections||{}), twitter:e.target.value}}))} onBlur={()=> persistPrefs({ ...prefs, connections: { ...(prefs.connections||{}), twitter: prefs.connections?.twitter || '' } })}/></label>
+              <label>Website: <input value={prefs.connections?.website || ''} onChange={e=> setPrefs(p=> ({...p, connections:{...(p.connections||{}), website:e.target.value}}))} onBlur={()=> persistPrefs({ ...prefs, connections: { ...(prefs.connections||{}), website: prefs.connections?.website || '' } })}/></label>
+            </div>
+          </div>
+        </div>
+      </Section>
+      )}
+
+      {activeTab==='settings' && (
+      <Section>
+        <h2>Security</h2>
+        <div className="settings-sections">
+          <div className="settings-section-card">
+            <div className="settings-section-title">Change Password</div>
+            <form className="settings-form" onSubmit={handlePasswordChange}>
+              <label>Current Password: <input type="password" value={passwordForm.current} onChange={e => setPasswordForm(p => ({ ...p, current: e.target.value }))} required /></label>
+              <label>New Password: <input type="password" value={passwordForm.new} onChange={e => setPasswordForm(p => ({ ...p, new: e.target.value }))} required /></label>
+              <label>Confirm New Password: <input type="password" value={passwordForm.confirm} onChange={e => setPasswordForm(p => ({ ...p, confirm: e.target.value }))} required /></label>
+              <div className="settings-actions">
+                <button type="submit" className="btn btn-primary">Change Password</button>
+              </div>
+            </form>
+          </div>
+        </div>
       </Section>
       )}
 
       {activeTab==='settings' && (
       <Section>
         <h2>Danger Zone</h2>
-        <p>Delete your account and all associated data. This action cannot be undone.</p>
-        {!showDeleteConfirm ? (
-          <button className="btn btn-danger" onClick={() => { setShowDeleteConfirm(true); setDeleteConfirmText(''); }}>Delete Account</button>
-        ) : (
-          <div className="delete-confirm-dialog">
-            <p>This will permanently delete your account and all data. Type DELETE to confirm:</p>
-            <input type="text" value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)} placeholder="Type DELETE" autoFocus />
-            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              <button className="btn btn-danger" onClick={handleDeleteAccount} disabled={deleteConfirmText !== 'DELETE'}>Delete</button>
-              <button className="btn" onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }}>Cancel</button>
+        <div className="danger-zone-card">
+          <div className="settings-section-title">Delete Account</div>
+          <p>Delete your account and all associated data. This action cannot be undone.</p>
+          {!showDeleteConfirm ? (
+            <button className="btn btn-danger" onClick={() => { setShowDeleteConfirm(true); setDeleteConfirmText(''); }}>Delete Account</button>
+          ) : (
+            <div className="delete-confirm-dialog">
+              <p>This will permanently delete your account and all data. Type DELETE to confirm:</p>
+              <input type="text" value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)} placeholder="Type DELETE" autoFocus />
+              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                <button className="btn btn-danger" onClick={handleDeleteAccount} disabled={deleteConfirmText !== 'DELETE'}>Delete</button>
+                <button className="btn" onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }}>Cancel</button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </Section>
       )}
 
@@ -811,21 +948,27 @@ const Profile = () => {
           ))}
         </div>
 
-        {isEffectivelyPremium && activeMessageTab !== 'system' && activeMessageTab !== 'unread' && activeMessageTab !== 'locked' && ( // Hide filters for system/unread/locked messages tab
-          <div className="message-filters">
-            <select name="gender" value={messageFilters.gender} onChange={handleFilterChange}>
-              <option value="">Filter by Sender's Gender</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="other">Other</option>
-            </select>
-            <input type="number" name="radius" placeholder="Radius (miles)" value={messageFilters.radius} onChange={handleFilterChange}/>
-            <select name="sortBy" value={messageFilters.sortBy} onChange={handleFilterChange}>
-                <option value="timestamp">Sort by Date</option>
-                <option value="proximity">Sort by Proximity</option>
-            </select>
-            <button onClick={applyMessageFilters}>Apply Filters</button>
-          </div>
+        {activeMessageTab !== 'system' && activeMessageTab !== 'unread' && activeMessageTab !== 'locked' && (
+          isEffectivelyPremium ? (
+            <div className="message-filters">
+              <select name="gender" value={messageFilters.gender} onChange={handleFilterChange}>
+                <option value="">Filter by Sender's Gender</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </select>
+              <input type="number" name="radius" placeholder="Radius (miles)" value={messageFilters.radius} onChange={handleFilterChange}/>
+              <select name="sortBy" value={messageFilters.sortBy} onChange={handleFilterChange}>
+                  <option value="timestamp">Sort by Date</option>
+                  <option value="proximity">Sort by Proximity</option>
+              </select>
+              <button onClick={applyMessageFilters}>Apply Filters</button>
+            </div>
+          ) : (
+            <div className="message-filters filter-locked">
+              <span className="filter-lock-icon">🔒 Premium filters locked — upgrade to filter by gender, radius & proximity</span>
+            </div>
+          )
         )}
 
         <div className="message-list">
