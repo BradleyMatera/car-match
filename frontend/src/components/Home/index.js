@@ -135,12 +135,6 @@ const Home = () => {
         </div>
       </section>
 
-      <Section>
-        <div className="beta-banner" role="status" aria-live="polite">
-          <strong>Beta tip:</strong> Start by creating an event or joining an existing discussion. Let us know if anything feels off!
-        </div>
-      </Section>
-
       {/* Snapshot */}
       <Section>
         <h2 className="section-title">Community Snapshot</h2>

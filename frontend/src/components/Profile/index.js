@@ -42,6 +42,8 @@ const Profile = () => {
   const [recipientUsername, setRecipientUsername] = useState('');
   // const [replyingTo, setReplyingTo] = useState(null); // replyingTo was unused
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showAddVehicle, setShowAddVehicle] = useState(false);
+  const [newVehicle, setNewVehicle] = useState({ name: '', make: '', model: '', year: '', description: '' });
 
   useEffect(() => {
     return applySEO({
@@ -256,6 +258,24 @@ const Profile = () => {
 
   // Dev override removed from UI; no handler needed.
 
+  const handleAddVehicle = async () => {
+    if (!currentUser || !token) return;
+    if (!newVehicle.name || !newVehicle.make) {
+      alert('Vehicle name and make are required.');
+      return;
+    }
+    try {
+      const carId = Date.now();
+      const updatedCars = [...(currentUser.cars || []), { ...newVehicle, id: carId, photos: [] }];
+      const resp = await api.updateUser(token, currentUser.id, { cars: updatedCars });
+      updateCurrentUser(resp.user || { ...currentUser, cars: updatedCars });
+      setNewVehicle({ name: '', make: '', model: '', year: '', description: '' });
+      setShowAddVehicle(false);
+    } catch (err) {
+      alert('Failed to add vehicle: ' + (err.message || 'Unknown error'));
+    }
+  };
+
   const handleReply = (messageToReplyTo) => {
     if (!isEffectivelyPremium && messageToReplyTo.isLocked) {
         setShowUpgradeModal(true);
@@ -269,12 +289,23 @@ const Profile = () => {
   };
 
   const toggleMessageReadStatus = async (messageId, currentReadStatus) => {
+    const newStatus = !currentReadStatus;
     setMessages(prevMessages =>
       prevMessages.map(msg =>
-        msg.id === messageId ? { ...msg, read: !currentReadStatus } : msg
+        (msg.id === messageId || msg._id === messageId) ? { ...msg, read: newStatus } : msg
       )
     );
-    // Mock API call: await api.markMessageAsReadUnread(token, messageId, !currentReadStatus);
+    try {
+      await api.markMessageAsReadUnread(token, messageId, newStatus);
+    } catch (err) {
+      // Revert on failure
+      setMessages(prevMessages =>
+        prevMessages.map(msg =>
+          (msg.id === messageId || msg._id === messageId) ? { ...msg, read: currentReadStatus } : msg
+        )
+      );
+      console.error('Failed to update message read status:', err);
+    }
   };
 
   const handleFilterChange = (e) => {
@@ -314,7 +345,21 @@ const Profile = () => {
               alt="Profile"
               className="profile-photo"
             />
-            <div className="profile-photo-edit"><span>📷</span></div>
+            <div className="profile-photo-edit" onClick={() => document.getElementById('profile-photo-input')?.click()} style={{ cursor: 'pointer' }} title="Update profile photo"><span>📷</span></div>
+            <input id="profile-photo-input" type="file" accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file || !token) return;
+              const reader = new FileReader();
+              reader.onload = async () => {
+                try {
+                  const resp = await api.updateUser(token, currentUser.id, { profileImage: reader.result });
+                  updateCurrentUser(resp.user || { ...currentUser, profileImage: reader.result });
+                } catch (err) {
+                  alert('Failed to update profile photo: ' + (err.message || 'Unknown error'));
+                }
+              };
+              reader.readAsDataURL(file);
+            }} />
           </div>
           <div className="profile-info">
             <h1>{currentUser.name || currentUser.username}, {currentUser.age || 'N/A'}</h1>
@@ -352,22 +397,48 @@ const Profile = () => {
       {activeTab==='garage' && (
       <Section>
         <h2>My Garage</h2>
-        {(currentUser.cars || []).length === 0 ? (
+        {(currentUser.cars || []).length === 0 && !showAddVehicle && (
           <div className="card empty">
             <div className="h3">No cars yet</div>
             <p>Add your first vehicle to your garage.</p>
-            <button className="btn btn-primary" style={{marginTop:8}}>Add Vehicle</button>
+            <button className="btn btn-primary" style={{marginTop:8}} onClick={() => setShowAddVehicle(true)}>Add Vehicle</button>
           </div>
-        ) : (
-          <Grid cols={1} mdCols={2} lgCols={3} gap="lg">
-            {(currentUser.cars || []).map((car, index) => (
-              <div key={car.id || index} className="card">
-                <img src={car.photos?.[0] || 'https://via.placeholder.com/300x200.png?text=No+Image'} alt={car.name} />
-                <h3>{car.name}</h3>
-                <p>{car.description}</p>
+        )}
+        {showAddVehicle && (
+          <div className="card" style={{ marginBottom: 16 }}>
+            <h3>Add a Vehicle</h3>
+            <div style={{ display: 'grid', gap: 8, marginTop: 8 }}>
+              <input placeholder="Vehicle name (e.g. My Track Build)" value={newVehicle.name} onChange={e => setNewVehicle(v => ({ ...v, name: e.target.value }))} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <input placeholder="Make (e.g. Honda)" value={newVehicle.make} onChange={e => setNewVehicle(v => ({ ...v, make: e.target.value }))} />
+                <input placeholder="Model (e.g. Civic Type R)" value={newVehicle.model} onChange={e => setNewVehicle(v => ({ ...v, model: e.target.value }))} />
               </div>
-            ))}
-          </Grid>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <input placeholder="Year (e.g. 2023)" value={newVehicle.year} onChange={e => setNewVehicle(v => ({ ...v, year: e.target.value }))} />
+              </div>
+              <textarea placeholder="Description (mods, history, etc.)" value={newVehicle.description} onChange={e => setNewVehicle(v => ({ ...v, description: e.target.value }))} rows={3} />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn btn-primary" onClick={handleAddVehicle}>Save Vehicle</button>
+                <button className="btn" onClick={() => setShowAddVehicle(false)}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
+        {(currentUser.cars || []).length > 0 && (
+          <>
+            <div style={{ marginBottom: 16 }}>
+              <button className="btn btn-primary" onClick={() => setShowAddVehicle(s => !s)}>{showAddVehicle ? 'Cancel' : 'Add Vehicle'}</button>
+            </div>
+            <Grid cols={1} mdCols={2} lgCols={3} gap="lg">
+              {(currentUser.cars || []).map((car, index) => (
+                <div key={car.id || index} className="card">
+                  <img src={car.photos?.[0] || 'https://via.placeholder.com/300x200.png?text=No+Image'} alt={car.name} />
+                  <h3>{car.name}</h3>
+                  <p>{car.description}</p>
+                </div>
+              ))}
+            </Grid>
+          </>
         )}
       </Section>
       )}

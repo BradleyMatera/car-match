@@ -275,6 +275,8 @@ const api = {
   // --- Legacy shims (no mocks) ---
   initMockData: () => Promise.resolve(),
   getMessages: async () => [],
+  markMessageAsReadUnread: async (token, messageId, read) =>
+    ok(await fetch(`${API_BASE_URL}/messages/${encodeURIComponent(messageId)}/read`, { method: 'PATCH', headers: { ...jsonHeader, ...authHeader(token) }, body: JSON.stringify({ read }) })).then(json),
   addEventComment: async (token, eventId, text) =>
     ok(await fetch(`${API_BASE_URL}/events/${encodeURIComponent(eventId)}/comments`, { method: 'POST', headers: { ...jsonHeader, ...authHeader(token) }, body: JSON.stringify({ text }) })).then(json),
   editEventComment: async (token, eventId, commentId, text) =>

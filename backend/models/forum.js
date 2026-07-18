@@ -21,7 +21,25 @@ const ForumPostSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
+const ForumCategorySchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  name: { type: String, required: true },
+  description: { type: String },
+  order: { type: Number, default: 0 },
+});
+
+const ForumReportSchema = new mongoose.Schema({
+  postId: { type: mongoose.Schema.Types.Mixed, required: true },
+  reportedBy: { type: mongoose.Schema.Types.Mixed, required: true },
+  reportedByUsername: { type: String },
+  reason: { type: String },
+  createdAt: { type: Date, default: Date.now },
+  status: { type: String, default: 'pending' },
+});
+
 const ForumThread = mongoose.models.ForumThread || mongoose.model('ForumThread', ForumThreadSchema);
 const ForumPost = mongoose.models.ForumPost || mongoose.model('ForumPost', ForumPostSchema);
+const ForumCategory = mongoose.models.ForumCategory || mongoose.model('ForumCategory', ForumCategorySchema);
+const ForumReport = mongoose.models.ForumReport || mongoose.model('ForumReport', ForumReportSchema);
 
-module.exports = { ForumThread, ForumPost };
+module.exports = { ForumThread, ForumPost, ForumCategory, ForumReport };

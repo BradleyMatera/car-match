@@ -11,7 +11,7 @@ const https = require('https');
 const { randomUUID } = require('crypto');
 const { logger, securityEvent } = require('./logger');
 const { createRateLimits } = require('./middleware/rateLimits');
-const { ForumThread, ForumPost } = require('./models/forum');
+const { ForumThread, ForumPost, ForumCategory, ForumReport } = require('./models/forum');
 let UserModel, EventModel, MessageModel; // loaded only when Mongo is configured
 const app = express();
 app.set('trust proxy', true);
@@ -330,6 +330,17 @@ if (MONGODB_URI) {
           { categoryId: 'cat2', title: '1968 Mustang Fastback Restoration Log', authorUsername: 'car_lover', createdAt: new Date(), lastPostAt: new Date(), replies: 0 },
         ]);
       }
+      // Seed dynamic forum categories if none exist
+      try {
+        const catCount = await ForumCategory.countDocuments();
+        if (catCount === 0) {
+          await ForumCategory.create(forumCategories.map((c, i) => ({
+            id: c.id, name: c.name, description: c.description, order: i,
+          })));
+        }
+      } catch (ce) {
+        logger.warn('Forum category seed warning', { error: ce });
+      }
       // Ensure events collection exists; if empty, leave seeding to a dedicated script
       await EventModel.init().catch(()=>{});
       await MessageModel.init().catch(()=>{});
@@ -444,8 +455,20 @@ app.post('/admin/backfill-events-users', adminLimiterMiddleware, authenticateTok
 });
 
 // --- Forums API ---
-app.get('/forums/categories', (req, res) => {
-  res.json(forumCategories);
+app.get('/forums/categories', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState === 1) {
+      const cats = await ForumCategory.find({}).sort({ order: 1 }).lean();
+      if (cats.length) {
+        return res.json(cats.map(c => ({ id: c.id, name: c.name, description: c.description, order: c.order })));
+      }
+    }
+    // Fallback to hardcoded array when DB not connected or empty
+    return res.json(forumCategories);
+  } catch (e) {
+    logger.error('Forum categories error', { error: e, requestId: req.requestId });
+    return res.json(forumCategories);
+  }
 });
 
 // Forum stats per category (threads/posts/latest)
@@ -685,9 +708,33 @@ app.delete('/forums/threads/:threadId', forumModerationLimiter, authenticateToke
   }
 });
 
-app.post('/forums/posts/:postId/report', forumWriteLimiter, authenticateToken, (req, res) => {
-  // Stub: accept report
-  res.status(201).json({ ok: true });
+app.post('/forums/posts/:postId/report', forumWriteLimiter, authenticateToken, async (req, res) => {
+  // Store the report when DB is available; otherwise reject.
+  const { postId } = req.params;
+  const { reason } = req.body || {};
+  try {
+    if (!(mongoose.connection.readyState === 1 && ForumReport)) {
+      return res.status(503).json({ message: 'Database not available' });
+    }
+    const report = await ForumReport.create({
+      postId,
+      reportedBy: req.user.id,
+      reportedByUsername: req.user.username,
+      reason: reason ? String(reason) : '',
+      createdAt: new Date(),
+      status: 'pending',
+    });
+    securityEvent('Forum post reported', {
+      requestId: req.requestId,
+      postId,
+      reportedBy: req.user.id,
+      reportedByUsername: req.user.username,
+    });
+    return res.status(201).json({ ok: true, reportId: report._id });
+  } catch (e) {
+    logger.error('Forum post report error', { error: e, requestId: req.requestId, params: { postId } });
+    res.status(500).json({ message: 'Error reporting post' });
+  }
 });
 
 // User registration endpoint
@@ -994,7 +1041,7 @@ async function authenticateToken(req, res, next) {
 }
 
 // Endpoint to simulate upgrading a user to premium
-app.put('/users/:userId/upgrade-to-premium', authenticateToken, (req, res) => {
+app.put('/users/:userId/upgrade-to-premium', authenticateToken, async (req, res) => {
   // In a real app, only an admin or a payment success callback would hit this.
   // For simulation, any authenticated user can call this on THEMSELVES if they are an admin, or if it's for dev testing.
   // For simplicity here, we'll allow an admin (or dev override user) to upgrade anyone.
@@ -1014,22 +1061,31 @@ app.put('/users/:userId/upgrade-to-premium', authenticateToken, (req, res) => {
   }
 
   userToUpgrade.premiumStatus = true;
+  // Persist premium upgrade to MongoDB when available
+  try {
+    if (mongoose.connection.readyState === 1 && UserModel) {
+      await UserModel.updateOne({ _id: targetUserId }, { $set: { premiumStatus: true } });
+    }
+  } catch (dbErr) {
+    logger.error('Premium upgrade DB persist error', { error: dbErr, requestId: req.requestId, targetUserId });
+  }
   securityEvent('User upgraded to premium', {
     requestId: req.requestId,
     targetUserId,
     actingUserId: actingUser.id,
     actingUsername: actingUser.username,
   });
-  res.json({ message: `User ${userToUpgrade.username} is now premium. Please re-login to update JWT if needed.`, user: {id: userToUpgrade.id, username: userToUpgrade.username, premiumStatus: userToUpgrade.premiumStatus} });
+  res.json({ message: `User ${userToUpgrade.username} is now premium. Please re-login to update JWT if needed.`, user: sanitizeUser(userToUpgrade) });
 });
 
 // Endpoint to toggle developer override for a user
-app.put('/users/:userId/toggle-dev-override', authenticateToken, (req, res) => {
+app.put('/users/:userId/toggle-dev-override', authenticateToken, async (req, res) => {
   // Similar authorization logic as above, typically admin-only
   const targetUserId = String(req.params.userId);
   const actingUser = req.user;
 
-  if (String(actingUser.id || actingUser.userId) !== targetUserId && !(actingUser.premiumStatus || actingUser.developerOverride)) { // Simplistic admin check
+  // Only admin or existing dev-override users can toggle dev override (premium users cannot)
+  if (String(actingUser.id || actingUser.userId) !== targetUserId && !(actingUser.developerOverride || actingUser.role === 'admin')) { // Simplistic admin check
       return res.status(403).json({ message: "Forbidden: Only admins/devs can toggle override for others." });
   }
 
@@ -1039,14 +1095,23 @@ app.put('/users/:userId/toggle-dev-override', authenticateToken, (req, res) => {
   }
 
   userToToggle.developerOverride = !userToToggle.developerOverride;
+  const newValue = userToToggle.developerOverride;
+  // Persist dev override toggle to MongoDB when available
+  try {
+    if (mongoose.connection.readyState === 1 && UserModel) {
+      await UserModel.updateOne({ _id: targetUserId }, { $set: { developerOverride: newValue } });
+    }
+  } catch (dbErr) {
+    logger.error('Dev override DB persist error', { error: dbErr, requestId: req.requestId, targetUserId });
+  }
   securityEvent('Developer override toggled', {
     requestId: req.requestId,
     targetUserId,
     actingUserId: actingUser.id,
     actingUsername: actingUser.username,
-    newValue: userToToggle.developerOverride,
+    newValue,
   });
-  res.json({ message: `User ${userToToggle.username} developer override is now ${userToToggle.developerOverride}. Please re-login to update JWT.`, user: {id: userToToggle.id, username: userToToggle.username, developerOverride: userToToggle.developerOverride }});
+  res.json({ message: `User ${userToToggle.username} developer override is now ${newValue}. Please re-login to update JWT.`, user: sanitizeUser(userToToggle) });
 });
 
 // Assign role (admin/moderator) endpoint
@@ -1381,6 +1446,40 @@ function normalizeEventRecord(raw) {
   };
 }
 
+// Mark a message as read or unread
+app.patch('/messages/:messageId/read', authenticateToken, async (req, res) => {
+  try {
+    const messageId = req.params.messageId;
+    const readStatus = Boolean(req.body.read);
+    const userId = String(req.user.id || req.user.userId);
+
+    // Update in-memory if present
+    const memIdx = messages.findIndex(m => String(m.id) === messageId || String(m._id) === messageId);
+    if (memIdx !== -1) {
+      if (messages[memIdx].recipientId !== userId && messages[memIdx].senderId !== userId) {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+      messages[memIdx].read = readStatus;
+    }
+
+    // Update in MongoDB if connected
+    if (mongoose.connection.readyState === 1 && MessageModel) {
+      const msg = await MessageModel.findById(messageId);
+      if (!msg) return res.status(404).json({ message: 'Message not found' });
+      if (String(msg.recipientId) !== userId && String(msg.senderId) !== userId) {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+      msg.read = readStatus;
+      await msg.save();
+    }
+
+    res.json({ ok: true, read: readStatus });
+  } catch (e) {
+    logger.error('Mark message read error', { error: e, requestId: req.requestId });
+    res.status(500).json({ message: 'Error updating message' });
+  }
+});
+
 // Inbox endpoint to fetch messages for the logged-in user
 app.get('/messages/inbox', authenticateToken, async (req, res) => {
   try {
@@ -1458,28 +1557,59 @@ app.get('/messages/inbox', authenticateToken, async (req, res) => {
 
     // Apply premium filters only if the user is effectively premium
     if (isUserEffectivelyPremium) {
+      // Cache for sender details looked up from DB (avoids repeated queries)
+      const senderDetailCache = new Map();
+      const getSenderDetails = async (senderId) => {
+        const key = String(senderId);
+        if (senderDetailCache.has(key)) return senderDetailCache.get(key);
+        // Try in-memory first
+        let sender = users.find(u => String(u.id) === key);
+        if (!sender && mongoose.connection.readyState === 1 && UserModel) {
+          // Fall back to DB when sender isn't in the in-memory array
+          try {
+            const dbSender = await UserModel.findById(key).lean();
+            if (dbSender) {
+              sender = {
+                id: dbSender._id ? dbSender._id.toString() : key,
+                gender: dbSender.gender,
+                location: dbSender.location,
+              };
+            }
+          } catch (dbErr) {
+            logger.warn('Sender DB lookup failed', { error: dbErr, requestId: req.requestId, senderId: key });
+          }
+        }
+        senderDetailCache.set(key, sender || null);
+        return sender || null;
+      };
+
       if (filterGender) {
-        processedMessages = processedMessages.filter(msg => {
-          // We need sender's gender. Fetch sender user object.
-          const sender = users.find(u => u.id === msg.senderId);
-          return sender && sender.gender.toLowerCase() === filterGender.toLowerCase();
-        });
+        const keepIds = new Set();
+        for (const msg of processedMessages) {
+          const sender = await getSenderDetails(msg.senderId);
+          if (sender && sender.gender && String(sender.gender).toLowerCase() === String(filterGender).toLowerCase()) {
+            keepIds.add(msg.id);
+          }
+        }
+        processedMessages = processedMessages.filter(msg => keepIds.has(msg.id));
       }
 
       if (filterRadius && loggedInUser.location && loggedInUser.location.geoCoordinates) {
         const userLat = loggedInUser.location.geoCoordinates.lat;
         const userLon = loggedInUser.location.geoCoordinates.lon;
         
-        processedMessages = processedMessages.filter(msg => {
-          const sender = users.find(u => u.id === msg.senderId);
+        const keepIds = new Set();
+        for (const msg of processedMessages) {
+          const sender = await getSenderDetails(msg.senderId);
           if (sender && sender.location && sender.location.geoCoordinates) {
             const senderLat = sender.location.geoCoordinates.lat;
             const senderLon = sender.location.geoCoordinates.lon;
             const distance = getDistanceInMiles(userLat, userLon, senderLat, senderLon);
-            return distance <= filterRadius;
+            if (distance <= filterRadius) keepIds.add(msg.id);
           }
-          return false; // Don't include if sender location is missing
-        });
+          // Don't include if sender location is missing
+        }
+        processedMessages = processedMessages.filter(msg => keepIds.has(msg.id));
       }
     } else {
       // Optionally, if a non-premium user tries to use these filters, inform them.
@@ -1494,9 +1624,37 @@ app.get('/messages/inbox', authenticateToken, async (req, res) => {
     if (isUserEffectivelyPremium && sortBy === 'proximity' && loggedInUser.location && loggedInUser.location.geoCoordinates) {
         const userLat = loggedInUser.location.geoCoordinates.lat;
         const userLon = loggedInUser.location.geoCoordinates.lon;
+        // Cache sender details for sort (avoids repeated queries)
+        const sortSenderCache = new Map();
+        const getSortSender = async (senderId) => {
+          const key = String(senderId);
+          if (sortSenderCache.has(key)) return sortSenderCache.get(key);
+          let sender = users.find(u => String(u.id) === key);
+          if (!sender && mongoose.connection.readyState === 1 && UserModel) {
+            try {
+              const dbSender = await UserModel.findById(key).lean();
+              if (dbSender) {
+                sender = {
+                  id: dbSender._id ? dbSender._id.toString() : key,
+                  location: dbSender.location,
+                };
+              }
+            } catch (dbErr) {
+              logger.warn('Sender DB lookup (sort) failed', { error: dbErr, requestId: req.requestId, senderId: key });
+            }
+          }
+          sortSenderCache.set(key, sender || null);
+          return sender || null;
+        };
+        // Pre-fetch senders for all messages to sort synchronously
+        const senderMap = new Map();
+        for (const msg of processedMessages) {
+          const s = await getSortSender(msg.senderId);
+          senderMap.set(String(msg.senderId), s);
+        }
         processedMessages.sort((a, b) => {
-            const senderA = users.find(u => u.id === a.senderId);
-            const senderB = users.find(u => u.id === b.senderId);
+            const senderA = senderMap.get(String(a.senderId));
+            const senderB = senderMap.get(String(b.senderId));
             if (senderA && senderA.location && senderA.location.geoCoordinates && senderB && senderB.location && senderB.location.geoCoordinates) {
                 const distA = getDistanceInMiles(userLat, userLon, senderA.location.geoCoordinates.lat, senderA.location.geoCoordinates.lon);
                 const distB = getDistanceInMiles(userLat, userLon, senderB.location.geoCoordinates.lat, senderB.location.geoCoordinates.lon);
