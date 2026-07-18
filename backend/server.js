@@ -3133,8 +3133,9 @@ app.post('/events/refresh-discovered', async (req, res) => {
       const eventsResults = Array.isArray(json?.events_results) ? json.events_results : [];
       for (const ev of eventsResults) {
         const dateText = ev?.date?.when || ev?.date?.start_date || (typeof ev?.date === 'string' ? ev.date : null);
-        const addressArr = Array.isArray(ev?.location?.address) ? ev.location.address : [];
-        const cityMatch = addressArr.find((a) => /,\s*[A-Z]{2}\s*\d{0,5}$/.test(a || ''));
+        const addressArr = Array.isArray(ev?.address) ? ev.address : [];
+        const venueName = ev?.venue?.name || '';
+        const cityMatch = addressArr.find((a) => /,\s*[A-Z]{2}/.test(a || ''));
         let city = '';
         let state = '';
         if (cityMatch) {
@@ -3148,13 +3149,13 @@ app.post('/events/refresh-discovered', async (req, res) => {
           dateText: dateText || '',
           dateStart: parseSerpApiDateText(dateText),
           location: {
-            name: ev?.location?.name || '',
+            name: venueName,
             address: addressArr,
             city,
             state,
           },
           link: ev?.link || '',
-          thumbnail: ev?.thumbnail || '',
+          thumbnail: ev?.thumbnail || ev?.image || '',
           description: ev?.description || '',
           searchQuery: query,
           source: 'google_events',
