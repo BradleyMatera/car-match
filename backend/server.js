@@ -567,8 +567,19 @@ const syncInMemoryUsersWithDatabase = async () => {
       if ((!dbUser.biography || dbUser.biography === '') && memUser.biography) updates.biography = memUser.biography;
       if ((!dbUser.carInterests || dbUser.carInterests.length === 0) && memUser.interests?.length) updates.carInterests = memUser.interests;
       if ((!dbUser.cars || dbUser.cars.length === 0) && memUser.cars?.length) updates.cars = memUser.cars;
-      if (!dbUser.preferences && memUser.preferences) updates.preferences = memUser.preferences;
+      if (!dbUser.preferences && memUser.preferences) {
+        updates.preferences = memUser.preferences;
+      } else if (dbUser.preferences && memUser.preferences) {
+        // Backfill individual preference sub-fields that are missing or empty
+        const dbConn = dbUser.preferences.connections || {};
+        const memConn = memUser.preferences.connections || {};
+        if (!dbConn.instagram && !dbConn.twitter && !dbConn.website && (memConn.instagram || memConn.twitter || memConn.website)) {
+          updates['preferences.connections'] = memConn;
+        }
+      }
       if ((!dbUser.email || dbUser.email === `${loginUsername}@example.com`) && memUser.email) updates.email = memUser.email;
+      // Backfill name if it's still the generic "Demo User" placeholder
+      if (dbUser.name === 'Demo User' && memUser.name && memUser.name !== 'Demo User') updates.name = memUser.name;
       if (Object.keys(updates).length > 0) {
         await UserModel.updateOne({ _id: dbUser._id }, { $set: updates });
         dbUser = await UserModel.findOne(query);
