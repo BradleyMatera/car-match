@@ -1,94 +1,257 @@
-.signup-container {position:relative;z-index:0;min-height:80vh;display:flex;align-items:center;justify-content:center;padding:2rem}
-.signup-container > *:not(.page-bg){position:relative;z-index:1}
-.signup-form {
-  max-width: 600px;
-  margin: 2rem auto;
-  padding: 2rem;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+/* SignUp page — extends auth styles from Login.css */
+@import '../Login/Login.css';
+
+.signup-card {
+  max-width: 520px;
 }
 
-.signup-step {
-  margin-bottom: 2rem;
-}
-
-.signup-step h2 {
-  color: #1574BB;
-  margin-bottom: 1.5rem;
-  font-size: 1.5rem;
-}
-
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="number"],
-input[type="file"] {
-  width: 100%;
-  padding: 0.8rem;
-  margin-bottom: 1rem;
-  border: 1px solid #E6E6E6;
-  border-radius: 4px;
-  font-size: 1rem;
-}
-
-input:focus {
-  outline: 2px solid #8CCA00;
-  border-color: transparent;
-}
-
-.car-interests {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-}
-
-.car-interests label {
+/* Step indicator */
+.signup-steps-indicator {
   display: flex;
   align-items: center;
-  padding: 0.8rem;
-  background: #F6F6F6;
-  border-radius: 4px;
-  cursor: pointer;
+  justify-content: center;
+  gap: 0;
+  margin: 0 0 28px;
 }
 
-.car-interests input[type="checkbox"] {
-  margin-right: 0.5rem;
-  width: 1.2rem;
-  height: 1.2rem;
-  accent-color: #8CCA00;
-}
-
-.signup-actions {
+.signup-step-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #e0e0e0;
+  color: #999;
   display: flex;
-  justify-content: space-between;
-  margin-top: 2rem;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  transition: all 0.3s;
+  flex-shrink: 0;
 }
 
-button {
-  padding: 0.8rem 1.5rem;
-  border: none;
-  border-radius: 4px;
+.signup-step-dot.active {
+  background: #e10600;
+  color: #fff;
+}
+
+.signup-step-dot.done {
+  background: #16a34a;
+  color: #fff;
+}
+.signup-step-dot.done::after {
+  content: '✓';
+  position: absolute;
+}
+.signup-step-dot.done { position: relative; }
+.signup-step-dot.done { font-size: 0; }
+.signup-step-dot.done::after { font-size: 14px; }
+
+.signup-step-line {
+  width: 40px;
+  height: 2px;
+  background: #e0e0e0;
+  transition: background 0.3s;
+}
+.signup-step-line.done { background: #16a34a; }
+
+/* Step content */
+.signup-step-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.signup-step-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.auth-back-btn {
+  background: none;
+  border: 1.5px solid #e0e0e0;
+  color: #666;
+  padding: 14px 20px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+  white-space: nowrap;
+}
+.auth-back-btn:hover { border-color: #ccc; color: #333; }
+
+.auth-submit-btn { flex: 1; }
+
+/* Form fields */
+.signup-step-content select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 15px;
+  background: #fafafa;
+  cursor: pointer;
+}
+.signup-step-content select:focus {
+  border-color: #e10600;
+  box-shadow: 0 0 0 3px rgba(225, 6, 0, 0.1);
+  outline: none;
+  background: #fff;
+}
+
+.signup-step-content textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 15px;
+  background: #fafafa;
+  resize: vertical;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.signup-step-content textarea:focus {
+  border-color: #e10600;
+  box-shadow: 0 0 0 3px rgba(225, 6, 0, 0.1);
+  outline: none;
+  background: #fff;
+}
+
+.auth-field-row {
+  display: flex;
+  gap: 12px;
+}
+.auth-field-row .auth-field { flex: 1; }
+
+.auth-field-hint {
+  font-size: 12px;
+  color: #999;
+}
+
+/* Password strength */
+.pw-strength-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.pw-strength-fill {
+  height: 4px;
+  border-radius: 2px;
+  transition: width 0.3s, background 0.3s;
+  min-width: 0;
+}
+.pw-strength-bar::before {
+  content: '';
+  flex: 1;
+  height: 4px;
+  background: #f0f0f0;
+  border-radius: 2px;
+  position: relative;
+  margin-right: -100%;
+}
+.pw-strength-fill { flex: 0 0 auto; width: 0; }
+.pw-strength-bar { position: relative; }
+.pw-strength-bar .pw-strength-fill {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 100%;
+  max-width: 100%;
+  background: #f0f0f0;
+  border-radius: 2px;
+  z-index: 0;
+}
+.pw-strength-bar .pw-strength-fill[style] {
+  z-index: 1;
+}
+.pw-strength-label {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  z-index: 2;
+  position: relative;
+  margin-left: auto;
+}
+
+.pw-match-indicator {
+  font-size: 12px;
+  color: #16a34a;
   font-weight: 500;
-  transition: opacity 0.2s;
 }
 
-button[type="submit"] {
-  background: #8CCA00;
-  color: white;
+/* Photo upload */
+.signup-photo-upload {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
-button[type="button"] {
-  background: #E6E6E6;
-  color: #333;
+.signup-photo-preview {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e0e0e0;
 }
 
-button:hover {
-  opacity: 0.9;
+.signup-photo-placeholder {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
 }
 
-input[type="file"] {
-  padding: 0.5rem;
-  border: 2px dashed #E6E6E6;
+.signup-photo-btn {
+  display: inline-block;
+  padding: 10px 18px;
+  background: #f0f0f0;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: #555;
+  transition: background 0.2s;
+}
+.signup-photo-btn:hover { background: #e8e8e8; }
+
+/* Car interests grid */
+.signup-interests-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.signup-interest-chip {
+  padding: 8px 14px;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 20px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: #666;
+  transition: all 0.2s;
+}
+.signup-interest-chip:hover {
+  border-color: #e10600;
+  color: #e10600;
+}
+.signup-interest-chip.selected {
+  background: #e10600;
+  border-color: #e10600;
+  color: #fff;
+}
+
+@media (max-width: 480px) {
+  .auth-field-row { flex-direction: column; }
+  .signup-step-actions { flex-direction: column-reverse; }
+  .auth-back-btn { width: 100%; }
 }

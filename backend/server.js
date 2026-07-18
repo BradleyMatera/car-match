@@ -787,7 +787,9 @@ app.post('/register', authLimiterMiddleware, async (req, res) => {
       city, 
       state,
       email: rawEmail,
-      // Other fields like orientation, interests, bio, profileImage can be added later or made optional
+      bio,
+      carInterests,
+      profileImage,
     } = req.body;
 
     if (!username || !password || !name || !displayTag || !gender || !city || !state) {
@@ -818,9 +820,9 @@ app.post('/register', authLimiterMiddleware, async (req, res) => {
         state,
         geoCoordinates: await geocodeLocation(city, state) || { lat: 0, lon: 0 },
       },
-      interests: [],
-      biography: "",
-      profileImage: "",
+      interests: Array.isArray(carInterests) ? carInterests : [],
+      biography: bio || "",
+      profileImage: profileImage || "",
       lastLoginTimestamp: null,
       premiumStatus: false,
       developerOverride: false,
