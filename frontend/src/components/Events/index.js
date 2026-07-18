@@ -14,6 +14,7 @@ import { applySEO } from '../../utils/seo';
 
 const Events = () => {
   const [events, setEvents] = useState([]);
+  const [loadingEvents, setLoadingEvents] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const assignSelectedEvent = useCallback((eventOrUpdater) => {
     setSelectedEvent((prev) => {
@@ -97,6 +98,8 @@ const Events = () => {
       } catch (error) {
         console.error('Error loading events:', error);
         setFlash({ type: 'error', message: 'We had trouble loading events. Please refresh or try again shortly.' });
+      } finally {
+        setLoadingEvents(false);
       }
     };
     loadEvents();
@@ -292,6 +295,9 @@ const Events = () => {
           </div>
         )}
         <h2 className="section-title">Upcoming Events</h2>
+        {loadingEvents && events.length === 0 && (
+          <div style={{ padding: '2rem 0', textAlign: 'center', color: 'rgba(255,255,255,0.8)' }}>Loading events…</div>
+        )}
         <div className="carousel-container">
           <Slider {...carouselSettings}>
             {events.slice(0, 10).map((event) => {
