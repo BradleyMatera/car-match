@@ -1,4 +1,4 @@
-/* SignUp page — extends auth styles from Login.css */
+/* SignUp page — Dark Theme (extends Login.css) */
 @import '../Login/Login.css';
 
 .signup-card {
@@ -18,41 +18,44 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #e0e0e0;
-  color: #767676;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 14px;
   font-weight: 700;
-  transition: all 0.3s;
+  transition: all var(--transition);
   flex-shrink: 0;
+  position: relative;
 }
 
 .signup-step-dot.active {
-  background: #e10600;
+  background: var(--gradient-red);
+  border-color: var(--primary);
   color: #fff;
+  box-shadow: 0 0 12px var(--primary-glow);
 }
 
 .signup-step-dot.done {
-  background: #16a34a;
+  background: var(--success);
+  border-color: var(--success);
   color: #fff;
+  font-size: 0;
 }
 .signup-step-dot.done::after {
-  content: '✓';
-  position: absolute;
+  content: '\2713';
+  font-size: 14px;
 }
-.signup-step-dot.done { position: relative; }
-.signup-step-dot.done { font-size: 0; }
-.signup-step-dot.done::after { font-size: 14px; }
 
 .signup-step-line {
   width: 40px;
   height: 2px;
-  background: #e0e0e0;
-  transition: background 0.3s;
+  background: var(--border);
+  transition: background var(--transition);
 }
-.signup-step-line.done { background: #16a34a; }
+.signup-step-line.done { background: var(--success); }
 
 /* Step content */
 .signup-step-content {
@@ -68,18 +71,18 @@
 }
 
 .auth-back-btn {
-  background: none;
-  border: 1.5px solid #e0e0e0;
-  color: #666;
+  background: transparent;
+  border: 1.5px solid var(--border);
+  color: var(--text-secondary);
   padding: 14px 20px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: border-color 0.2s, color 0.2s;
+  transition: all var(--transition);
   white-space: nowrap;
 }
-.auth-back-btn:hover { border-color: #ccc; color: #333; }
+.auth-back-btn:hover { border-color: var(--text-muted); color: var(--text-primary); background: var(--bg-elevated); }
 
 .auth-submit-btn { flex: 1; }
 
@@ -87,36 +90,44 @@
 .signup-step-content select {
   width: 100%;
   padding: 12px 14px;
-  border: 1.5px solid #e0e0e0;
-  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
   font-size: 15px;
-  background: #fafafa;
+  background: var(--bg-input);
+  color: var(--text-primary);
   cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23a0a0b5' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
 }
 .signup-step-content select:focus {
-  border-color: #e10600;
-  box-shadow: 0 0 0 3px rgba(225, 6, 0, 0.1);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
   outline: none;
-  background: #fff;
+  background-color: var(--bg-elevated);
 }
 
 .signup-step-content textarea {
   width: 100%;
   padding: 12px 14px;
-  border: 1.5px solid #e0e0e0;
-  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
   font-size: 15px;
-  background: #fafafa;
+  background: var(--bg-input);
+  color: var(--text-primary);
   resize: vertical;
   font-family: inherit;
   box-sizing: border-box;
 }
 .signup-step-content textarea:focus {
-  border-color: #e10600;
-  box-shadow: 0 0 0 3px rgba(225, 6, 0, 0.1);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
   outline: none;
-  background: #fff;
+  background: var(--bg-elevated);
 }
+.signup-step-content textarea::placeholder { color: var(--text-muted); }
 
 .auth-field-row {
   display: flex;
@@ -126,7 +137,7 @@
 
 .auth-field-hint {
   font-size: 12px;
-  color: #767676;
+  color: var(--text-muted);
 }
 
 /* Password strength */
@@ -135,36 +146,24 @@
   align-items: center;
   gap: 8px;
   margin-top: 4px;
-}
-.pw-strength-fill {
-  height: 4px;
-  border-radius: 2px;
-  transition: width 0.3s, background 0.3s;
-  min-width: 0;
+  position: relative;
+  height: 16px;
 }
 .pw-strength-bar::before {
   content: '';
   flex: 1;
   height: 4px;
-  background: #f0f0f0;
+  background: var(--bg-elevated);
   border-radius: 2px;
-  position: relative;
-  margin-right: -100%;
 }
-.pw-strength-fill { flex: 0 0 auto; width: 0; }
-.pw-strength-bar { position: relative; }
-.pw-strength-bar .pw-strength-fill {
+.pw-strength-fill {
   position: absolute;
   left: 0;
   top: 50%;
   transform: translateY(-50%);
-  width: 100%;
-  max-width: 100%;
-  background: #f0f0f0;
+  height: 4px;
   border-radius: 2px;
-  z-index: 0;
-}
-.pw-strength-bar .pw-strength-fill[style] {
+  transition: width 0.3s, background 0.3s;
   z-index: 1;
 }
 .pw-strength-label {
@@ -178,7 +177,7 @@
 
 .pw-match-indicator {
   font-size: 12px;
-  color: #16a34a;
+  color: var(--success);
   font-weight: 500;
 }
 
@@ -194,14 +193,14 @@
   height: 72px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--border);
 }
 
 .signup-photo-placeholder {
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: #f0f0f0;
+  background: var(--bg-elevated);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -211,16 +210,16 @@
 .signup-photo-btn {
   display: inline-block;
   padding: 10px 18px;
-  background: #f0f0f0;
-  border: 1.5px solid #e0e0e0;
-  border-radius: 8px;
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
-  color: #555;
-  transition: background 0.2s;
+  color: var(--text-secondary);
+  transition: all var(--transition);
 }
-.signup-photo-btn:hover { background: #e8e8e8; }
+.signup-photo-btn:hover { background: var(--bg-hover); border-color: var(--text-muted); color: var(--text-primary); }
 
 /* Car interests grid */
 .signup-interests-grid {
@@ -231,23 +230,24 @@
 
 .signup-interest-chip {
   padding: 8px 14px;
-  border: 1.5px solid #e0e0e0;
-  border-radius: 20px;
-  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--bg-input);
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
-  color: #666;
-  transition: all 0.2s;
+  color: var(--text-secondary);
+  transition: all var(--transition);
 }
 .signup-interest-chip:hover {
-  border-color: #e10600;
-  color: #e10600;
+  border-color: var(--primary);
+  color: var(--primary);
 }
 .signup-interest-chip.selected {
-  background: #e10600;
-  border-color: #e10600;
+  background: var(--gradient-red);
+  border-color: var(--primary);
   color: #fff;
+  box-shadow: 0 2px 8px var(--primary-glow);
 }
 
 @media (max-width: 480px) {

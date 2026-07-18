@@ -1,8 +1,12 @@
-/* App Layout */
+/* ═══════════════════════════════════════════════
+   App Layout — Modern Dark Theme
+   ═══════════════════════════════════════════════ */
+
 .App {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background: var(--bg-base);
 }
 
 main {
@@ -11,54 +15,78 @@ main {
   flex-direction: column;
 }
 
-/* Navigation */
+/* ═══════════════════════════════════════════════
+   Navigation — Glassmorphism top bar
+   ═══════════════════════════════════════════════ */
+
 .top-nav {
   position: sticky;
   top: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-md) var(--space-xl);
-  background: white;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  padding: 0 32px;
+  height: 64px;
+  background: rgba(10, 10, 15, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-light);
   z-index: 1000;
-  transition: box-shadow 0.3s ease;
+  transition: all var(--transition);
 }
 
 .top-nav:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  border-bottom-color: var(--border);
 }
 
 .logo {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--primary-color);
-  transition: transform 0.3s ease;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: var(--gradient-red);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  cursor: pointer;
+  transition: transform var(--transition-spring);
 }
-
-.logo:hover {
-  transform: scale(1.05);
-}
+.logo:hover { transform: scale(1.05); }
 
 nav ul {
   display: flex;
-  gap: var(--space-xl);
+  gap: 4px;
   list-style: none;
   margin: 0;
   padding: 0;
+  align-items: center;
 }
 
 nav a {
-  color: var(--text-dark);
+  color: var(--text-secondary);
   text-decoration: none;
   font-weight: 500;
-  transition: color 0.2s, transform 0.2s;
+  font-size: 14px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition);
   display: inline-block;
+  position: relative;
 }
 
 nav a:hover {
-  color: var(--primary-color);
-  transform: translateY(-2px);
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+}
+
+nav a:active {
+  transform: scale(0.97);
+}
+
+/* Active nav link */
+nav a[aria-current="page"],
+nav a.active {
+  color: var(--primary);
+  background: var(--primary-glow);
 }
 
 nav.disabled {
@@ -66,95 +94,128 @@ nav.disabled {
   pointer-events: none;
 }
 
-/* Hero Section */
+/* Logout button */
+.logout-button {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  padding: 7px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all var(--transition);
+}
+.logout-button:hover {
+  background: var(--error-bg);
+  border-color: var(--error);
+  color: var(--error);
+}
+
+/* ═══════════════════════════════════════════════
+   Hero Section
+   ═══════════════════════════════════════════════ */
+
 .hero {
   position: relative;
-  height: 600px;
-  background: var(--primary-color);
-  color: white;
+  min-height: 500px;
+  background: var(--gradient-hero);
+  color: var(--text-primary);
   display: flex;
   align-items: center;
-  margin-bottom: var(--space-3xl);
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(ellipse at top right, var(--primary-glow), transparent 60%);
+  opacity: 0.5;
 }
 
 .hero-content {
   max-width: 800px;
   margin: 0 auto;
   text-align: center;
-  padding: var(--space-xl);
+  padding: var(--space-2xl) var(--space-xl);
+  position: relative;
+  z-index: 1;
 }
 
 .hero h1 {
   font-size: 3.5rem;
+  font-weight: 900;
   margin-bottom: var(--space-lg);
-  animation: fadeIn 1s ease-out;
+  animation: fadeIn 0.8s ease-out;
+  background: linear-gradient(135deg, #f0f0f5 0%, #a0a0b5 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .hero-text {
   font-size: 1.25rem;
+  color: var(--text-secondary);
   margin-bottom: var(--space-xl);
-  line-height: 1.8;
+  line-height: 1.7;
   max-width: 600px;
   margin-left: auto;
   margin-right: auto;
-  animation: fadeIn 1.5s ease-out;
+  animation: fadeIn 1.2s ease-out;
 }
 
-/* Buttons */
+/* ═══════════════════════════════════════════════
+   Buttons
+   ═══════════════════════════════════════════════ */
+
 .cta-button {
-  display: inline-block;
-  background-color: var(--secondary-color);
-  color: var(--text-light);
-  padding: var(--space-md) var(--space-xl);
-  font-size: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--gradient-red);
+  color: #fff;
+  padding: 14px 32px;
+  font-size: 1.1rem;
+  font-weight: 700;
   border-radius: var(--radius-full);
   text-decoration: none;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  animation: fadeIn 2s ease-out;
+  transition: all var(--transition-spring);
+  box-shadow: 0 4px 20px var(--primary-glow);
+  animation: fadeIn 1.5s ease-out;
+  border: none;
+  cursor: pointer;
 }
 
 .cta-button:hover {
-  transform: scale(1.05) translateY(-3px);
-  box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 8px 32px var(--primary-glow);
 }
 
 .cta-button:active {
-  transform: scale(0.98) translateY(0);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 8px var(--primary-glow);
 }
 
-.logout-button {
-  background-color: transparent;
-  color: var(--text-dark);
-  border: 1px solid var(--text-dark);
-  padding: var(--space-xs) var(--space-md);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
+/* ═══════════════════════════════════════════════
+   Benefits Section
+   ═══════════════════════════════════════════════ */
 
-.logout-button:hover {
-  background-color: var(--text-dark);
-  color: white;
-}
-
-/* Benefits Section */
 .benefits {
   padding: var(--space-3xl) 0;
-  background-color: var(--background-light);
+  background: var(--bg-surface);
 }
 
 .benefits h2 {
   text-align: center;
   margin-bottom: var(--space-2xl);
   font-size: 2.5rem;
-  color: var(--primary-color);
+  color: var(--text-primary);
 }
 
 .benefits-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: var(--space-xl);
   max-width: var(--container-xl);
   margin: 0 auto;
@@ -162,75 +223,97 @@ nav.disabled {
 }
 
 .benefit-card {
-  background: white;
+  background: var(--gradient-card);
+  border: 1px solid var(--border);
   padding: var(--space-xl);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   text-align: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: var(--shadow-card);
+  transition: all var(--transition);
 }
 
 .benefit-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--primary);
 }
 
 .benefit-icon {
   font-size: 2.5rem;
   margin-bottom: var(--space-md);
-  color: var(--primary-color);
 }
 
 .benefit-card h3 {
-  color: var(--primary-color);
+  color: var(--text-primary);
   margin-bottom: var(--space-md);
-  font-size: 1.5rem;
+  font-size: 1.35rem;
 }
 
 .benefit-card p {
-  color: var(--text-dark);
+  color: var(--text-secondary);
   line-height: 1.6;
 }
 
-/* Modal */
+/* ═══════════════════════════════════════════════
+   Modal
+   ═══════════════════════════════════════════════ */
+
 .modal-active {
   overflow: hidden;
 }
 
-/* Animations */
+/* ═══════════════════════════════════════════════
+   Animations
+   ═══════════════════════════════════════════════ */
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Responsive adjustments */
+/* ═══════════════════════════════════════════════
+   Responsive
+   ═══════════════════════════════════════════════ */
+
 @media (max-width: 768px) {
   .top-nav {
-    padding: var(--space-sm) var(--space-md);
+    padding: 0 16px;
+    height: 56px;
   }
-  
+
   nav ul {
-    gap: var(--space-md);
+    gap: 2px;
   }
-  
+
+  nav a {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
   .hero {
-    height: 500px;
+    min-height: 400px;
   }
-  
+
   .hero h1 {
-    font-size: 2.5rem;
+    font-size: 2.25rem;
   }
-  
+
   .hero-text {
     font-size: 1rem;
   }
-  
+
   .cta-button {
-    padding: var(--space-sm) var(--space-lg);
+    padding: 12px 24px;
     font-size: 1rem;
   }
-  
+
   .benefits-grid {
     gap: var(--space-md);
   }
+}
+
+@media (max-width: 600px) {
+  .logo { font-size: 18px; }
+  nav a { padding: 6px 8px; font-size: 12px; }
+  .logout-button { padding: 6px 10px; font-size: 12px; }
 }

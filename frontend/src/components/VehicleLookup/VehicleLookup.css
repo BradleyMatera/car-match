@@ -1,76 +1,128 @@
+/* ═══════════════════════════════════════════════
+   Vehicle Lookup — Dark Theme
+   ═══════════════════════════════════════════════ */
+
 .vehicle-lookup-container {
   max-width: 800px;
   margin: 0 auto;
 }
 
+/* ── Tabs ── */
 .vl-tabs {
   display: flex;
   gap: 4px;
-  margin-bottom: 16px;
-  border-bottom: 2px solid #e0e0e0;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--border);
   flex-wrap: wrap;
 }
 
 .vl-tab {
-  padding: 10px 16px;
+  padding: 12px 18px;
   border: none;
   background: none;
   cursor: pointer;
   font-size: 14px;
-  font-weight: 500;
-  color: #666;
+  font-weight: 600;
+  color: var(--text-muted);
   border-bottom: 2px solid transparent;
   margin-bottom: -2px;
-  transition: all 0.2s;
+  transition: color var(--transition), border-color var(--transition);
 }
 
-.vl-tab:hover { color: #333; }
-.vl-tab.active { color: #e10600; border-bottom-color: #e10600; }
+.vl-tab:hover {
+  color: var(--text-secondary);
+}
 
+.vl-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  text-shadow: 0 0 16px var(--primary-glow);
+}
+
+/* ── Section ── */
 .vl-section {
-  padding: 16px 0;
+  padding: 20px 0;
+}
+
+.vl-section h3 {
+  margin: 0 0 8px;
+  color: var(--text-primary);
+}
+
+.vl-section h4 {
+  margin: 0 0 16px;
+  color: var(--text-primary);
 }
 
 .vl-desc {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 13px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
+/* ── Input Row ── */
 .vl-input-row {
   display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
 .vl-vin-input {
   flex: 1;
-  padding: 10px 12px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
+  padding: 12px 16px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   font-size: 15px;
-  font-family: monospace;
-  letter-spacing: 1px;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 2px;
+  color: var(--text-primary);
+  transition: border-color var(--transition), box-shadow var(--transition);
 }
 
+.vl-vin-input::placeholder {
+  color: var(--text-muted);
+  letter-spacing: 2px;
+}
+
+.vl-vin-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+/* ── Vehicle Form ── */
 .vl-vehicle-form {
   display: grid;
   grid-template-columns: 1fr 1fr 100px;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
 .vl-vehicle-form input {
-  padding: 10px 12px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
+  padding: 12px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   font-size: 14px;
+  color: var(--text-primary);
+  transition: border-color var(--transition), box-shadow var(--transition);
 }
 
-.vl-action-area { margin-top: 8px; }
+.vl-vehicle-form input::placeholder { color: var(--text-muted); }
 
+.vl-vehicle-form input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+/* ── Action Area ── */
+.vl-action-area { margin-top: 12px; }
+
+/* ── Results ── */
 .vl-results {
-  margin-top: 20px;
+  margin-top: 24px;
 }
 
 .vl-result-grid {
@@ -82,149 +134,226 @@
 .vl-result-item {
   display: flex;
   flex-direction: column;
-  padding: 10px 12px;
-  background: #f8f8f8;
-  border-radius: 6px;
-  border-left: 3px solid #e10600;
+  padding: 12px 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  border-left: 3px solid var(--primary);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition), transform var(--transition);
+}
+
+.vl-result-item:hover {
+  border-color: var(--border);
+  border-left-color: var(--primary);
+  transform: translateY(-1px);
 }
 
 .vl-label {
   font-size: 11px;
   text-transform: uppercase;
-  color: #6b6b6b;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
   margin-bottom: 4px;
 }
 
 .vl-value {
   font-size: 14px;
-  font-weight: 500;
-  color: #222;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .vl-count {
-  font-weight: 600;
-  margin-bottom: 12px;
-  color: #333;
+  font-weight: 700;
+  margin-bottom: 14px;
+  color: var(--text-primary);
+  font-size: 15px;
 }
 
 .vl-empty {
-  color: #666;
+  color: var(--text-muted);
   font-style: italic;
-  padding: 16px;
+  padding: 20px;
   text-align: center;
-  background: #f8f8f8;
-  border-radius: 6px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
 }
 
-.recall-card, .complaint-card {
-  background: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 14px 16px;
-  margin-bottom: 12px;
+/* ── Recall / Complaint Cards ── */
+.recall-card,
+.complaint-card {
+  background: var(--gradient-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow-card);
+  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
-.recall-header, .complaint-header {
+.recall-card:hover,
+.complaint-card:hover {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-card-hover), 0 0 20px var(--primary-glow);
+  transform: translateY(-2px);
+}
+
+.recall-header,
+.complaint-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.recall-component, .complaint-component {
-  font-weight: 600;
-  color: #e10600;
+.recall-component,
+.complaint-component {
+  font-weight: 700;
+  color: var(--primary);
   font-size: 14px;
 }
 
-.recall-date, .complaint-date {
+.recall-date,
+.complaint-date {
   font-size: 12px;
-  color: #6b6b6b;
+  color: var(--text-muted);
 }
 
-.recall-summary, .complaint-summary {
+.recall-summary,
+.complaint-summary {
   font-size: 13px;
-  color: #444;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+
+.recall-consequence,
+.recall-remedy {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
   line-height: 1.5;
-  margin-bottom: 8px;
 }
 
-.recall-consequence, .recall-remedy {
-  font-size: 13px;
-  color: #555;
-  margin-bottom: 4px;
-  line-height: 1.4;
+.recall-consequence strong,
+.recall-remedy strong {
+  color: var(--text-primary);
 }
 
 .recall-campaign {
   font-size: 11px;
-  color: #767676;
-  font-family: monospace;
+  color: var(--text-muted);
+  font-family: 'Courier New', monospace;
+  display: inline-block;
+  margin-top: 4px;
+  padding: 3px 8px;
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
 }
 
+/* ── Safety Ratings ── */
 .ratings-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 12px;
-  margin: 16px 0;
+  gap: 14px;
+  margin: 20px 0;
 }
 
 .rating-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 12px;
-  background: #f8f8f8;
-  border-radius: 8px;
+  padding: 18px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  transition: border-color var(--transition), transform var(--transition);
+}
+
+.rating-item:hover {
+  border-color: var(--border);
+  transform: translateY(-2px);
 }
 
 .rating-label {
   font-size: 12px;
-  color: #666;
-  margin-bottom: 6px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
   text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
 }
 
 .stars {
-  font-size: 18px;
-  color: #f5a623;
-  letter-spacing: 2px;
+  font-size: 20px;
+  color: var(--warning);
+  letter-spacing: 3px;
+  text-shadow: 0 0 12px rgba(255, 176, 32, 0.3);
 }
 
 .rating-na {
-  color: #ccc;
+  color: var(--text-muted);
   font-size: 16px;
+  font-weight: 600;
 }
 
 .ratings-meta {
   display: flex;
-  gap: 16px;
+  gap: 20px;
   font-size: 13px;
-  color: #666;
-  padding: 12px;
-  background: #f8f8f8;
-  border-radius: 6px;
+  color: var(--text-secondary);
+  padding: 14px 18px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  flex-wrap: wrap;
 }
 
+/* ── Complaint Flags ── */
 .complaint-flags {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
-  margin-top: 8px;
+  margin-top: 10px;
 }
 
 .flag {
   font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
-.flag-crash { background: #fee; color: #c00; }
-.flag-fire { background: #fff3e0; color: #e65100; }
-.flag-injury { background: #fce4ec; color: #c62828; }
-.flag-death { background: #ffebee; color: #b71c1c; }
+.flag-crash {
+  background: var(--error-bg);
+  color: var(--error);
+  border: 1px solid transparent;
+}
 
+.flag-fire {
+  background: var(--warning-bg);
+  color: var(--warning);
+  border: 1px solid transparent;
+}
+
+.flag-injury {
+  background: var(--error-bg);
+  color: var(--error);
+  border: 1px solid transparent;
+}
+
+.flag-death {
+  background: rgba(255, 56, 96, 0.2);
+  color: var(--error);
+  border: 1px solid var(--error);
+}
+
+/* ── Responsive ── */
 @media (max-width: 600px) {
   .vl-vehicle-form { grid-template-columns: 1fr; }
   .vl-input-row { flex-direction: column; }

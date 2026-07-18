@@ -1,16 +1,43 @@
+/* ═══════════════════════════════════════════════
+   Profile.css — CarMatch Dark Theme
+   User profile: header, garage, messages, settings
+   ═══════════════════════════════════════════════ */
+
+/* ── Layout Container ────────────────────────── */
 .profile-container {
   max-width: var(--container-lg);
   margin: var(--space-xl) auto;
   padding: var(--space-xl);
+  color: var(--text-primary);
 }
 
+/* ── Profile Header ──────────────────────────── */
 .profile-header {
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
   align-items: center;
   margin-bottom: var(--space-xl);
+  padding: var(--space-2xl) var(--space-xl) var(--space-xl);
   text-align: center;
+  background: var(--gradient-hero);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+}
+
+.profile-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: var(--gradient-red);
+  opacity: 0.15;
+  pointer-events: none;
 }
 
 @media (min-width: 768px) {
@@ -21,8 +48,10 @@
   }
 }
 
+/* ── Profile Photo / Avatar ──────────────────── */
 .profile-photo-container {
   position: relative;
+  z-index: 1;
 }
 
 .profile-photo {
@@ -30,21 +59,22 @@
   height: 150px;
   border-radius: 50%;
   object-fit: cover;
-  border: 4px solid white;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  transition: transform 0.3s ease;
+  border: 4px solid var(--bg-elevated);
+  box-shadow: 0 0 0 2px var(--primary), var(--shadow-glow);
+  transition: transform var(--transition-slow), box-shadow var(--transition-slow);
 }
 
 .profile-photo:hover {
   transform: scale(1.05);
+  box-shadow: 0 0 0 2px var(--primary-hover), 0 0 32px var(--primary-glow);
 }
 
 .profile-photo-edit {
   position: absolute;
-  bottom: 0;
-  right: 0;
-  background: var(--primary-color);
-  color: white;
+  bottom: 4px;
+  right: 4px;
+  background: var(--gradient-red);
+  color: #fff;
   width: 36px;
   height: 36px;
   border-radius: 50%;
@@ -52,35 +82,53 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm), 0 0 12px var(--primary-glow);
+  transition: all var(--transition-slow);
+  border: 2px solid var(--bg-elevated);
+  font-size: 1rem;
 }
 
 .profile-photo-edit:hover {
-  background: #0d5a8a;
+  background: var(--primary-hover);
   transform: scale(1.1);
+  box-shadow: var(--shadow-md), 0 0 20px var(--primary-glow);
 }
 
+.profile-photo-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gradient-red);
+  color: #fff;
+  font-size: 3rem;
+  font-weight: 700;
+}
+
+/* ── Profile Info ────────────────────────────── */
 .profile-info {
   flex: 1;
+  z-index: 1;
 }
 
 .profile-info h1 {
-  color: var(--primary-color);
+  color: var(--text-primary);
   margin-bottom: var(--space-xs);
   font-size: 2rem;
+  font-weight: 800;
   position: relative;
   display: inline-block;
+  letter-spacing: -0.02em;
 }
 
 .profile-info h1::after {
   content: '';
   position: absolute;
-  bottom: -5px;
+  bottom: -6px;
   left: 0;
-  width: 50px;
+  width: 60px;
   height: 3px;
-  background-color: var(--secondary-color);
+  background: var(--gradient-red);
+  border-radius: var(--radius-full);
 }
 
 @media (min-width: 768px) {
@@ -91,12 +139,12 @@
 }
 
 .location {
-  color: var(--text-dark);
-  opacity: 0.7;
+  color: var(--text-secondary);
   margin-bottom: var(--space-md);
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 0.95rem;
 }
 
 @media (min-width: 768px) {
@@ -107,8 +155,10 @@
 
 .location svg {
   margin-right: var(--space-xs);
+  color: var(--accent);
 }
 
+/* ── Car Interest Tags ───────────────────────── */
 .car-interests {
   display: flex;
   gap: var(--space-xs);
@@ -123,96 +173,237 @@
 }
 
 .interest-tag {
-  background: var(--background-light);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
   padding: var(--space-xs) var(--space-md);
   border-radius: var(--radius-full);
-  font-size: 0.9rem;
-  transition: all 0.3s ease;
-  border: 1px solid transparent;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all var(--transition-slow);
+  border: 1px solid var(--border);
 }
 
 .interest-tag:hover {
-  background: white;
-  border-color: var(--primary-color);
+  background: var(--bg-hover);
+  border-color: var(--primary);
+  color: var(--text-primary);
   transform: translateY(-2px);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px var(--primary-glow);
 }
 
-.profile-section {
-  background: white;
+/* ── Premium Status Display ──────────────────── */
+.premium-status-display {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  background: var(--bg-elevated);
   border-radius: var(--radius-md);
-  padding: var(--space-lg);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.premium-status-display p {
+  margin: 0 0 var(--space-xs) 0;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.premium-status-display button {
+  margin-right: var(--space-sm);
+  margin-top: var(--space-xs);
+}
+
+/* ── Profile Sections ────────────────────────── */
+.profile-section {
+  background: var(--gradient-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
   margin-bottom: var(--space-xl);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--border);
+  transition: transform var(--transition-slow), box-shadow var(--transition-slow), border-color var(--transition-slow);
   animation: fadeIn 0.5s ease-out;
 }
 
 .profile-section:hover {
   transform: translateY(-3px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-card-hover);
+  border-color: var(--bg-hover);
 }
 
 .profile-section h2 {
-  color: var(--primary-color);
-  border-bottom: 2px solid var(--secondary-color);
-  padding-bottom: var(--space-xs);
-  margin-bottom: var(--space-md);
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--border);
+  padding-bottom: var(--space-sm);
+  margin-bottom: var(--space-lg);
   font-size: 1.5rem;
+  font-weight: 700;
+  position: relative;
 }
 
+.profile-section h2::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 50px;
+  height: 2px;
+  background: var(--gradient-red);
+  border-radius: var(--radius-full);
+}
+
+/* ── Bio ─────────────────────────────────────── */
 .bio {
-  line-height: 1.6;
-  color: var(--text-dark);
+  line-height: 1.7;
+  color: var(--text-secondary);
+  font-size: 1rem;
 }
 
+.bio-char-count {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: right;
+  margin-top: var(--space-xs);
+}
+
+.edit-section {
+  margin-top: var(--space-lg);
+  padding: var(--space-lg);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.edit-section label {
+  display: block;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: var(--space-sm);
+}
+
+.edit-section textarea {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 1rem;
+  box-sizing: border-box;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.edit-section textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+  outline: none;
+}
+
+/* ── Garage / Cars Grid ──────────────────────── */
 .cars-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: var(--space-lg);
 }
 
 .car-card {
-  background: white;
-  border-radius: var(--radius-md);
+  background: var(--gradient-card);
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--border);
+  transition: transform var(--transition-slow), box-shadow var(--transition-slow), border-color var(--transition-slow);
   height: 100%;
 }
 
 .car-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-card-hover);
+  border-color: var(--primary);
 }
 
 .car-card img {
   width: 100%;
   height: 200px;
   object-fit: cover;
-  transition: transform 0.5s ease;
+  transition: transform var(--transition-slow);
 }
 
 .car-card:hover img {
-  transform: scale(1.05);
+  transform: scale(1.08);
 }
 
 .car-card h3 {
   padding: var(--space-md);
-  color: var(--primary-color);
+  color: var(--text-primary);
   margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
 }
 
 .car-card p {
   padding: 0 var(--space-md) var(--space-md);
-  color: var(--text-dark);
-  opacity: 0.8;
+  color: var(--text-secondary);
+  line-height: 1.5;
 }
 
+/* ── Vehicle Card (from cards.css integration) ── */
+.vehicle-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.vehicle-card img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.vehicle-actions {
+  display: flex;
+  gap: var(--space-xs);
+  padding: 0 var(--space-md) var(--space-md);
+}
+
+.vehicle-edit-form {
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+}
+
+.vehicle-edit-form input,
+.vehicle-edit-form textarea {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  box-sizing: border-box;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.vehicle-edit-form input:focus,
+.vehicle-edit-form textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+  outline: none;
+}
+
+.vehicle-edit-form input::placeholder,
+.vehicle-edit-form textarea::placeholder {
+  color: var(--text-muted);
+}
+
+/* ── Settings Form ───────────────────────────── */
 .settings-form label {
   display: block;
   margin-bottom: var(--space-md);
-  color: var(--text-dark);
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
@@ -220,122 +411,218 @@
 .settings-form select,
 .settings-form textarea {
   width: 100%;
-  padding: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
   margin-top: var(--space-xs);
-  border: 1px solid #E6E6E6;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  box-sizing: border-box; /* Ensure padding doesn't expand width */
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  box-sizing: border-box;
+}
+
+.settings-form input::placeholder,
+.settings-form textarea::placeholder {
+  color: var(--text-muted);
 }
 
 .settings-form input:focus,
 .settings-form select:focus,
 .settings-form textarea:focus {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(21, 116, 187, 0.2);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
   outline: none;
+}
+
+.settings-form input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.settings-form select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23a0a0b5' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+
+.settings-form select option {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.settings-form h4 {
+  color: var(--accent);
+  margin-top: var(--space-lg);
+  margin-bottom: var(--space-md);
+  font-size: 1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.settings-form h4:first-child {
+  margin-top: 0;
+}
+
+.settings-form input[type="checkbox"] {
+  width: auto;
+  margin-right: var(--space-xs);
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.settings-form form {
+  display: block;
 }
 
 .settings-view p {
   margin-bottom: var(--space-sm);
+  color: var(--text-secondary);
+  line-height: 1.6;
 }
 
 .settings-view strong {
-  color: var(--primary-color);
+  color: var(--accent);
+  font-weight: 600;
 }
 
 .settings-actions {
   display: flex;
   gap: var(--space-md);
-  margin-top: var(--space-md);
+  margin-top: var(--space-lg);
   flex-wrap: wrap;
 }
 
-button, .btn { /* Apply to .btn as well */
+.settings-actions button:first-child {
+  background: var(--gradient-red);
+  color: #fff;
+}
+
+.settings-actions button:nth-child(2) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.settings-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.settings-actions button:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* ── Buttons ─────────────────────────────────── */
+button,
+.btn {
   padding: var(--space-sm) var(--space-lg);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-slow);
   font-weight: 600;
-  border: none;
-  text-decoration: none; /* For .btn used as links */
-  display: inline-block; /* For .btn used as links */
+  border: 1px solid transparent;
+  text-decoration: none;
+  display: inline-block;
   text-align: center;
+  font-size: 0.95rem;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border-color: var(--border);
 }
 
-button:hover, .btn:hover {
+button:hover,
+.btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  box-shadow: var(--shadow-md);
+  border-color: var(--bg-hover);
 }
 
-button:active, .btn:active {
+button:active,
+.btn:active {
   transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-sm);
 }
 
-/* Specific button styling if needed, or use utility classes like .btn-primary */
-.settings-actions button:first-child { /* Save Changes */
-  background: var(--primary-color);
-  color: white;
-}
-.settings-actions button:nth-child(2) { /* Cancel */
-  background: var(--background-light);
-  color: var(--text-dark);
-}
 .btn-primary {
-  background-color: var(--primary-color);
-  color: white;
+  background: var(--gradient-red);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 12px var(--primary-glow);
 }
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+  box-shadow: 0 6px 20px var(--primary-glow);
+  border-color: transparent;
+}
+
 .btn-secondary {
-  background-color: var(--secondary-color);
-  color: white;
+  background: var(--gradient-blue);
+  color: var(--text-inverse);
+  border-color: transparent;
+  box-shadow: 0 4px 12px var(--accent-glow);
 }
+
+.btn-secondary:hover {
+  box-shadow: 0 6px 20px var(--accent-glow);
+  border-color: transparent;
+}
+
 .btn-warning {
-    background-color: var(--warning-color, #ffc107); /* Add a warning color variable */
-    color: #212529;
+  background: var(--warning);
+  color: var(--text-inverse);
+  border-color: transparent;
 }
+
 .btn-success {
-    background-color: var(--success-color, #28a745); /* Add a success color variable */
-    color: white;
+  background: var(--success);
+  color: var(--text-inverse);
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(0, 217, 126, 0.25);
 }
+
+.btn-danger {
+  background: var(--error);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(255, 56, 96, 0.2);
+}
+
+.btn-danger:hover {
+  background: #ff5278;
+  box-shadow: 0 6px 20px rgba(255, 56, 96, 0.35);
+}
+
 .btn-small {
-    padding: var(--space-xs) var(--space-sm);
-    font-size: 0.85rem;
+  padding: var(--space-xs) var(--space-sm);
+  font-size: 0.85rem;
 }
 
-
-/* Animations */
+/* ── Animations ──────────────────────────────── */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .profile-container {
-    padding: var(--space-md);
-  }
-  
-  .profile-section {
-    padding: var(--space-md);
-  }
-  
-  .settings-actions {
-    flex-direction: column;
-  }
-  
-  .settings-actions button {
-    width: 100%;
-  }
+@keyframes slideInUp {
+  from { transform: translateY(50px) scale(0.95); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
 }
 
-/* Message Section Styles */
+/* ── Message Section ─────────────────────────── */
 .message-tabs {
   display: flex;
   gap: var(--space-sm);
-  margin-bottom: var(--space-md);
-  border-bottom: 1px solid var(--border-color, #eee);
-  flex-wrap: wrap; /* Allow tabs to wrap on smaller screens */
+  margin-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
 }
 
 .message-tabs button {
@@ -343,102 +630,171 @@ button:active, .btn:active {
   border: none;
   background: none;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 0.95rem;
   color: var(--text-muted);
   border-bottom: 3px solid transparent;
-  transition: color 0.3s ease, border-bottom-color 0.3s ease;
-  margin-bottom: -1px; /* Align with bottom border */
+  transition: color var(--transition), border-bottom-color var(--transition), background var(--transition);
+  margin-bottom: -1px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  font-weight: 500;
 }
 
 .message-tabs button.active {
-  color: var(--primary-color);
-  border-bottom-color: var(--primary-color);
-  font-weight: 600;
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  font-weight: 700;
 }
 
 .message-tabs button:hover {
-  color: var(--primary-color);
-  transform: none; 
-  box-shadow: none; 
+  color: var(--text-primary);
+  background: var(--bg-hover);
+  transform: none;
+  box-shadow: none;
 }
 
+.message-tabs button.active:hover {
+  color: var(--primary-hover);
+}
+
+/* ── Message Filters ─────────────────────────── */
 .message-filters {
   display: flex;
   gap: var(--space-md);
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--space-lg);
   padding: var(--space-md);
-  background-color: var(--background-light);
+  background: var(--bg-elevated);
   border-radius: var(--radius-md);
-  flex-wrap: wrap; /* Allow filters to wrap */
+  border: 1px solid var(--border);
+  flex-wrap: wrap;
 }
 
 .message-filters input,
 .message-filters select {
-  padding: var(--space-sm);
-  border: 1px solid var(--border-color, #ccc);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
+  color: var(--text-primary);
   flex-grow: 1;
-  min-width: 150px; /* Ensure inputs don't get too small */
+  min-width: 150px;
+  font-size: 0.9rem;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.message-filters input:focus,
+.message-filters select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-glow);
+  outline: none;
+}
+
+.message-filters input::placeholder {
+  color: var(--text-muted);
+}
+
+.message-filters select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23a0a0b5' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+
+.message-filters select option {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
 }
 
 .message-filters button {
-  background-color: var(--secondary-color);
-  color: white;
-  padding: var(--space-sm) var(--space-md); /* Consistent padding */
+  background: var(--gradient-blue);
+  color: var(--text-inverse);
+  padding: var(--space-sm) var(--space-md);
+  border-color: transparent;
+  font-weight: 600;
 }
+
 .message-filters button:hover {
-  background-color: #6b9900; 
+  box-shadow: 0 4px 16px var(--accent-glow);
+  border-color: transparent;
 }
 
-
+/* ── Message List ────────────────────────────── */
 .message-list {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
-  max-height: 500px; 
+  max-height: 600px;
   overflow-y: auto;
-  padding: var(--space-sm); 
-  border: 1px solid var(--border-color, #eee);
-  border-radius: var(--radius-md);
-  background-color: #fdfdfd;
+  padding: var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
 }
 
+.message-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.message-list::-webkit-scrollbar-track {
+  background: var(--bg-base);
+  border-radius: var(--radius-full);
+}
+
+.message-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: var(--radius-full);
+}
+
+.message-list::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* ── Message Items ───────────────────────────── */
 .message-item {
   padding: var(--space-md);
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-color-light, #f0f0f0);
-  background-color: white;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-  position: relative; /* For premium badge positioning */
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
+}
+
+.message-item:hover {
+  border-color: var(--bg-hover);
+  box-shadow: var(--shadow-md);
 }
 
 .message-item.sent-by-me {
-  background-color: var(--primary-light-color, #e7f3ff); 
-  border-left: 4px solid var(--primary-color);
+  background: var(--bg-elevated);
+  border-left: 4px solid var(--primary);
 }
 
 .message-item.received-by-me {
-  background-color: var(--background-light, #f9f9f9);
-  border-left: 4px solid var(--secondary-color); 
+  background: var(--bg-elevated);
+  border-left: 4px solid var(--accent);
 }
 
 .message-item p {
   margin: 0 0 var(--space-xs) 0;
   line-height: 1.5;
+  color: var(--text-secondary);
 }
+
 .message-item p strong {
-  color: var(--text-dark);
+  color: var(--text-primary);
   font-weight: 600;
 }
 
-.message-item p strong.unread-sender { /* For unread messages */
-  font-weight: 700; /* Bolder */
-  color: var(--primary-color); 
+.message-item p strong.unread-sender {
+  font-weight: 700;
+  color: var(--primary);
 }
 
 .message-item .message-text {
-  color: var(--text-main);
-  white-space: pre-wrap; /* Preserve line breaks in messages */
+  color: var(--text-secondary);
+  white-space: pre-wrap;
 }
 
 .message-item small {
@@ -448,196 +804,16 @@ button:active, .btn:active {
   margin-top: var(--space-xs);
 }
 
-.message-item.locked-message {
-  background-color: #f0f0f0; /* Dim background for locked messages */
-  border-left-color: var(--warning-color, #ffc107);
-}
-
-.message-item.locked-message .message-text {
-  filter: blur(4px); 
-  font-style: italic;
-  color: #767676;
-  cursor: not-allowed;
-  -webkit-user-select: none; /* Safari */
-  user-select: none;
-}
-
-.locked-indicator {
-  display: block;
-  font-size: 0.85rem;
-  color: var(--accent-color, #e74c3c); 
-  font-weight: 500;
-  margin-top: var(--space-sm);
-  padding: var(--space-xs);
-  background-color: rgba(231, 76, 60, 0.1);
-  border-radius: var(--radius-sm);
-  text-align: center;
-}
-
-.premium-sender-badge {
-  font-size: 0.75rem;
-  background-color: var(--secondary-color);
-  color: white;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  margin-left: var(--space-xs);
-  font-weight: bold;
-}
-
-.message-actions {
-  margin-top: var(--space-sm);
-  display: flex;
-  gap: var(--space-xs);
-  flex-wrap: wrap; /* Allow buttons to wrap */
-}
-
-.message-actions .btn-small { 
-  padding: var(--space-xs) var(--space-sm);
-  font-size: 0.8rem;
-}
-.message-actions .reply-button-locked {
-    background-color: var(--warning-color, #ffc107);
-    color: #333;
-    font-weight: bold; /* Make it stand out more */
-    border: 1px solid #e0a800; /* Add a border */
-}
-.message-actions .reply-button-locked:hover {
-    background-color: #e0a800;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-}
-
-
-.send-message-form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-  margin-top: var(--space-lg);
-  padding: var(--space-md);
-  background-color: var(--background-light);
-  border-radius: var(--radius-md);
-}
-
-.send-message-form input[type="text"],
-.send-message-form textarea {
-  width: 100%;
-  padding: var(--space-sm);
-  border: 1px solid var(--border-color, #ccc);
-  border-radius: var(--radius-sm);
-  font-size: 1rem;
-  box-sizing: border-box;
-}
-.send-message-form textarea {
-  min-height: 80px;
-  resize: vertical;
-}
-
-.send-message-form button {
-  align-self: flex-start; 
-  background-color: var(--primary-color);
-  color: white;
-}
-.send-message-form button:hover {
-  background-color: #0d5a8a; 
-}
-
-.error-text {
-  color: var(--accent-color, #e74c3c);
-  font-weight: 500;
-  background-color: rgba(231, 76, 60, 0.1);
-  padding: var(--space-sm);
-  border-radius: var(--radius-sm);
-  margin-bottom: var(--space-md);
-  text-align: center;
-  border: 1px solid var(--accent-color, #e74c3c);
-}
-
-/* Modal Styles */
-.modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000; /* Ensure it's on top */
-  animation: fadeIn 0.3s ease-out;
-}
-
-.modal-content {
-  background: white;
-  padding: var(--space-xl);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-  width: 90%;
-  max-width: 500px;
-  text-align: center;
-  animation: slideInUp 0.3s ease-out;
-}
-
-.modal-content h3 {
-  color: var(--primary-color);
-  margin-top: 0;
-  margin-bottom: var(--space-md);
-}
-
-.modal-content p {
-  margin-bottom: var(--space-lg);
-  color: var(--text-dark);
-}
-
-.modal-content button {
-  margin: 0 var(--space-xs);
-}
-.modal-content button.btn-success { /* Explicitly target upgrade button */
-  background-color: var(--success-color, #28a745);
-  color: white;
-}
-.modal-content button.btn { /* For close button if it's generic */
-  background-color: var(--background-light);
-  color: var(--text-dark);
-}
-
-
-.premium-status-display {
-    margin-top: var(--space-md);
-    padding: var(--space-sm);
-    background-color: var(--background-light);
-    border-radius: var(--radius-sm);
-}
-.premium-status-display p {
-    margin: 0 0 var(--space-xs) 0;
-    font-weight: 500;
-}
-.premium-status-display button {
-    margin-right: var(--space-sm);
-    margin-top: var(--space-xs);
-}
-
-.system-message-item {
-  background-color: var(--info-light-color, #f0f8ff); /* Light blue/grey for system messages */
-  border-left: 4px solid var(--info-color, #5bc0de); /* Info color for border */
-}
-
-.system-message-item p strong {
-  color: var(--info-color, #5bc0de);
-}
-
-@keyframes slideInUp {
-  from { transform: translateY(50px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-/* ---- New: message read/unread status ---- */
+/* ── Message Read/Unread States ──────────────── */
 .message-item.message-unread {
-  background-color: #f0f7ff;
-  border-left: 4px solid var(--primary-color);
+  background: var(--bg-hover);
+  border-left: 4px solid var(--primary);
+  box-shadow: 0 0 0 1px var(--primary-glow), var(--shadow-sm);
 }
 
 .message-item.message-read {
-  background-color: white;
+  background: var(--bg-elevated);
+  opacity: 0.85;
 }
 
 .message-item.message-unread .unread-sender {
@@ -653,119 +829,333 @@ button:active, .btn:active {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: var(--primary-color);
+  background: var(--primary);
   margin-right: var(--space-xs);
   vertical-align: middle;
+  box-shadow: 0 0 8px var(--primary-glow);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 .message-item.message-read .unread-dot {
   display: none;
 }
 
-/* ---- New: empty states ---- */
-.card.empty .h3 {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-dark);
-  margin-bottom: var(--space-sm);
+/* ── Locked Messages ─────────────────────────── */
+.message-item.locked-message {
+  background: var(--bg-surface);
+  border-left-color: var(--warning);
+  opacity: 0.7;
 }
 
-/* ---- New: vehicle edit/delete actions ---- */
-.vehicle-actions {
+.message-item.locked-message .message-text {
+  filter: blur(4px);
+  font-style: italic;
+  color: var(--text-muted);
+  cursor: not-allowed;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.locked-indicator {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--warning);
+  font-weight: 500;
+  margin-top: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--warning-bg);
+  border-radius: var(--radius-sm);
+  text-align: center;
+  border: 1px solid rgba(255, 176, 32, 0.2);
+}
+
+/* ── System Messages ─────────────────────────── */
+.system-message-item {
+  background: var(--info-bg);
+  border-left: 4px solid var(--info);
+}
+
+.system-message-item p strong {
+  color: var(--info);
+}
+
+/* ── Premium Sender Badge ────────────────────── */
+.premium-sender-badge {
+  font-size: 0.7rem;
+  background: var(--gradient-blue);
+  color: var(--text-inverse);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  margin-left: var(--space-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+/* ── Message Actions ─────────────────────────── */
+.message-actions {
+  margin-top: var(--space-sm);
   display: flex;
   gap: var(--space-xs);
-  padding: 0 var(--space-md) var(--space-md);
+  flex-wrap: wrap;
 }
 
-.vehicle-edit-form {
-  display: grid;
-  gap: 8px;
-  padding: var(--space-md);
+.message-actions .btn-small {
+  padding: var(--space-xs) var(--space-sm);
+  font-size: 0.8rem;
 }
 
-.vehicle-edit-form input,
-.vehicle-edit-form textarea {
-  width: 100%;
-  padding: var(--space-sm);
-  border: 1px solid #E6E6E6;
-  border-radius: var(--radius-md);
-  box-sizing: border-box;
+.message-actions .reply-button {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
 }
 
-/* ---- New: message delete button ---- */
+.message-actions .reply-button:hover {
+  background: var(--bg-elevated);
+  border-color: var(--primary);
+}
+
+.message-actions .reply-button-locked {
+  background: var(--warning);
+  color: var(--text-inverse);
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.message-actions .reply-button-locked:hover {
+  background: #ffc04d;
+  box-shadow: 0 4px 12px rgba(255, 176, 32, 0.3);
+}
+
+.mark-read-button {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.mark-read-button:hover {
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
 .message-delete-btn {
-  background-color: var(--error-color, #dc2626);
-  color: white;
+  background: var(--error);
+  color: #fff;
   border: none;
   padding: var(--space-xs) var(--space-sm);
   font-size: 0.85rem;
   cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition);
 }
 
 .message-delete-btn:hover {
-  background-color: #b91c1c;
+  background: #ff5278;
+  box-shadow: 0 4px 12px rgba(255, 56, 96, 0.3);
 }
 
-/* ---- New: delete account confirmation dialog ---- */
+/* ── Send Message Form ───────────────────────── */
+.send-message-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
+  padding: var(--space-lg);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+}
+
+.send-message-form input[type="text"],
+.send-message-form textarea {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 1rem;
+  box-sizing: border-box;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.send-message-form input[type="text"]::placeholder,
+.send-message-form textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.send-message-form input[type="text"]:focus,
+.send-message-form textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+  outline: none;
+}
+
+.send-message-form textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.send-message-form button {
+  align-self: flex-start;
+  background: var(--gradient-red);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 12px var(--primary-glow);
+}
+
+.send-message-form button:hover {
+  background: var(--primary-hover);
+  box-shadow: 0 6px 20px var(--primary-glow);
+}
+
+.send-message-form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Error Text ──────────────────────────────── */
+.error-text {
+  color: var(--error);
+  font-weight: 500;
+  background: var(--error-bg);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-md);
+  text-align: center;
+  border: 1px solid rgba(255, 56, 96, 0.25);
+}
+
+/* ── Modal ───────────────────────────────────── */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(10, 10, 15, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.modal-content {
+  background: var(--gradient-card);
+  padding: var(--space-2xl);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl), 0 0 0 1px var(--border);
+  width: 90%;
+  max-width: 500px;
+  text-align: center;
+  animation: slideInUp 0.3s ease-out;
+  border: 1px solid var(--border);
+}
+
+.modal-content h3 {
+  color: var(--text-primary);
+  margin-top: 0;
+  margin-bottom: var(--space-md);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.modal-content p {
+  margin-bottom: var(--space-lg);
+  color: var(--text-secondary);
+}
+
+.modal-content button {
+  margin: 0 var(--space-xs);
+}
+
+.modal-content button.btn-success {
+  background: var(--success);
+  color: var(--text-inverse);
+  box-shadow: 0 4px 12px rgba(0, 217, 126, 0.25);
+}
+
+.modal-content button.btn {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+/* ── Delete Confirm Dialog ───────────────────── */
 .delete-confirm-dialog {
   margin-top: var(--space-md);
-  padding: var(--space-md);
-  background-color: #fff5f5;
-  border: 1px solid rgba(220, 38, 38, 0.25);
-  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  background: var(--error-bg);
+  border: 1px solid rgba(255, 56, 96, 0.3);
+  border-radius: var(--radius-lg);
 }
 
 .delete-confirm-dialog p {
-  color: var(--text-dark);
+  color: var(--text-secondary);
   margin-bottom: var(--space-sm);
   font-weight: 500;
 }
 
 .delete-confirm-dialog input {
   width: 100%;
-  padding: var(--space-sm);
-  border: 1px solid #E6E6E6;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
+  color: var(--text-primary);
   box-sizing: border-box;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.delete-confirm-dialog input:focus {
+  border-color: var(--error);
+  box-shadow: 0 0 0 3px rgba(255, 56, 96, 0.2);
+  outline: none;
+}
+
+.delete-confirm-dialog input::placeholder {
+  color: var(--text-muted);
 }
 
 .delete-confirm-dialog button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-/* ---- New: bio character count ---- */
-.bio-char-count {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  text-align: right;
-  margin-top: var(--space-xs);
-}
-
-/* ---- New: profile photo fallback ---- */
-.profile-photo-fallback {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-  color: white;
-  font-size: 3rem;
-  font-weight: 700;
-}
-
-/* ---- New: password change form ---- */
-.settings-form form {
-  display: block;
-}
-
-/* ---- New: save button loading state ---- */
-.settings-actions button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
   transform: none;
 }
 
-.settings-actions button:disabled:hover {
-  transform: none;
-  box-shadow: none;
+/* ── Responsive ──────────────────────────────── */
+@media (max-width: 768px) {
+  .profile-container {
+    padding: var(--space-md);
+  }
+
+  .profile-header {
+    padding: var(--space-xl) var(--space-md) var(--space-lg);
+  }
+
+  .profile-section {
+    padding: var(--space-md);
+  }
+
+  .settings-actions {
+    flex-direction: column;
+  }
+
+  .settings-actions button {
+    width: 100%;
+  }
+
+  .modal-content {
+    padding: var(--space-xl);
+  }
 }

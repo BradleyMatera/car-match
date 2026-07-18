@@ -150,21 +150,21 @@ const Home = () => {
         key: 'muscle',
         title: 'Muscle Cars',
         emoji: '🏎️',
-        gradient: 'linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%)',
+        gradient: 'linear-gradient(135deg, #e10600 0%, #8b0000 100%)',
         keywords: ['muscle', 'v8', 'camaro', 'mustang', 'charger']
       },
       {
         key: 'jdm',
         title: 'JDM Imports',
         emoji: '🇯🇵',
-        gradient: 'linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%)',
+        gradient: 'linear-gradient(135deg, #00d4ff 0%, #003a4d 100%)',
         keywords: ['jdm', 'japanese', 'supra', 'rx7', 'skyline', 'silvia']
       },
       {
         key: 'classic',
         title: 'Classic Cars',
         emoji: '🚘',
-        gradient: 'linear-gradient(135deg, #92400e 0%, #422006 100%)',
+        gradient: 'linear-gradient(135deg, #b8860b 0%, #3d2806 100%)',
         keywords: ['classic', 'vintage', 'antique', 'retro', 'heritage']
       }
     ];
@@ -183,7 +183,7 @@ const Home = () => {
       <div
         className="page-bg home-bg"
         style={{
-          background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)'
+          background: 'linear-gradient(135deg, #0a0a0f 0%, #14141f 50%, #1c1c2e 100%)'
         }}
       />
       {/* Hero Section */}
