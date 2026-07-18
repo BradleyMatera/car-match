@@ -2825,8 +2825,21 @@ app.post('/businesses/refresh-discovered', async (req, res) => {
     if (!SERPAPI_KEY) {
       return res.status(503).json({ message: 'SerpAPI key not configured' });
     }
-    if (mongoose.connection.readyState !== 1 || !BusinessModel) {
-      return res.status(503).json({ message: 'Database not connected' });
+    // Wait for MongoDB connection if still connecting (Cloud Run cold start)
+    if (mongoose.connection.readyState !== 1) {
+      try {
+        await mongoose.connection.asPromise();
+      } catch (e) {
+        return res.status(503).json({ message: 'Database not connected' });
+      }
+    }
+    if (!BusinessModel) {
+      // Models might not be loaded yet — try loading them
+      try {
+        ({ BusinessModel, ReviewModel, MarketplaceModel } = require('./models/business'));
+      } catch (e) {
+        return res.status(503).json({ message: 'Business models not available' });
+      }
     }
 
     // Davis, IL coordinates (Lee County) — 50 mile radius
