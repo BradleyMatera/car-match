@@ -195,7 +195,7 @@ app.get('/', (req, res) => {
 });
 
 // Simple health and readiness endpoint for Render/monitoring
-app.get('/healthz', (req, res) => {
+const healthHandler = (_req, res) => {
   const readyState = mongoose.connection?.readyState ?? 0; // 0=disconnected,1=connected,2=connecting,3=disconnecting
   res.json({
     status: 'ok',
@@ -206,7 +206,12 @@ app.get('/healthz', (req, res) => {
       connected: readyState === 1,
     },
   });
-});
+};
+app.get('/healthz', healthHandler);
+// Cloud Run's Google Front End reserves the exact path `/healthz` and intercepts it
+// with its own 404 before user traffic reaches the container. `/health` is not reserved
+// and is the path used by keep-warm pingers and monitoring.
+app.get('/health', healthHandler);
 
 // Seed a few demo users and basic events in-memory so the app "feels real"
 const seedDemoData = () => {

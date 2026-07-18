@@ -1,0 +1,32 @@
+name: Keep Cloud Run Warm
+
+# Pings the backend /health every 5 minutes so the Cloud Run instance stays
+# warm and users never hit a cold start. Free: ~8,640 requests/month, far under
+# Cloud Run's 2M/month free tier. Disable if you take the backend offline.
+#
+# Requires a repo VARIABLE (Settings → Secrets and variables → Actions → Variables):
+#   CLOUD_RUN_URL = https://car-match-backend-xxxx-uc.a.run.app  (no trailing slash)
+# Uses /health (not /healthz) because Cloud Run's GFE reserves the exact /healthz path.
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # every 5 minutes
+  workflow_dispatch:        # manual run
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping healthz
+        if: ${{ vars.CLOUD_RUN_URL != '' }}
+        run: |
+          URL="${{ vars.CLOUD_RUN_URL }}/health"
+          echo "Pinging $URL"
+          RESP=$(curl -sS -m 15 -w "\n%{http_code}" "$URL" || true)
+          CODE=$(echo "$RESP" | tail -n1)
+          BODY=$(echo "$RESP" | sed '$d')
+          echo "HTTP $CODE"
+          echo "Body: $BODY"
+          if [ "$CODE" != "200" ]; then
+            echo "::warning::/health returned HTTP $CODE (instance may be cold-starting). Will retry next interval."
+          fi

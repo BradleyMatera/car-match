@@ -19,7 +19,7 @@ flowchart TD
 
 ## Root
 - `README.md` — project introduction, deployment overview, and contributor notes.
-- `render.yaml` — Render deployment specification for backend service.
+- `backend/Dockerfile` — container build for Google Cloud Run (the backend deploy target).
 - `backend.dev.log` / `frontend.dev.log` — recent local development logs.
 - `certs/` — development TLS assets generated via `scripts/setup-dev-https.sh`.
 - `docs/` — course documentation, research notes, weekly logs, and guides.

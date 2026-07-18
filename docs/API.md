@@ -1,6 +1,6 @@
 API Reference (Backend)
 
-Base URL (prod): https://car-match-h2gw.onrender.com
+Base URL (prod): https://car-match-backend-235262169348.us-central1.run.app
 
 Auth
 - POST /register — { username, password, name, displayTag, gender, city, state }

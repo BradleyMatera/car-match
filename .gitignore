@@ -67,3 +67,6 @@ certs/*
 
 # Yarn Integrity file
 .yarn-integrity
+
+# Local deploy secrets (e.g. generated JWT_SECRET) — never commit
+.deploy/

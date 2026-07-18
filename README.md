@@ -1,6 +1,6 @@
 # Car Match — Community MVP 🚗❤️
 
-Live, working MVP for a car‑enthusiast community: profiles, events, forums, and messaging. Frontend runs on GitHub Pages; backend runs on Node/Express and can be deployed on Render with optional MongoDB persistence for forums.
+Live, working MVP for a car‑enthusiast community: profiles, events, forums, and messaging. Frontend runs on GitHub Pages; backend runs on Node/Express and is deployed on Google Cloud Run (free tier) with optional MongoDB persistence for forums.
 
 ## Overview
 
@@ -78,26 +78,27 @@ Prereqs: Node 18 (use `.nvmrc`).
 
 ## Env & Toggles
 - Frontend repo variables (Pages builds):
-  - `REACT_APP_API_BASE_URL` — backend URL (e.g., Render)
+  - `REACT_APP_API_BASE_URL` — backend URL (Cloud Run `*.run.app` URL)
   - `REACT_APP_USE_REAL_EVENTS=true` — use backend events
-- Backend (Render):
+  - `CLOUD_RUN_URL` — backend URL used by the keep-warm workflow (same value as `REACT_APP_API_BASE_URL`)
+- Backend (Cloud Run):
   - `JWT_SECRET` (required in prod)
   - `TOKEN_VERSION=1`
   - `ALLOWED_ORIGINS= https://bradleymatera.github.io,http://localhost:3000`
   - `DISABLE_RATE_LIMIT=0` (keep enabled in prod; set to `1` temporarily for local load testing only)
-  - `MONGODB_URI` (optional; enables forum persistence). Example:
+  - `MONGODB_URI` (optional; enables persistence). Example:
     `mongodb+srv://USERNAME:PASSWORD@car-match.ehzw3qa.mongodb.net/car-match?retryWrites=true&w=majority&appName=car-match`.
-    Remember to URL‑encode passwords (`!` becomes `%21`).
+    Remember to URL‑encode passwords (`!` becomes `%21`). When unset, the backend runs on in-memory stores.
   - `LOG_LEVEL` (default `info` in prod, `debug` locally)
+  - `LOG_TO_CONSOLE=true` (set on Cloud Run so logs go to stdout → Cloud Logging)
+  - `LOG_DIR=/tmp/logs` (Cloud Run ephemeral filesystem)
   - `LOG_RETENTION_DAYS` (defaults to 14)
-  - `LOG_DIR` (optional override for log output; defaults to `backend/logger/logs/`)
+  - `PORT` — Cloud Run injects this (default `8080`); the server listens on it.
 
 ## Security Tooling
 - **npm audit CI** — `.github/workflows/npm-audit.yml` runs on PRs/pushes to `dev`/`main`, on demand, and weekly. It performs `npm run audit` in both `backend/` and `frontend/`, failing the build on high-severity issues. No additional services required beyond GitHub Actions.
 - **Local scanning** — After installing dependencies, run `npm run audit` inside `backend/` or `frontend/` to check for known vulnerabilities.
-- **OWASP ZAP Baseline** — `.github/workflows/zap-baseline.yml` can be dispatched manually to scan the Render deployment. Run locally via `./scripts/zap/zap-baseline.sh <target-url>` (requires Docker).
+- **OWASP ZAP Baseline** — `.github/workflows/zap-baseline.yml` can be dispatched manually to scan the Cloud Run deployment. Run locally via `./scripts/zap/zap-baseline.sh <target-url>` (requires Docker).
 
-## Deploy Backend (Render)
-[Docs](./docs/DEPLOYMENT.md) — or click:
-
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
+## Deploy Backend (Google Cloud Run)
+The backend runs as a container on Cloud Run (free tier). A keep-warm workflow pings `/health` every 5 minutes so the instance stays warm and users never hit a cold start. Full instructions: [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md).

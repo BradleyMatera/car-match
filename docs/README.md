@@ -1,13 +1,13 @@
 # Car Match — Documentation
 
-Car Match is a community app for car enthusiasts — events, forums, messaging, and profiles. This repo contains a working React frontend (deployed to GitHub Pages) and a Node/Express backend (deployable on Render) with optional MongoDB persistence for forums and other data.
+Car Match is a community app for car enthusiasts — events, forums, messaging, and profiles. This repo contains a working React frontend (deployed to GitHub Pages) and a Node/Express backend (deployed on Google Cloud Run) with optional MongoDB persistence for forums and other data.
 
 ## Tech Stack
 
 - Frontend: React (CRA), React Router (HashRouter for Pages), plain CSS.
 - Backend: Node.js + Express 5, JWT auth, CORS hardening.
 - Database: MongoDB Atlas via Mongoose (forums persist when `MONGODB_URI` is set; otherwise in-memory).
-- CI/CD: GitHub Actions deploys frontend to Pages; Render blueprint for backend.
+- CI/CD: GitHub Actions deploys frontend to Pages; backend deploys to Cloud Run via `gcloud` (container image). A keep-warm workflow pings `/health` every 5 min.
 
 ```mermaid
 graph TD
@@ -27,7 +27,7 @@ graph TD
 
 - Live App: https://bradleymatera.github.io/car-match/
 - API/Backend: see `docs/API.md`
-- Deployment: `docs/DEPLOYMENT.md` (Pages + Render)
+- Deployment: `docs/DEPLOYMENT.md` (Pages + Cloud Run)
 - Troubleshooting: `docs/TROUBLESHOOTING.md`
 - Research & Change Orders: `docs/research/` (see `ChangeOrders.md`)
 - Logs: `docs/log.md` (original, May), `docs/log2.md` (September), and monthly snapshot `docs/2025-09.md`

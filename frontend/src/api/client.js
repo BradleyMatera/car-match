@@ -1,11 +1,11 @@
-// Production REST client that talks to the live backend (Render + Mongo Atlas)
+// Production REST client that talks to the live backend (Google Cloud Run).
 // Falls back to localhost in development when no base URL override is provided.
 
 const API_BASE_URL = (
   (typeof process !== 'undefined' && process.env && process.env.REACT_APP_API_BASE_URL)
   || (typeof window !== 'undefined' && window.location?.hostname && (
       /github\.io$/.test(window.location.hostname)
-        ? 'https://car-match-h2gw.onrender.com'
+        ? 'https://car-match-backend-235262169348.us-central1.run.app'
         : `${window.location.protocol}//${window.location.hostname}:3001`
      ))
   || ''
