@@ -62,7 +62,7 @@ const BusinessDirectory = () => {
       if (category) params.category = category;
       if (stateFilter) params.state = stateFilter;
       const result = await api.getBusinesses(params);
-      setBusinesses(result.businesses || result || []);
+      setBusinesses(result.data || result.businesses || result || []);
     } catch (err) {
       setError(err.message || 'Failed to load businesses.');
       setBusinesses([]);
@@ -78,7 +78,7 @@ const BusinessDirectory = () => {
     setLoadingReviews(true);
     try {
       const result = await api.getReviews(biz.id || biz._id);
-      setReviews(result.reviews || result || []);
+      setReviews(result.data || result.reviews || result || []);
     } catch {
       setReviews([]);
     } finally {
@@ -94,9 +94,9 @@ const BusinessDirectory = () => {
       toast.success('Review posted!');
       setNewReview({ rating: 5, text: '' });
       const result = await api.getReviews(selectedBusiness.id || selectedBusiness._id);
-      setReviews(result.reviews || result || []);
+      setReviews(result.data || result.reviews || result || []);
       const updated = await api.getBusiness(selectedBusiness.id || selectedBusiness._id);
-      setSelectedBusiness(updated.business || updated);
+      setSelectedBusiness(updated.data || updated.business || updated);
     } catch (err) {
       toast.error(err.message || 'Failed to post review.');
     }

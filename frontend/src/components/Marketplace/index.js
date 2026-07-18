@@ -50,7 +50,7 @@ const Marketplace = () => {
       if (category) params.category = category;
       if (condition) params.condition = condition;
       const result = await api.getListings(params);
-      setListings(result.listings || result || []);
+      setListings(result.data || result.listings || result || []);
     } catch (err) {
       setError(err.message || 'Failed to load listings.');
       setListings([]);
