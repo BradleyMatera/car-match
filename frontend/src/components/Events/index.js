@@ -11,6 +11,7 @@ import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 import Section from '../Section';
 import { applySEO } from '../../utils/seo';
+import { toast } from '../../utils/toast';
 
 const Events = () => {
   const [events, setEvents] = useState([]);
@@ -43,12 +44,14 @@ const Events = () => {
   const [editData, setEditData] = useState({ name: '', description: '', date: '', location: '' });
   // Editing event comments removed from UI (still supported in API)
   const [forumPreview, setForumPreview] = useState([]);
-  const [bgImages, setBgImages] = useState([]);
-  const [bgIndex, setBgIndex] = useState(0);
   const routerLocation = useLocation();
   const [flash, setFlash] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
   const [pendingRsvp, setPendingRsvp] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dateFilter, setDateFilter] = useState('all');
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const modalNameRef = useRef(null);
 
   useEffect(() => {
@@ -76,15 +79,6 @@ const Events = () => {
           start: event.date ? new Date(event.date) : null,
           end: event.date ? new Date(event.date) : null,
         })));
-        const imgs = Array.from(new Set(eventsData.map(e => e.image || e.thumbnail).filter(Boolean)));
-        if (imgs.length === 0) {
-          imgs.push(
-            'https://images.unsplash.com/photo-1514316454349-750a7fd3da3a',
-            'https://images.unsplash.com/photo-1503376780353-7e6692767b70',
-            'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf'
-          );
-        }
-        setBgImages(imgs);
         // Preload RSVP status if logged in
         if (token) {
           const myRsvps = await api.getMyRsvps(token);
@@ -129,10 +123,17 @@ const Events = () => {
     };
   }, [showCreate]);
   useEffect(() => {
-    if (!bgImages.length) return;
-    const id = setInterval(() => setBgIndex(i => (i + 1) % bgImages.length), 8000);
-    return () => clearInterval(id);
-  }, [bgImages]);
+    if (!showCreate && !editingEvent && confirmDeleteId === null) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setShowCreate(false);
+        setEditingEvent(false);
+        setConfirmDeleteId(null);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [showCreate, editingEvent, confirmDeleteId]);
 
   // If URL has ?event=<id>, open that event after events load
   useEffect(() => {
@@ -159,7 +160,7 @@ const Events = () => {
     })();
   }, [selectedEvent, selectedEvent?.threadId]);
 
-  const refreshEvents = async () => {
+  const refreshEvents = useCallback(async () => {
     const refreshed = await api.getEvents();
     setEvents(refreshed.map(ev => ({
       ...ev,
@@ -171,7 +172,7 @@ const Events = () => {
       const updated = refreshed.find(e => String(e.id) === String(selectedEvent.id));
       if (updated) assignSelectedEvent(updated);
     }
-  };
+  }, [selectedEvent, assignSelectedEvent]);
 
   const ensureEventThread = useCallback(async (event) => {
     if (!event) return null;
@@ -237,12 +238,85 @@ const Events = () => {
   };
 
   const isRsvped = (id) => rsvpStatus instanceof Map && rsvpStatus.get(String(id)) === true;
-  const currentBackground = useMemo(
-    () => (Array.isArray(bgImages) ? bgImages.at(bgIndex) ?? '' : ''),
-    [bgImages, bgIndex]
-  );
   const selectedEventId = selectedEvent?.id ? String(selectedEvent.id) : undefined;
   const selectedEventRsvped = selectedEventId ? isRsvped(selectedEventId) : false;
+
+  const filteredEvents = useMemo(() => {
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 7);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+    return events.filter((event) => {
+      const matchesSearch = !searchQuery.trim() ||
+        (event.title || '').toLowerCase().includes(searchQuery.trim().toLowerCase());
+      if (!matchesSearch) return false;
+      if (dateFilter === 'all') return true;
+      if (!event.date) return false;
+      const d = new Date(event.date);
+      if (dateFilter === 'upcoming') return d >= now;
+      if (dateFilter === 'week') return d >= startOfWeek && d < endOfWeek;
+      if (dateFilter === 'month') return d >= startOfMonth && d < endOfMonth;
+      return true;
+    });
+  }, [events, searchQuery, dateFilter]);
+
+  const eventDates = useMemo(() => {
+    const set = new Set();
+    events.forEach((e) => { if (e.date) set.add(new Date(e.date).toDateString()); });
+    return set;
+  }, [events]);
+
+  const handleShare = useCallback(async (event) => {
+    const shareUrl = `${window.location.origin}${window.location.pathname}#/events?event=${event.id}`;
+    const shareData = {
+      title: event.title || 'CarMatch Event',
+      text: event.description || `Check out this event: ${event.title}`,
+      url: shareUrl,
+    };
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        toast.success('Event shared!');
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success('Event link copied to your clipboard!');
+      }
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;
+      toast.error('Unable to share this event right now.');
+    }
+  }, []);
+
+  const handleDeleteEvent = async (eventId) => {
+    setIsDeleting(true);
+    try {
+      await api.deleteEvent(token, eventId);
+      assignSelectedEvent(null);
+      setConfirmDeleteId(null);
+      await refreshEvents();
+      toast.success('Event deleted.');
+    } catch (e) {
+      toast.error(e.message || 'Failed to delete the event.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleImageFile = useCallback((file, setter) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setter((prev) => ({ ...prev, image: reader.result }));
+      toast.success('Image ready to upload.');
+    };
+    reader.onerror = () => toast.error('Could not read that image file.');
+    reader.readAsDataURL(file);
+  }, []);
 
   const carouselSettings = {
     autoscroll: true,
@@ -279,7 +353,7 @@ const Events = () => {
           </button>
         </div>
       )}
-      <div className="events-bg" style={{ backgroundImage: `linear-gradient(rgba(8,13,23,0.72), rgba(8,13,23,0.72)), url(${currentBackground})` }} />
+      <div className="events-bg" />
       <header className="events-header">
         <h1>Car Community Events</h1>
         <p className="page-description">
@@ -295,12 +369,60 @@ const Events = () => {
           </div>
         )}
         <h2 className="section-title">Upcoming Events</h2>
+        <div className="events-filters">
+          <input
+            type="search"
+            className="events-search-input"
+            placeholder="Search events by title…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            aria-label="Search events by title"
+          />
+          <select
+            className="events-date-filter"
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+            aria-label="Filter events by date range"
+          >
+            <option value="all">All Events</option>
+            <option value="upcoming">Upcoming</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+          </select>
+        </div>
         {loadingEvents && events.length === 0 && (
-          <div style={{ padding: '2rem 0', textAlign: 'center', color: 'rgba(255,255,255,0.8)' }}>Loading events…</div>
+          <div className="events-skeleton" aria-hidden="true">
+            {[0, 1, 2].map((i) => (
+              <div className="skeleton-card" key={i}>
+                <div className="skeleton-img" />
+                <div className="skeleton-line skeleton-line-title" />
+                <div className="skeleton-line skeleton-line-short" />
+                <div className="skeleton-line skeleton-line-short" />
+              </div>
+            ))}
+          </div>
+        )}
+        {!loadingEvents && events.length === 0 && (
+          <div className="events-empty-state">
+            <div className="empty-state-icon">📅</div>
+            <h3>No events yet. Be the first to create one!</h3>
+            {currentUser ? (
+              <button className="btn btn-primary" onClick={() => setShowCreate(true)}>Create Event</button>
+            ) : (
+              <p className="muted">Log in to create the first event.</p>
+            )}
+          </div>
+        )}
+        {!loadingEvents && events.length > 0 && filteredEvents.length === 0 && (
+          <div className="events-empty-state">
+            <div className="empty-state-icon">🔍</div>
+            <h3>No events match your search.</h3>
+            <button className="btn" onClick={() => { setSearchQuery(''); setDateFilter('all'); }}>Clear filters</button>
+          </div>
         )}
         <div className="carousel-container">
           <Slider {...carouselSettings}>
-            {events.slice(0, 10).map((event) => {
+            {filteredEvents.slice(0, 10).map((event) => {
               const eventId = String(event.id);
               const isMine = isEventOwner(event);
               const hasThread = Boolean(event.threadId);
@@ -396,6 +518,7 @@ const Events = () => {
           <Calendar
             value={new Date()}
             onChange={handleDateClick}
+            tileClassName={({ date }) => eventDates.has(date.toDateString()) ? 'has-events' : null}
             tileContent={({ date }) => {
               const event = events.find(e => e.date && date.toDateString() === new Date(e.date).toDateString());
               return event ? <div className="event-marker">•</div> : null;
@@ -471,10 +594,10 @@ const Events = () => {
                 <div className="side-card">
                   <button
                     className={`rsvp-button ${selectedEventRsvped ? 'rsvp-confirmed' : ''}`}
-                    disabled={isOwner}
+                    disabled={isOwner || pendingRsvp === selectedEventId}
                     onClick={() => handleRsvpToggle(selectedEvent.id)}
                   >
-                    {isOwner ? 'Organizer' : (selectedEventRsvped ? '✅ Going' : 'RSVP to Event')}
+                    {pendingRsvp === selectedEventId ? 'Updating…' : (isOwner ? 'Organizer' : (selectedEventRsvped ? '✅ Going' : 'RSVP to Event'))}
                   </button>
                   {selectedEventRsvped && !isOwner && <p className="rsvp-confirmation">You are confirmed for this event!</p>}
                   {isOwner && <p className="rsvp-confirmation">Organizers are automatically listed for their events.</p>}
@@ -490,9 +613,7 @@ const Events = () => {
                 <div className="side-card">
                   <h4>Social Share</h4>
                   <div className="share-list">
-                    <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(selectedEvent.title)}&url=${encodeURIComponent(window.location.href)}`} target="_blank" rel="noreferrer">Twitter</a>
-                    <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`} target="_blank" rel="noreferrer">Facebook</a>
-                    <button className="btn" onClick={()=>{ navigator.clipboard.writeText(window.location.href); showFlash('Event link copied to your clipboard.', 'success'); }}>Copy Link</button>
+                    <button className="btn" onClick={() => handleShare(selectedEvent)}>Share Event</button>
                   </div>
                 </div>
                 <div className="side-card">
@@ -522,7 +643,7 @@ const Events = () => {
                   <div className="side-card">
                     <h4>Manage Event</h4>
                     <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-                      <button className="btn btn-small" onClick={()=>{ setEditingEvent(true); setEditData({ name: selectedEvent.name, description: selectedEvent.description, date: selectedEvent.date, location: selectedEvent.location }); }}>Edit</button>
+                      <button className="btn btn-small" onClick={()=>{ setEditingEvent(true); setEditData({ name: selectedEvent.name, description: selectedEvent.description, date: selectedEvent.date, location: selectedEvent.location, image: selectedEvent.image || '' }); }}>Edit</button>
                       {!selectedEvent.threadId && (
                         <button className="btn btn-small" onClick={async ()=>{
                           try {
@@ -533,17 +654,30 @@ const Events = () => {
                           }
                         }}>Create Forum Thread</button>
                       )}
-                      <button className="btn btn-small btn-warning" onClick={async ()=>{
-                        if (!window.confirm('Delete this event?')) return;
-                        try {
-                          await api.deleteEvent(token, selectedEvent.id);
-                          assignSelectedEvent(null);
-                          await refreshEvents();
-                          showFlash('Event deleted.', 'success');
-                        } catch (e){
-                          showFlash(e.message || 'Failed to delete the event.', 'error');
-                        }
-                      }}>Delete</button>
+                      {confirmDeleteId === String(selectedEvent.id) ? (
+                        <div className="delete-confirm-inline">
+                          <span>Delete this event?</span>
+                          <button
+                            className="btn btn-small btn-warning"
+                            disabled={isDeleting}
+                            onClick={() => handleDeleteEvent(selectedEvent.id)}
+                          >
+                            {isDeleting ? 'Deleting…' : 'Delete'}
+                          </button>
+                          <button
+                            className="btn btn-small"
+                            disabled={isDeleting}
+                            onClick={() => setConfirmDeleteId(null)}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          className="btn btn-small btn-warning"
+                          onClick={() => setConfirmDeleteId(String(selectedEvent.id))}
+                        >Delete</button>
+                      )}
                     </div>
                   </div>
                 )}
@@ -566,6 +700,9 @@ const Events = () => {
                       <input placeholder="Name" value={editData.name} onChange={e=>setEditData(d=>({...d,name:e.target.value}))} required />
                       <input placeholder="Date (YYYY-MM-DD)" value={editData.date} onChange={e=>setEditData(d=>({...d,date:e.target.value}))} required />
                       <input placeholder="Location" value={editData.location} onChange={e=>setEditData(d=>({...d,location:e.target.value}))} required />
+                      <label className="modal-file-label">Event image</label>
+                      <input type="file" accept="image/*" onChange={(e) => handleImageFile(e.target.files?.[0], setEditData)} />
+                      {editData.image && <img src={editData.image} alt="Preview" className="modal-image-preview" />}
                       <textarea placeholder="Description" value={editData.description} onChange={e=>setEditData(d=>({...d,description:e.target.value}))} rows={4} />
                       <div style={{display:'flex',gap:8}}>
                         <button type="submit" className="btn btn-primary">Save</button>
@@ -630,7 +767,9 @@ const Events = () => {
                 <input ref={modalNameRef} placeholder="Name" value={createData.name} onChange={e=>setCreateData(d=>({...d,name:e.target.value}))} required />
                 <input placeholder="Date (YYYY-MM-DD)" value={createData.date} onChange={e=>setCreateData(d=>({...d,date:e.target.value}))} required />
                 <input placeholder="Location (City, State)" value={createData.location} onChange={e=>setCreateData(d=>({...d,location:e.target.value}))} required />
-                <input placeholder="Image URL (optional)" value={createData.image} onChange={e=>setCreateData(d=>({...d,image:e.target.value}))} />
+                <label className="modal-file-label">Event image (optional)</label>
+                <input type="file" accept="image/*" onChange={(e) => handleImageFile(e.target.files?.[0], setCreateData)} />
+                {createData.image && <img src={createData.image} alt="Preview" className="modal-image-preview" />}
                 <textarea placeholder="Description" value={createData.description} onChange={e=>setCreateData(d=>({...d,description:e.target.value}))} rows={5} required />
               </div>
               <footer>

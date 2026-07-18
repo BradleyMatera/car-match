@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Section from '../Section';
 import Grid from '../Grid';
@@ -6,27 +6,54 @@ import './Home.css';
 import api from '../../api/client';
 import { applySEO } from '../../utils/seo';
 
+// Simple count-up hook: animates a number from 0 -> target over ~1s once mounted.
+const useCountUp = (target, duration = 1000) => {
+  const [value, setValue] = useState(0);
+  const rafRef = useRef(null);
+  useEffect(() => {
+    const final = Number(target) || 0;
+    if (final <= 0) { setValue(0); return; }
+    let start = null;
+    const step = (ts) => {
+      if (start === null) start = ts;
+      const progress = Math.min((ts - start) / duration, 1);
+      // easeOutCubic for a nice finish
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setValue(Math.round(eased * final));
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(step);
+      }
+    };
+    rafRef.current = requestAnimationFrame(step);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [target, duration]);
+  return value;
+};
+
+// Small presentational wrapper so each stat animates independently.
+const StatCard = ({ value, label }) => {
+  const animated = useCountUp(value);
+  return (
+    <div className="stat-card">
+      <div className="stat-num">{animated}</div>
+      <div className="stat-label">{label}</div>
+    </div>
+  );
+};
+
 const Home = () => {
   const [stats, setStats] = useState({ users: 0, threads: 0, posts: 0, events: 0 });
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState(null);
   const [forumSections, setForumSections] = useState([]); // {id,name,threads,posts}
+  const [forumsLoading, setForumsLoading] = useState(true);
+  const [forumsError, setForumsError] = useState(null);
   const [latestThreads, setLatestThreads] = useState([]); // flattened + sorted by lastPostAt
+  const [threadsLoading, setThreadsLoading] = useState(true);
+  const [threadsError, setThreadsError] = useState(null);
   const [events, setEvents] = useState([]); // upcoming events
-  // Background images (rotates like Events)
-  const bgImages = useMemo(() => ([
-    'https://images.unsplash.com/photo-1514316454349-750a7fd3da3a',
-    'https://images.unsplash.com/photo-1503376780353-7e6692767b70',
-    'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf'
-  ]), []);
-  const [bgIndex, setBgIndex] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setBgIndex(i => (i + 1) % bgImages.length), 8000);
-    return () => clearInterval(id);
-  }, [bgImages]);
-
-  const currentBackground = useMemo(
-    () => (Array.isArray(bgImages) ? bgImages.at(bgIndex) ?? '' : ''),
-    [bgImages, bgIndex]
-  );
+  const [eventsLoading, setEventsLoading] = useState(true);
+  const [eventsError, setEventsError] = useState(null);
 
   useEffect(() => {
     return applySEO({
@@ -48,40 +75,72 @@ const Home = () => {
 
   useEffect(() => {
     (async () => {
+      // Site snapshot
+      setStatsLoading(true);
       try {
-        // Site snapshot
-        try { setStats(await api.getSiteStats()); } catch {}
-        // Forum category stats for the front cards
-        let sections = [];
-        try { sections = await api.getForumStats(); } catch {}
-        setForumSections(sections || []);
-        // Latest threads: pull small page from each category and sort by lastPostAt
-        try {
-          const cats = await api.getForumCategories();
-          const all = await Promise.all((cats || []).map(async (cat) => ({
-            cat,
-            resp: await api.getThreadsByCategory(cat.id, { page: 1, pageSize: 3 })
-          })));
-          const flat = [];
-          all.forEach(({ cat, resp }) => {
-            const items = Array.isArray(resp) ? resp : resp?.items || [];
-            items.forEach((thread) => flat.push({
-              ...thread,
-              categoryId: cat?.id,
-              categoryName: cat?.name
-            }));
-          });
-          flat.sort((a,b) => new Date(b.lastPostAt||b.createdAt) - new Date(a.lastPostAt||a.createdAt));
-          setLatestThreads(flat.slice(0,6));
-        } catch {}
-        // Upcoming events
-        try {
-          const evs = await api.getEvents();
-          const withDates = (evs||[]).map(e => ({...e, dateObj: new Date(e.date)})).filter(e => !isNaN(e.dateObj));
-          withDates.sort((a,b) => a.dateObj - b.dateObj);
-          setEvents(withDates);
-        } catch {}
-      } catch {}
+        const s = await api.getSiteStats();
+        setStats(s || { users: 0, threads: 0, posts: 0, events: 0 });
+        setStatsError(null);
+      } catch (e) {
+        setStatsError('Unable to load community stats right now.');
+      } finally {
+        setStatsLoading(false);
+      }
+
+      // Forum category stats for the front cards
+      setForumsLoading(true);
+      try {
+        const sections = await api.getForumStats();
+        setForumSections(Array.isArray(sections) ? sections : []);
+        setForumsError(null);
+      } catch (e) {
+        setForumsError('Unable to load forum categories right now.');
+        setForumSections([]);
+      } finally {
+        setForumsLoading(false);
+      }
+
+      // Latest threads: pull small page from each category and sort by lastPostAt
+      setThreadsLoading(true);
+      try {
+        const cats = await api.getForumCategories();
+        const all = await Promise.all((cats || []).map(async (cat) => ({
+          cat,
+          resp: await api.getThreadsByCategory(cat.id, { page: 1, pageSize: 3 })
+        })));
+        const flat = [];
+        all.forEach(({ cat, resp }) => {
+          const items = Array.isArray(resp) ? resp : resp?.items || [];
+          items.forEach((thread) => flat.push({
+            ...thread,
+            categoryId: cat?.id,
+            categoryName: cat?.name
+          }));
+        });
+        flat.sort((a,b) => new Date(b.lastPostAt||b.createdAt) - new Date(a.lastPostAt||a.createdAt));
+        setLatestThreads(flat.slice(0,6));
+        setThreadsError(null);
+      } catch (e) {
+        setThreadsError('Unable to load latest discussions right now.');
+        setLatestThreads([]);
+      } finally {
+        setThreadsLoading(false);
+      }
+
+      // Upcoming events
+      setEventsLoading(true);
+      try {
+        const evs = await api.getEvents();
+        const withDates = (evs||[]).map(e => ({...e, dateObj: new Date(e.date)})).filter(e => !isNaN(e.dateObj));
+        withDates.sort((a,b) => a.dateObj - b.dateObj);
+        setEvents(withDates);
+        setEventsError(null);
+      } catch (e) {
+        setEventsError('Unable to load upcoming events right now.');
+        setEvents([]);
+      } finally {
+        setEventsLoading(false);
+      }
     })();
   }, []);
 
@@ -90,19 +149,22 @@ const Home = () => {
       {
         key: 'muscle',
         title: 'Muscle Cars',
-        img: 'https://images.unsplash.com/photo-1584345604325-f5091269a0d1?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+        emoji: '🏎️',
+        gradient: 'linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%)',
         keywords: ['muscle', 'v8', 'camaro', 'mustang', 'charger']
       },
       {
         key: 'jdm',
         title: 'JDM Imports',
-        img: 'https://images.unsplash.com/photo-1627008118989-d5d640a259fc?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8SkRNJTIwaW1wb3J0fGVufDB8fDB8fHww',
+        emoji: '🇯🇵',
+        gradient: 'linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%)',
         keywords: ['jdm', 'japanese', 'supra', 'rx7', 'skyline', 'silvia']
       },
       {
         key: 'classic',
         title: 'Classic Cars',
-        img: 'https://images.unsplash.com/photo-1489008777659-ad1fc8e07097?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8Y2xhc3NpYyUyMGNhcnxlbnwwfHwwfHx8MA%3D%3D',
+        emoji: '🚘',
+        gradient: 'linear-gradient(135deg, #92400e 0%, #422006 100%)',
         keywords: ['classic', 'vintage', 'antique', 'retro', 'heritage']
       }
     ];
@@ -115,12 +177,13 @@ const Home = () => {
     };
     return categories.map(c => ({ ...c, event: findMatch(c.keywords) }));
   }, [events]);
+
   return (
     <div className="homepage-container">
       <div
         className="page-bg home-bg"
         style={{
-          backgroundImage: `linear-gradient(rgba(8,13,23,0.72), rgba(8,13,23,0.72)), url(${currentBackground})`
+          background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)'
         }}
       />
       {/* Hero Section */}
@@ -131,47 +194,89 @@ const Home = () => {
             Connect with fellow car enthusiasts who share your passion. 
             Discover events, make friends, and find your automotive community.
           </p>
-          {/* Removed Events CTA to simplify hero */}
+          <Link to="/events" className="btn btn-primary hero-cta">Browse Events</Link>
         </div>
       </section>
 
       {/* Snapshot */}
       <Section>
         <h2 className="section-title">Community Snapshot</h2>
-        <Grid cols={2} mdCols={4} gap="lg">
-          <div className="stat-card"><div className="stat-num">{stats.users}</div><div className="stat-label">Members</div></div>
-          <div className="stat-card"><div className="stat-num">{stats.threads}</div><div className="stat-label">Threads</div></div>
-          <div className="stat-card"><div className="stat-num">{stats.posts}</div><div className="stat-label">Posts</div></div>
-          <div className="stat-card"><div className="stat-num">{stats.events}</div><div className="stat-label">Events</div></div>
-        </Grid>
+        {statsError ? (
+          <p className="section-error">{statsError}</p>
+        ) : statsLoading ? (
+          <Grid cols={2} mdCols={4} gap="lg">
+            <div className="stat-card skeleton-card"><div className="skeleton skeleton-line skeleton-line-lg" /><div className="skeleton skeleton-line" /></div>
+            <div className="stat-card skeleton-card"><div className="skeleton skeleton-line skeleton-line-lg" /><div className="skeleton skeleton-line" /></div>
+            <div className="stat-card skeleton-card"><div className="skeleton skeleton-line skeleton-line-lg" /><div className="skeleton skeleton-line" /></div>
+            <div className="stat-card skeleton-card"><div className="skeleton skeleton-line skeleton-line-lg" /><div className="skeleton skeleton-line" /></div>
+          </Grid>
+        ) : (
+          <Grid cols={2} mdCols={4} gap="lg">
+            <StatCard value={stats.users} label="Members" />
+            <StatCard value={stats.threads} label="Threads" />
+            <StatCard value={stats.posts} label="Posts" />
+            <StatCard value={stats.events} label="Events" />
+          </Grid>
+        )}
       </Section>
 
       {/* Forum front tiles */}
       <Section background="light">
         <h2 className="section-title">Forums</h2>
-        <div className="forum-front-cards">
-          {(forumSections||[]).map(s => (
-            <Link key={s.id} to={`/forums`} className="forum-card">
-              <div className="forum-card-title">{s.name}</div>
-              <div className="forum-card-desc">{s.description}</div>
-              <div className="forum-card-stats"><span>{s.posts} posts</span><span>{s.threads} threads</span></div>
-            </Link>
-          ))}
-        </div>
+        {forumsError ? (
+          <p className="section-error">{forumsError}</p>
+        ) : forumsLoading ? (
+          <div className="forum-front-cards">
+            <div className="forum-card skeleton-card"><div className="skeleton skeleton-line skeleton-line-md" /><div className="skeleton skeleton-line" /><div className="skeleton skeleton-line" /></div>
+            <div className="forum-card skeleton-card"><div className="skeleton skeleton-line skeleton-line-md" /><div className="skeleton skeleton-line" /><div className="skeleton skeleton-line" /></div>
+          </div>
+        ) : forumSections.length === 0 ? (
+          <p className="empty-state">No forum categories available yet.</p>
+        ) : (
+          <div className="forum-front-cards">
+            {(forumSections||[]).map(s => (
+              <Link key={s.id} to={`/forums`} className="forum-card">
+                <div className="forum-card-title">{s.name}</div>
+                <div className="forum-card-desc">{s.description}</div>
+                <div className="forum-card-stats">
+                  <span>{s.threads != null ? `${s.threads} threads` : ''}</span>
+                  <span>{s.posts != null ? `${s.posts} posts` : ''}</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </Section>
 
       {/* Latest discussions */}
       <Section>
-        <h2 className="section-title">Latest Discussions</h2>
-        <ul className="latest-threads">
-          {latestThreads.map(t => (
-            <li key={t.id} className="lt-item">
-              <div className="lt-title"><Link to={`/forums?open=${t.id || t._id}`}>{t.title}</Link></div>
-              <div className="lt-meta">{t.categoryName} • {new Date(t.lastPostAt || t.createdAt).toLocaleString()} • {t.replies||0} replies</div>
-            </li>
-          ))}
-          {latestThreads.length === 0 && (<li className="lt-item">No discussions yet.</li>)}
-        </ul>
+        <div className="section-header-row">
+          <h2 className="section-title">Latest Discussions</h2>
+          <Link to="/forums" className="view-all-link">View All →</Link>
+        </div>
+        {threadsError ? (
+          <p className="section-error">{threadsError}</p>
+        ) : threadsLoading ? (
+          <ul className="latest-threads">
+            {[0,1,2,3,4,5].map(i => (
+              <li key={i} className="lt-item skeleton-card">
+                <div className="skeleton skeleton-line skeleton-line-md" />
+                <div className="skeleton skeleton-line" />
+              </li>
+            ))}
+          </ul>
+        ) : latestThreads.length === 0 ? (
+          <p className="empty-state">No discussions yet. Be the first to start a conversation in the forums!</p>
+        ) : (
+          <ul className="latest-threads">
+            {latestThreads.map(t => (
+              <li key={t.id} className="lt-item">
+                <div className="lt-title"><Link to={`/forums?open=${t.id || t._id}`}>{t.title}</Link></div>
+                <div className="lt-meta">{t.categoryName} • {new Date(t.lastPostAt || t.createdAt).toLocaleString()} • {t.replies||0} replies</div>
+              </li>
+            ))}
+          </ul>
+        )}
       </Section>
 
       {/* Intro Section */}
@@ -181,7 +286,6 @@ const Home = () => {
           Connect with fellow car enthusiasts who share your passion. 
           Meet singles who love muscle cars, JDM tuners, luxury rides, and more.
         </p>
-        {/* Removed extra spacing and Events CTA for a cleaner flow */}
       </Section>
 
       {/* Features Section */}
@@ -218,35 +322,55 @@ const Home = () => {
       {/* Upcoming Events Section (by car type) */}
       <Section>
         <h2 className="section-title">Upcoming Events by Car Type</h2>
-        <Grid cols={1} mdCols={3} gap="lg">
-          {featuredByType.map(card => {
-            const ev = card.event;
-            const hasEvent = !!ev;
-            const img = (ev && (ev.image || ev.thumbnail)) || card.img;
-            const title = hasEvent ? (ev.title || ev.name) : card.title;
-            const dateStr = hasEvent && ev.date ? new Date(ev.date).toLocaleDateString('en-US', { month:'long', day:'numeric', weekday:'long' }) : null;
-            return (
-              <div key={card.key} className="card">
-                <img src={img} alt={card.title} className="card-img" loading="lazy" />
+        {eventsError ? (
+          <p className="section-error">{eventsError}</p>
+        ) : eventsLoading ? (
+          <Grid cols={1} mdCols={3} gap="lg">
+            {[0,1,2].map(i => (
+              <div key={i} className="card skeleton-card">
+                <div className="cartype-banner skeleton skeleton-block" />
                 <div className="card-content">
-                  <h3 className="card-title">{card.title}</h3>
-                  {hasEvent ? (
-                    <>
-                      <p className="card-text" style={{fontWeight:600}}>{title}</p>
-                      <p className="card-text">{dateStr} • {ev.location}</p>
-                      <Link to={`/events?event=${encodeURIComponent(ev.id)}`} className="btn btn-primary">View Event</Link>
-                    </>
-                  ) : (
-                    <>
-                      <p className="card-text">No upcoming events yet.</p>
-                      <Link to="/events" className="btn">Browse All Events</Link>
-                    </>
-                  )}
+                  <div className="skeleton skeleton-line skeleton-line-md" />
+                  <div className="skeleton skeleton-line" />
+                  <div className="skeleton skeleton-line" />
                 </div>
               </div>
-            );
-          })}
-        </Grid>
+            ))}
+          </Grid>
+        ) : events.length === 0 ? (
+          <p className="empty-state">No upcoming events yet. Check back soon or browse all events!</p>
+        ) : (
+          <Grid cols={1} mdCols={3} gap="lg">
+            {featuredByType.map(card => {
+              const ev = card.event;
+              const hasEvent = !!ev;
+              const title = hasEvent ? (ev.title || ev.name) : card.title;
+              const dateStr = hasEvent && ev.date ? new Date(ev.date).toLocaleDateString('en-US', { month:'long', day:'numeric', weekday:'long' }) : null;
+              return (
+                <Link key={card.key} to={`/events?q=${card.key}`} className="card cartype-card">
+                  <div className="cartype-banner" style={{ background: card.gradient }}>
+                    <span className="cartype-emoji">{card.emoji}</span>
+                  </div>
+                  <div className="card-content">
+                    <h3 className="card-title">{card.title}</h3>
+                    {hasEvent ? (
+                      <>
+                        <p className="card-text" style={{fontWeight:600}}>{title}</p>
+                        <p className="card-text">{dateStr} • {ev.location}</p>
+                        <span className="btn btn-primary">View Event</span>
+                      </>
+                    ) : (
+                      <>
+                        <p className="card-text">No upcoming events yet.</p>
+                        <span className="btn">Browse All Events</span>
+                      </>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
+          </Grid>
+        )}
       </Section>
 
       {/* Call to Action Section */}
@@ -255,8 +379,20 @@ const Home = () => {
         <p className="text-center text-light">
           Connect with car enthusiasts, attend events, and share your passion.
         </p>
-        {/* Removed Events CTA to declutter the footer callout */}
       </Section>
+
+      {/* Footer */}
+      <footer className="home-footer">
+        <div className="home-footer-inner">
+          <p className="home-footer-tagline">CarMatch — Connecting car enthusiasts since 2024</p>
+          <nav className="home-footer-nav">
+            <Link to="/events">Events</Link>
+            <Link to="/forums">Forums</Link>
+            <Link to="/profile">Profile</Link>
+          </nav>
+          <p className="home-footer-note">Built with React + Express + MongoDB on Google Cloud Run</p>
+        </div>
+      </footer>
     </div>
   );
 };

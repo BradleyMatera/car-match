@@ -1,10 +1,37 @@
-import React, { useEffect, useState, useContext, useMemo } from 'react';
+import React, { useEffect, useState, useContext, useMemo, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import './Forums.css';
 import api from '../../api/client';
 import AuthContext from '../../context/AuthContext';
 import { applySEO } from '../../utils/seo';
 import { toast } from '../../utils/toast';
+
+// Relative timestamp helper: "2h ago", "5m ago", "3d ago", "1w ago", "on Jan 15"
+function timeAgo(dateString) {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return '';
+  const now = Date.now();
+  const diffMs = now - date.getTime();
+  const sec = Math.round(diffMs / 1000);
+  const min = Math.round(sec / 60);
+  const hr = Math.round(min / 60);
+  const day = Math.round(hr / 24);
+  const week = Math.round(day / 7);
+  if (sec < 60) return 'just now';
+  if (min < 60) return `${min}m ago`;
+  if (hr < 24) return `${hr}h ago`;
+  if (day < 7) return `${day}d ago`;
+  if (week < 5) return `${week}w ago`;
+  return `on ${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+}
+
+// Build a short snippet from a post/thread body (first 100 chars, truncated)
+function snippet(text, len = 100) {
+  if (!text) return '';
+  const clean = String(text).replace(/\s+/g, ' ').trim();
+  return clean.length > len ? clean.slice(0, len).trimEnd() + '…' : clean;
+}
 
 const Forums = () => {
   const { currentUser, token } = useContext(AuthContext);
@@ -32,6 +59,12 @@ const Forums = () => {
   const location = useLocation();
   const [frontStats, setFrontStats] = useState([]);
   const [showEmoji, setShowEmoji] = useState(false);
+  const [loadingThreads, setLoadingThreads] = useState(false);
+  const [loadingPosts, setLoadingPosts] = useState(false);
+  const [hasMoreThreads, setHasMoreThreads] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
+  const replyTextareaRef = useRef(null);
   useEffect(() => {
     return applySEO({
       title: 'Forums',
@@ -47,22 +80,19 @@ const Forums = () => {
       }
     });
   }, []);
-  // Background images (rotates like Events)
-  const bgImages = useMemo(() => ([
-    'https://images.unsplash.com/photo-1514316454349-750a7fd3da3a',
-    'https://images.unsplash.com/photo-1503376780353-7e6692767b70',
-    'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf'
-  ]), []);
-  const [bgIndex, setBgIndex] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setBgIndex(i => (i + 1) % bgImages.length), 8000);
-    return () => clearInterval(id);
-  }, [bgImages]);
 
-  const currentBackground = useMemo(
-    () => (Array.isArray(bgImages) ? bgImages.at(bgIndex) ?? '' : ''),
-    [bgImages, bgIndex]
-  );
+  // Close any open modal on Escape key
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setShowThreadModal(false);
+        setShowEmoji(false);
+        setPendingDeleteId(null);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
   function getThreadId(t) {
   return t?.id || t?._id || t?.threadId;
 }
@@ -114,30 +144,53 @@ const Forums = () => {
     setThreadPosts([]);
     const s = opts.search ?? search;
     const p = opts.page ?? page;
+    const append = Boolean(opts.append);
+    if (append) setLoadingMore(true); else setLoadingThreads(true);
     try {
       const resp = await api.getThreadsByCategory(cat.id, { search: s, page: p, pageSize });
+      let items = [];
+      let total = 0;
       if (Array.isArray(resp)) {
-        setThreads(resp);
-        setThreadsTotal(resp.length);
+        items = resp;
+        total = resp.length;
       } else {
-        setThreads(resp.items || []);
-        setThreadsTotal(resp.total || 0);
+        items = resp.items || [];
+        total = resp.total || 0;
       }
+      if (append) {
+        setThreads((prev) => {
+          const seen = new Set(prev.map(getThreadId));
+          return [...prev, ...items.filter((it) => !seen.has(getThreadId(it)))];
+        });
+      } else {
+        setThreads(items);
+      }
+      setThreadsTotal(total);
+      setHasMoreThreads(items.length >= pageSize && (append ? threads.length + items.length : items.length) < total);
       setPage(p);
       setLoadError(null);
     } catch (e) {
-      setThreads([]);
-      setThreadsTotal(0);
+      if (!append) { setThreads([]); setThreadsTotal(0); }
       setLoadError('We couldn\'t load threads right now. Please try again in a moment.');
+    } finally {
+      setLoadingThreads(false);
+      setLoadingMore(false);
     }
   };
 
 
   const openThread = async (thread) => {
-    const data = await api.getThreadById(getThreadId(thread));
-    setActiveThread(data.thread);
-    setThreadPosts(data.posts);
-    setThreadEvent(data.event || null);
+    setLoadingPosts(true);
+    try {
+      const data = await api.getThreadById(getThreadId(thread));
+      setActiveThread(data.thread);
+      setThreadPosts(data.posts);
+      setThreadEvent(data.event || null);
+    } catch (e) {
+      toast.error('Failed to open thread');
+    } finally {
+      setLoadingPosts(false);
+    }
   };
 
   // Scroll to a specific post if ?post=<id>
@@ -226,15 +279,34 @@ const Forums = () => {
     } catch (e) { toast.error(e.message || 'Failed to lock'); }
   };
 
-  const deleteThread = async (thread) => {
-    if (!window.confirm('Delete this thread?')) return;
+  const confirmDeleteThread = async (thread) => {
     try {
       if (!token) { toast.info('Please log in.'); return; }
       await api.deleteThread(token, getThreadId(thread));
+      setPendingDeleteId(null);
       setActiveThread(null);
       await loadThreads(selectedCategory, { page: 1 });
+      toast.success('Thread deleted.');
     } catch (e) { toast.error(e.message || 'Failed to delete'); }
   };
+
+  // Insert an emoji at the cursor position in the reply textarea
+  const insertEmojiAtCursor = useCallback((emoji) => {
+    const ta = replyTextareaRef.current;
+    if (!ta) {
+      setNewPostBody((b) => b + emoji);
+      return;
+    }
+    const start = ta.selectionStart ?? newPostBody.length;
+    const end = ta.selectionEnd ?? newPostBody.length;
+    const next = newPostBody.slice(0, start) + emoji + newPostBody.slice(end);
+    setNewPostBody(next);
+    requestAnimationFrame(() => {
+      ta.focus();
+      const pos = start + emoji.length;
+      ta.setSelectionRange(pos, pos);
+    });
+  }, [newPostBody]);
 
   const reportPost = async (post) => {
     try {
@@ -295,12 +367,7 @@ const Forums = () => {
 
   return (
     <div className="forums-container">
-      <div
-        className="page-bg forums-bg"
-        style={{
-          backgroundImage: `linear-gradient(rgba(8,13,23,0.72), rgba(8,13,23,0.72)), url(${currentBackground})`
-        }}
-      />
+      <div className="page-bg forums-bg" />
       <aside className="forums-sidebar">
         <h2>Forums</h2>
         {loadingCategories ? (
@@ -378,39 +445,75 @@ const Forums = () => {
                     <button className="btn btn-primary" onClick={()=> setShowThreadModal(true)}>New Thread</button>
                   )}
                 </div>
-                {threads.length === 0 && <p>No threads yet. Be the first to post!</p>}
-                <ul className="thread-list">
-                  {threads.map((th) => {
-                    const threadId = getThreadId(th);
-                    const isPinned = Boolean(th.pinned);
-                    const isLocked = Boolean(th.locked);
-                    const replyCount = th.replies || 0;
-                    return (
-                      <li key={threadId} className="thread-item">
-                        <div className="thread-item-header" onClick={()=>openThread(th)}>
-                          <div className="thread-title">
-                            {isPinned && <span className="thread-chip pinned">Pinned</span>}
-                            {isLocked && <span className="thread-chip locked">Locked</span>}
-                            <span>{th.title}</span>
-                          </div>
-                          <div className="thread-meta">by {th.authorUsername || th.author || 'user'} • {new Date(th.lastPostAt).toLocaleString()} • {replyCount} replies</div>
-                        </div>
-                        {canModerate && (
-                          <div className="thread-tool-row">
-                            <button onClick={()=>pinToggle(th, !th.pinned)}>{isPinned ? 'Unpin' : 'Pin'}</button>
-                            <button onClick={()=>lockToggle(th, !th.locked)}>{isLocked ? 'Unlock' : 'Lock'}</button>
-                            <button onClick={()=>deleteThread(th)}>Delete</button>
-                          </div>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-                <div style={{display:'flex',gap:8,alignItems:'center',marginTop:8}}>
-                  <button disabled={page<=1} onClick={()=> loadThreads(selectedCategory, { page: page-1 })}>Prev</button>
-                  <span>Page {page} {threadsTotal? `(~${threadsTotal} total)`:''}</span>
-                  <button disabled={threads.length < pageSize} onClick={()=> loadThreads(selectedCategory, { page: page+1 })}>Next</button>
-                </div>
+                {loadingThreads ? (
+                  <div className="skeleton-list" aria-hidden>
+                    {[0,1,2,3].map((i) => (
+                      <div className="skeleton-thread" key={i}>
+                        <div className="skeleton-bar skeleton-title" />
+                        <div className="skeleton-bar skeleton-meta" />
+                        <div className="skeleton-bar skeleton-snippet" />
+                      </div>
+                    ))}
+                  </div>
+                ) : threads.length === 0 ? (
+                  <div className="forum-empty">
+                    <h3>No threads in this category yet</h3>
+                    <p>Start the conversation!</p>
+                    {currentUser && (
+                      <button className="btn btn-primary" onClick={()=> setShowThreadModal(true)}>Create Thread</button>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <ul className="thread-list">
+                      {threads.map((th) => {
+                        const threadId = getThreadId(th);
+                        const isPinned = Boolean(th.pinned);
+                        const isLocked = Boolean(th.locked);
+                        const replyCount = th.replies || 0;
+                        const preview = snippet(th.body || th.firstPostBody || th.content || th.excerpt);
+                        const confirmingDelete = pendingDeleteId === threadId;
+                        return (
+                          <li key={threadId} className="thread-item">
+                            <div className="thread-item-header" onClick={()=>openThread(th)}>
+                              <div className="thread-title">
+                                {isPinned && <span className="thread-chip pinned">Pinned</span>}
+                                {isLocked && <span className="thread-chip locked">Locked</span>}
+                                <span>{th.title}</span>
+                              </div>
+                              {preview && <div className="thread-snippet">{preview}</div>}
+                              <div className="thread-meta">by {th.authorUsername || th.author || 'user'} • {timeAgo(th.lastPostAt || th.createdAt || th.updatedAt)} • {replyCount} replies</div>
+                            </div>
+                            {canModerate && (
+                              <div className="thread-tool-row">
+                                <button onClick={()=>pinToggle(th, !th.pinned)}>{isPinned ? 'Unpin' : 'Pin'}</button>
+                                <button onClick={()=>lockToggle(th, !th.locked)}>{isLocked ? 'Unlock' : 'Lock'}</button>
+                                {confirmingDelete ? (
+                                  <span className="inline-confirm">
+                                    Are you sure?
+                                    <button className="btn btn-warning btn-small" onClick={()=>confirmDeleteThread(th)}>Delete</button>
+                                    <button className="btn btn-small" onClick={()=> setPendingDeleteId(null)}>Cancel</button>
+                                  </span>
+                                ) : (
+                                  <button onClick={()=> setPendingDeleteId(threadId)}>Delete</button>
+                                )}
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    <div className="threads-pagination">
+                      {hasMoreThreads ? (
+                        <button className="btn" disabled={loadingMore} onClick={()=> loadThreads(selectedCategory, { page: page+1, append: true })}>
+                          {loadingMore ? 'Loading…' : 'Load More'}
+                        </button>
+                      ) : (
+                        <span className="pagination-info">Page {page} {threadsTotal ? `(~${threadsTotal} total)` : ''}</span>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
@@ -455,7 +558,23 @@ const Forums = () => {
               </div>
             )}
             <ul className="post-list">
-              {threadPosts.map((p, idx) => {
+              {loadingPosts ? (
+                <div className="skeleton-list" aria-hidden>
+                  {[0,1].map((i) => (
+                    <div className="skeleton-post" key={i}>
+                      <div className="skeleton-bar skeleton-title" />
+                      <div className="skeleton-bar skeleton-meta" />
+                      <div className="skeleton-bar skeleton-line" />
+                      <div className="skeleton-bar skeleton-line short" />
+                    </div>
+                  ))}
+                </div>
+              ) : threadPosts.length <= 1 ? (
+                <div className="forum-empty">
+                  <h3>No replies yet</h3>
+                  <p>Be the first to reply!</p>
+                </div>
+              ) : threadPosts.map((p, idx) => {
                 const author = p.authorUsername || p.author || 'user';
                 const stats = authorStats(author);
                 const atts = extractAttachments(p.body);
@@ -470,7 +589,7 @@ const Forums = () => {
                     <article className="post-main">
                       <header className="post-header">
                         <div className="post-title">{activeThread.title}</div>
-                        <div className="post-index">{ordinal(idx)} • {new Date(p.createdAt).toLocaleString()}</div>
+                        <div className="post-index">{ordinal(idx)} • {timeAgo(p.createdAt)}</div>
                       </header>
                       <div className="post-content" dangerouslySetInnerHTML={{__html: formatPost(p.body)}} />
                       {atts.length>0 && (
@@ -509,11 +628,11 @@ const Forums = () => {
                 {showEmoji && (
                   <div className="emoji-palette">
                     {['😀','😁','😂','😍','😎','🤙','👍','🔥','🚗','🏁'].map(e => (
-                      <button type="button" key={e} onClick={()=> setNewPostBody(b=> b + e)}>{e}</button>
+                      <button type="button" key={e} onClick={()=> insertEmojiAtCursor(e)}>{e}</button>
                     ))}
                   </div>
                 )}
-                <textarea placeholder="Write a reply..." value={newPostBody} onChange={(e)=>setNewPostBody(e.target.value)} />
+                <textarea ref={replyTextareaRef} placeholder="Write a reply..." value={newPostBody} onChange={(e)=>setNewPostBody(e.target.value)} />
                 <small>Tip: use **bold**, _italic_, [img](url), and &gt; quote.</small>
                 <button type="submit">Post Reply</button>
               </form>

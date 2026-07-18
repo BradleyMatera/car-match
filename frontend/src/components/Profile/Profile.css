@@ -629,3 +629,143 @@ button:active, .btn:active {
   from { transform: translateY(50px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
+
+/* ---- New: message read/unread status ---- */
+.message-item.message-unread {
+  background-color: #f0f7ff;
+  border-left: 4px solid var(--primary-color);
+}
+
+.message-item.message-read {
+  background-color: white;
+}
+
+.message-item.message-unread .unread-sender {
+  font-weight: 700;
+}
+
+.message-item.message-read .unread-sender {
+  font-weight: 600;
+}
+
+.unread-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--primary-color);
+  margin-right: var(--space-xs);
+  vertical-align: middle;
+}
+
+.message-item.message-read .unread-dot {
+  display: none;
+}
+
+/* ---- New: empty states ---- */
+.card.empty .h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: var(--space-sm);
+}
+
+/* ---- New: vehicle edit/delete actions ---- */
+.vehicle-actions {
+  display: flex;
+  gap: var(--space-xs);
+  padding: 0 var(--space-md) var(--space-md);
+}
+
+.vehicle-edit-form {
+  display: grid;
+  gap: 8px;
+  padding: var(--space-md);
+}
+
+.vehicle-edit-form input,
+.vehicle-edit-form textarea {
+  width: 100%;
+  padding: var(--space-sm);
+  border: 1px solid #E6E6E6;
+  border-radius: var(--radius-md);
+  box-sizing: border-box;
+}
+
+/* ---- New: message delete button ---- */
+.message-delete-btn {
+  background-color: var(--error-color, #dc2626);
+  color: white;
+  border: none;
+  padding: var(--space-xs) var(--space-sm);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.message-delete-btn:hover {
+  background-color: #b91c1c;
+}
+
+/* ---- New: delete account confirmation dialog ---- */
+.delete-confirm-dialog {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  background-color: #fff5f5;
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  border-radius: var(--radius-md);
+}
+
+.delete-confirm-dialog p {
+  color: var(--text-dark);
+  margin-bottom: var(--space-sm);
+  font-weight: 500;
+}
+
+.delete-confirm-dialog input {
+  width: 100%;
+  padding: var(--space-sm);
+  border: 1px solid #E6E6E6;
+  border-radius: var(--radius-md);
+  box-sizing: border-box;
+}
+
+.delete-confirm-dialog button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---- New: bio character count ---- */
+.bio-char-count {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: right;
+  margin-top: var(--space-xs);
+}
+
+/* ---- New: profile photo fallback ---- */
+.profile-photo-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+  font-size: 3rem;
+  font-weight: 700;
+}
+
+/* ---- New: password change form ---- */
+.settings-form form {
+  display: block;
+}
+
+/* ---- New: save button loading state ---- */
+.settings-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.settings-actions button:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
