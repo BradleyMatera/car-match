@@ -306,3 +306,190 @@
 .composer .textarea {
   background: var(--bg-input);
 }
+
+/* ═══════════════════════════════════════════════
+   Mobile Responsive — Tablet (max-width: 768px)
+   ═══════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Container — full width */
+  .profile-container {
+    max-width: 100%;
+    padding: 0 var(--space-xs);
+  }
+
+  /* Cards — single column, reduced padding */
+  .card {
+    padding: var(--space-md);
+  }
+
+  /* Empty state — reduced padding */
+  .empty {
+    padding: var(--space-lg) var(--space-md);
+  }
+
+  /* Buttons — 44px touch targets */
+  .btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-sm) var(--space-md);
+  }
+  .btn-small {
+    min-height: 36px;
+    padding: var(--space-xs) var(--space-sm);
+  }
+
+  /* Badges — wrap */
+  .badge {
+    font-size: 0.7rem;
+  }
+
+  /* Subnav / tabs — horizontal scroll */
+  .subnav {
+    position: static;
+    top: auto;
+  }
+  .subnav .tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    gap: var(--space-xs);
+    padding: var(--space-xs) var(--space-sm);
+  }
+  .subnav .tab {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: var(--space-sm) var(--space-md);
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.85rem;
+  }
+
+  /* Form inputs — full width, 44px height */
+  .input,
+  .select,
+  .textarea {
+    min-height: 44px;
+    font-size: 0.9rem;
+  }
+
+  /* Event cards — single column, reduced padding */
+  .event-card {
+    padding: var(--space-md);
+  }
+  .event-card .title {
+    font-size: 1.05rem;
+  }
+  .event-card .meta {
+    gap: var(--space-md);
+    font-size: 0.8rem;
+  }
+  .event-card .actions {
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  .event-card .actions .btn {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  /* Message cards — full width, reduced padding */
+  .msg-card {
+    padding: var(--space-sm) var(--space-md);
+  }
+  .msg-card .head {
+    flex-direction: column;
+    gap: var(--space-xs);
+    align-items: flex-start;
+  }
+  .msg-card .body {
+    font-size: 0.85rem;
+  }
+
+  /* Message composer — full width */
+  .composer {
+    padding: var(--space-sm) var(--space-md);
+  }
+  .composer .input,
+  .composer .textarea {
+    min-height: 44px;
+  }
+
+  /* Button groups — stack vertically */
+  .event-card .actions,
+  .msg-card .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* Input groups — single column */
+  .card .input,
+  .card .select,
+  .card .textarea {
+    width: 100%;
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   Mobile Responsive — Phone (max-width: 480px)
+   ═══════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  /* Cards — minimal padding */
+  .card {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  /* Empty state — minimal */
+  .empty {
+    padding: var(--space-md) var(--space-sm);
+  }
+
+  /* Buttons — minimal */
+  .btn {
+    padding: var(--space-sm) var(--space-sm);
+    font-size: 0.85rem;
+  }
+
+  /* Subnav — compact */
+  .subnav .tabs {
+    padding: var(--space-xs);
+  }
+  .subnav .tab {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 0.8rem;
+  }
+
+  /* Event cards — minimal */
+  .event-card {
+    padding: var(--space-sm);
+  }
+  .event-card .title {
+    font-size: 1rem;
+  }
+  .event-card .meta {
+    font-size: 0.75rem;
+    gap: var(--space-sm);
+  }
+
+  /* Message cards — minimal */
+  .msg-card {
+    padding: var(--space-xs) var(--space-sm);
+  }
+  .msg-card .body {
+    font-size: 0.8rem;
+  }
+
+  /* Composer — minimal */
+  .composer {
+    padding: var(--space-xs) var(--space-sm);
+  }
+
+  /* Inputs — minimal */
+  .input,
+  .select,
+  .textarea {
+    font-size: 0.85rem;
+  }
+}

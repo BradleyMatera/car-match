@@ -32,3 +32,95 @@
 .compose { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
 .compose textarea { min-height: 100px; }
 .error-text { color: var(--error); }
+
+/* ═══════════════════════════════════════════════
+   Mobile Responsive — Tablet (max-width: 768px)
+   ═══════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Messages page — full width, reduced padding */
+  .messages-page {
+    max-width: 100%;
+    padding: var(--space-sm) var(--space-xs);
+  }
+
+  /* Tabs — horizontal scroll */
+  .tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    gap: var(--space-xs);
+    margin: var(--space-sm) 0;
+  }
+  .tabs button {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: var(--space-sm) var(--space-md);
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    font-size: 13px;
+  }
+
+  /* Filters — stack vertically */
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-sm);
+    margin: var(--space-sm) 0;
+  }
+  .filters input,
+  .filters select {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  /* Message list — full width */
+  .list .row {
+    padding: var(--space-sm) var(--space-md);
+    margin: var(--space-xs) 0;
+  }
+
+  /* Compose — full width */
+  .compose {
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+  }
+  .compose textarea {
+    min-height: 80px;
+    font-size: 14px;
+  }
+  .compose input {
+    min-height: 44px;
+  }
+  .compose button {
+    min-height: 44px;
+    width: 100%;
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   Mobile Responsive — Phone (max-width: 480px)
+   ═══════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  /* Messages page — minimal padding */
+  .messages-page {
+    padding: var(--space-xs);
+  }
+
+  /* Tabs — compact */
+  .tabs button {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 12px;
+  }
+
+  /* Message list — minimal padding */
+  .list .row {
+    padding: var(--space-xs) var(--space-sm);
+  }
+
+  /* Compose — minimal */
+  .compose textarea {
+    min-height: 70px;
+    font-size: 13px;
+  }
+}

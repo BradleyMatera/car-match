@@ -33,6 +33,26 @@ function snippet(text, len = 100) {
   return clean.length > len ? clean.slice(0, len).trimEnd() + '…' : clean;
 }
 
+// Build initials from a username/name for avatar circles
+function initials(name) {
+  if (!name) return '?';
+  const parts = String(name).trim().split(/[\s_-]+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+// Highlight search term within text (returns React-safe segments)
+function highlightSearch(text, term) {
+  if (!text || !term || !term.trim()) return text;
+  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
+  // eslint-disable-next-line security/detect-object-injection
+  const esc = String(text).replace(/[&<>"]/g, (c) => map[c]);
+  const t = term.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // eslint-disable-next-line security/detect-non-literal-regexp
+  return esc.replace(new RegExp(`(${t})`, 'gi'), '<mark class="search-highlight">$1</mark>');
+}
+
 const Forums = () => {
   const { currentUser, token } = useContext(AuthContext);
   const userRole = currentUser?.role || (currentUser?.developerOverride ? 'admin' : 'user');
@@ -64,6 +84,8 @@ const Forums = () => {
   const [hasMoreThreads, setHasMoreThreads] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const replyTextareaRef = useRef(null);
   useEffect(() => {
     return applySEO({
@@ -88,6 +110,7 @@ const Forums = () => {
         setShowThreadModal(false);
         setShowEmoji(false);
         setPendingDeleteId(null);
+        setShowPreview(false);
       }
     };
     window.addEventListener('keydown', onKey);
@@ -142,6 +165,7 @@ const Forums = () => {
     setSelectedCategory(cat);
     setActiveThread(null);
     setThreadPosts([]);
+    setSidebarOpen(false);
     const s = opts.search ?? search;
     const p = opts.page ?? page;
     const append = Boolean(opts.append);
@@ -221,6 +245,7 @@ const Forums = () => {
       setNewThreadTitle('');
       setNewThreadBody('');
       setShowThreadModal(false);
+      setShowPreview(false);
       await loadThreads(selectedCategory, { page: 1 });
       openThread(newThread);
     } catch (err) {
@@ -368,7 +393,15 @@ const Forums = () => {
   return (
     <div className="forums-container">
       <div className="page-bg forums-bg" />
-      <aside className="forums-sidebar">
+      <button
+        className={`forums-sidebar-toggle${sidebarOpen ? ' open' : ''}`}
+        onClick={() => setSidebarOpen((v) => !v)}
+        aria-expanded={sidebarOpen}
+      >
+        <span>{selectedCategory ? selectedCategory.name : 'Browse Categories'}</span>
+        <span className="toggle-icon">▾</span>
+      </button>
+      <aside className={`forums-sidebar${sidebarOpen ? ' open' : ''}`}>
         <h2>Forums</h2>
         {loadingCategories ? (
           <div className="forum-empty">Loading forums…</div>
@@ -376,12 +409,19 @@ const Forums = () => {
           <div className="forum-empty">No categories yet. Check back soon!</div>
         ) : (
           <ul>
-            {categories.map(cat => (
+            {categories.map(cat => {
+              const s = frontStats.find(x => x.id === cat.id) || { threads: 0, posts: 0 };
+              return (
               <li key={cat.id} className={selectedCategory?.id === cat.id ? 'active' : ''}>
                 <button onClick={() => loadThreads(cat)}>{cat.name}</button>
                 <p className="cat-desc">{cat.description}</p>
+                <div className="cat-stats">
+                  <span>{s.threads || 0} threads</span>
+                  <span>{s.posts || 0} posts</span>
+                </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
       </aside>
@@ -437,14 +477,30 @@ const Forums = () => {
               <div className="threads-view">
                 <div className="threads-header">
                   <h3>{selectedCategory.name}</h3>
-                  <div style={{display:'flex',gap:8,alignItems:'center'}}>
-                    <input type="search" placeholder="Search threads" value={search} onChange={e=>setSearch(e.target.value)} />
-                    <button onClick={()=> loadThreads(selectedCategory, { page: 1, search })}>Search</button>
-                  </div>
                   {currentUser && (
-                    <button className="btn btn-primary" onClick={()=> setShowThreadModal(true)}>New Thread</button>
+                    <button className="btn btn-primary" onClick={()=> { setShowThreadModal(true); setShowPreview(false); }}>New Thread</button>
                   )}
                 </div>
+                {/* Prominent search bar */}
+                <div className="forum-search">
+                  <span className="search-icon">🔍</span>
+                  <input
+                    type="search"
+                    placeholder="Search threads by title or content…"
+                    value={search}
+                    onChange={e=>setSearch(e.target.value)}
+                    onKeyDown={e=>{ if (e.key === 'Enter') loadThreads(selectedCategory, { page: 1, search }); }}
+                  />
+                  {search && (
+                    <button className="forum-search-clear" onClick={()=>{ setSearch(''); loadThreads(selectedCategory, { page: 1, search: '' }); }} aria-label="Clear search">✕</button>
+                  )}
+                  <button className="forum-search-btn" onClick={()=> loadThreads(selectedCategory, { page: 1, search })}>Search</button>
+                </div>
+                {search && (
+                  <div className="search-active-indicator">
+                    Searching for "{search}"
+                  </div>
+                )}
                 {loadingThreads ? (
                   <div className="skeleton-list" aria-hidden>
                     {[0,1,2,3].map((i) => (
@@ -457,10 +513,10 @@ const Forums = () => {
                   </div>
                 ) : threads.length === 0 ? (
                   <div className="forum-empty">
-                    <h3>No threads in this category yet</h3>
-                    <p>Start the conversation!</p>
-                    {currentUser && (
-                      <button className="btn btn-primary" onClick={()=> setShowThreadModal(true)}>Create Thread</button>
+                    <h3>{search ? 'No threads match your search' : 'No threads in this category yet'}</h3>
+                    <p>{search ? 'Try a different search term.' : 'Start the conversation!'}</p>
+                    {currentUser && !search && (
+                      <button className="btn btn-primary" onClick={()=> { setShowThreadModal(true); setShowPreview(false); }}>Create Thread</button>
                     )}
                   </div>
                 ) : (
@@ -471,18 +527,35 @@ const Forums = () => {
                         const isPinned = Boolean(th.pinned);
                         const isLocked = Boolean(th.locked);
                         const replyCount = th.replies || 0;
+                        const author = th.authorUsername || th.author || 'user';
                         const preview = snippet(th.body || th.firstPostBody || th.content || th.excerpt);
                         const confirmingDelete = pendingDeleteId === threadId;
+                        const lastActivity = timeAgo(th.lastPostAt || th.createdAt || th.updatedAt);
                         return (
                           <li key={threadId} className="thread-item">
                             <div className="thread-item-header" onClick={()=>openThread(th)}>
-                              <div className="thread-title">
-                                {isPinned && <span className="thread-chip pinned">Pinned</span>}
-                                {isLocked && <span className="thread-chip locked">Locked</span>}
-                                <span>{th.title}</span>
+                              <div className="thread-row">
+                                <div className="thread-avatar" aria-hidden>{initials(author)}</div>
+                                <div className="thread-body">
+                                  <div className="thread-title">
+                                    {isPinned && <span className="thread-chip pinned">📌 Pinned</span>}
+                                    {isLocked && <span className="thread-chip locked">🔒 Locked</span>}
+                                    <span dangerouslySetInnerHTML={{ __html: highlightSearch(th.title, search) }} />
+                                  </div>
+                                  {preview && <div className="thread-snippet" dangerouslySetInnerHTML={{ __html: highlightSearch(preview, search) }} />}
+                                  <div className="thread-author-line">
+                                    <span className="thread-author-name">{author}</span>
+                                    <span className="thread-badge">in {selectedCategory.name}</span>
+                                  </div>
+                                  <div className="thread-meta">
+                                    <span className="meta-item">🕒 {lastActivity}</span>
+                                  </div>
+                                </div>
+                                <div className="thread-stats">
+                                  <strong>{replyCount}</strong>
+                                  <span>{replyCount === 1 ? 'reply' : 'replies'}</span>
+                                </div>
                               </div>
-                              {preview && <div className="thread-snippet">{preview}</div>}
-                              <div className="thread-meta">by {th.authorUsername || th.author || 'user'} • {timeAgo(th.lastPostAt || th.createdAt || th.updatedAt)} • {replyCount} replies</div>
                             </div>
                             {canModerate && (
                               <div className="thread-tool-row">
@@ -519,13 +592,20 @@ const Forums = () => {
 
         {selectedCategory && activeThread && (
           <div className="thread-view">
-            <button className="back-link" onClick={()=>{ setActiveThread(null); setThreadPosts([]); }}>← Back to threads</button>
+            {/* Breadcrumb back to thread list */}
+            <nav className="breadcrumb" aria-label="Breadcrumb">
+              <button onClick={()=>{ setActiveThread(null); setThreadPosts([]); }}>← Forums</button>
+              <span className="crumb-separator">›</span>
+              <button onClick={()=>{ setActiveThread(null); setThreadPosts([]); }}>{selectedCategory?.name}</button>
+              <span className="crumb-separator">›</span>
+              <span className="crumb-current">{activeThread.title}</span>
+            </nav>
             <div className="thread-toolbar">
               <div className="thread-heading">
-                <div className="crumbs">{selectedCategory?.name} ▸ {activeThread.title}</div>
+                <div className="crumbs">{activeThread.title}</div>
                 <div className="thread-chip-row">
-                  {activeThread.pinned && <span className="thread-chip pinned">Pinned</span>}
-                  {activeThread.locked && <span className="thread-chip locked">Locked</span>}
+                  {activeThread.pinned && <span className="thread-chip pinned">📌 Pinned</span>}
+                  {activeThread.locked && <span className="thread-chip locked">🔒 Locked</span>}
                 </div>
               </div>
               <div className="tools">
@@ -578,18 +658,23 @@ const Forums = () => {
                 const author = p.authorUsername || p.author || 'user';
                 const stats = authorStats(author);
                 const atts = extractAttachments(p.body);
+                const isEdited = Boolean(p.editedAt || (p.updatedAt && p.updatedAt !== p.createdAt));
                 return (
                   <li key={p.id} id={`post-${p._id || p.id}`} className="post-item post-row">
                     <aside className="post-author">
-                      <div className="avatar" aria-hidden>👤</div>
+                      <div className="avatar" aria-hidden>{initials(author)}</div>
                       <div className="author-name">{author}</div>
-                      <div className="rank">Member {'★'.repeat(stats.stars)}</div>
-                      <div className="meta">Posts (thread): {stats.postsInThread}</div>
+                      <div className="author-role-badge member">Member</div>
+                      <div className="rank">{'★'.repeat(stats.stars)}</div>
+                      <div className="meta">{stats.postsInThread} in thread</div>
                     </aside>
                     <article className="post-main">
                       <header className="post-header">
-                        <div className="post-title">{activeThread.title}</div>
-                        <div className="post-index">{ordinal(idx)} • {timeAgo(p.createdAt)}</div>
+                        <div className="post-title">{ordinal(idx)}</div>
+                        <div className="post-index">
+                          {timeAgo(p.createdAt)}
+                          {isEdited && <span className="post-edited">(edited)</span>}
+                        </div>
                       </header>
                       <div className="post-content" dangerouslySetInnerHTML={{__html: formatPost(p.body)}} />
                       {atts.length>0 && (
@@ -601,40 +686,46 @@ const Forums = () => {
                         </div>
                       )}
                       <footer className="post-actions">
+                        <button className="btn btn-small btn-reply" onClick={()=>{ setNewPostBody(prev => prev + `\n> ${p.body.replaceAll('\n','\n> ')}\n\n`); replyTextareaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}>Reply</button>
                         <button className="btn btn-small" onClick={()=>{ setNewPostBody(prev => prev + `\n> ${p.body.replaceAll('\n','\n> ')}\n\n`); }}>Quote</button>
                         <button className="btn btn-small" onClick={()=>reportPost(p)}>Report</button>
                       </footer>
                     </article>
-                    <aside className="post-side">
-                      <div>Joined: —</div>
-                      <div>Thanks Given: —</div>
-                      <div>Thanks Recv: —</div>
-                    </aside>
                   </li>
                 );
               })}
             </ul>
             {currentUser && !activeThread.locked && (
-              <form onSubmit={handleAddPost} className="reply-form">
+              <form onSubmit={handleAddPost} className="post-composer">
                 <div className="editor-toolbar">
-                  <button type="button" className="btn btn-small" onClick={()=> setNewPostBody(b=> b + '**bold**')}>B</button>
-                  <button type="button" className="btn btn-small" onClick={()=> setNewPostBody(b=> b + '_italic_')}>I</button>
-                  <button type="button" className="btn btn-small" onClick={()=> setNewPostBody(b=> b + '\n> quote')}>Quote</button>
-                  <button type="button" className="btn btn-small" onClick={()=> {
+                  <button type="button" className="toolbar-btn" onClick={()=> setNewPostBody(b=> b + '**bold**')} title="Bold">B</button>
+                  <button type="button" className="toolbar-btn" onClick={()=> setNewPostBody(b=> b + '_italic_')} title="Italic"><em>I</em></button>
+                  <span className="toolbar-divider" />
+                  <button type="button" className="toolbar-btn" onClick={()=> setNewPostBody(b=> b + '\n> quote')} title="Quote">❝</button>
+                  <button type="button" className="toolbar-btn" onClick={()=> {
                     const url = prompt('Image URL (https://...)'); if (url) setNewPostBody(b=> b + `\n[img](${url})\n`);
-                  }}>Image</button>
-                  <button type="button" className="btn btn-small" onClick={()=> setShowEmoji(s=>!s)}>😊</button>
+                  }} title="Insert Image">🖼</button>
+                  <button type="button" className="toolbar-btn" onClick={()=> {
+                    const url = prompt('Link URL (https://...)'); if (url) setNewPostBody(b=> b + ` ${url} `);
+                  }} title="Insert Link">🔗</button>
+                  <span className="toolbar-divider" />
+                  <button type="button" className="toolbar-btn" onClick={()=> setShowEmoji(s=>!s)} title="Emoji">😊</button>
                 </div>
                 {showEmoji && (
                   <div className="emoji-palette">
-                    {['😀','😁','😂','😍','😎','🤙','👍','🔥','🚗','🏁'].map(e => (
+                    {['😀','😁','😂','😍','😎','🤙','👍','🔥','🚗','🏁','👏','🙌','🤔','😅','🚀','💨'].map(e => (
                       <button type="button" key={e} onClick={()=> insertEmojiAtCursor(e)}>{e}</button>
                     ))}
                   </div>
                 )}
-                <textarea ref={replyTextareaRef} placeholder="Write a reply..." value={newPostBody} onChange={(e)=>setNewPostBody(e.target.value)} />
+                <textarea ref={replyTextareaRef} placeholder="Write a reply..." value={newPostBody} onChange={(e)=>setNewPostBody(e.target.value)} maxLength={5000} />
+                <div className="composer-footer">
+                  <span className={`composer-charcount${newPostBody.length > 4500 ? ' warn' : ''}${newPostBody.length >= 5000 ? ' danger' : ''}`}>
+                    {newPostBody.length} / 5000
+                  </span>
+                  <button type="submit">Post Reply</button>
+                </div>
                 <small>Tip: use **bold**, _italic_, [img](url), and &gt; quote.</small>
-                <button type="submit">Post Reply</button>
               </form>
             )}
             {activeThread.locked && <p>This thread is locked.</p>}
@@ -650,20 +741,39 @@ const Forums = () => {
               <span>New Thread — {selectedCategory?.name || ''}</span>
               <button className="btn" onClick={()=> setShowThreadModal(false)}>✕</button>
             </header>
+            <div className="modal-tabs">
+              <button className={`modal-tab${!showPreview ? ' active' : ''}`} onClick={()=> setShowPreview(false)}>Compose</button>
+              <button className={`modal-tab${showPreview ? ' active' : ''}`} onClick={()=> setShowPreview(true)} disabled={!newThreadTitle.trim() && !newThreadBody.trim()}>Preview</button>
+            </div>
             <form onSubmit={handleCreateThread}>
               <div className="content">
-                <div className="row">
-                  <label>Title</label>
-                  <input value={newThreadTitle} onChange={e=>setNewThreadTitle(e.target.value)} placeholder="Thread title" required />
-                </div>
-                <div className="row">
-                  <label>Body (optional)</label>
-                  <textarea value={newThreadBody} onChange={e=>setNewThreadBody(e.target.value)} placeholder="Write the first post..." rows={8} />
-                </div>
+                {!showPreview ? (
+                  <>
+                    <div className="row">
+                      <label>Category</label>
+                      <select value={selectedCategory?.id || ''} onChange={e=>{ const c = categories.find(x=>x.id===e.target.value); if (c) setSelectedCategory(c); }} required>
+                        {categories.map(c => (<option key={c.id} value={c.id}>{c.name}</option>))}
+                      </select>
+                    </div>
+                    <div className="row">
+                      <label>Title</label>
+                      <input value={newThreadTitle} onChange={e=>setNewThreadTitle(e.target.value)} placeholder="Thread title" required maxLength={120} />
+                    </div>
+                    <div className="row">
+                      <label>Body (optional)</label>
+                      <textarea value={newThreadBody} onChange={e=>setNewThreadBody(e.target.value)} placeholder="Write the first post... (supports **bold**, _italic_, > quote, [img](url))" rows={8} maxLength={5000} />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="modal-preview-title">{newThreadTitle || 'Untitled Thread'}</div>
+                    <div className="modal-preview" dangerouslySetInnerHTML={{ __html: formatPost(newThreadBody) || '<em style="color: var(--text-muted)">No body content yet.</em>' }} />
+                  </>
+                )}
               </div>
               <footer>
                 <button type="button" className="btn" onClick={()=> setShowThreadModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Create Thread</button>
+                <button type="submit" className="btn btn-primary" disabled={!newThreadTitle.trim()}>Create Thread</button>
               </footer>
             </form>
           </div>

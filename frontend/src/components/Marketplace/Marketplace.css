@@ -481,3 +481,266 @@
   .mp-form { padding: 20px; }
   .mp-detail-header { flex-direction: column; align-items: flex-start; }
 }
+
+/* ═══════════════════════════════════════════════
+   Mobile Responsive — Tablet (max-width: 768px)
+   ═══════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Container — reduced padding */
+  .mp-container {
+    padding: var(--space-sm) var(--space-xs);
+  }
+
+  /* Hero — reduced padding */
+  .mp-hero {
+    padding: var(--space-lg) var(--space-md);
+    margin-bottom: var(--space-md);
+  }
+  .mp-hero h2 {
+    font-size: 22px;
+  }
+  .mp-hero p {
+    font-size: 14px;
+  }
+  .mp-hero::before {
+    width: 200px;
+    height: 200px;
+  }
+
+  /* Filter form — stack vertically */
+  .mp-filters {
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+  }
+  .mp-search-input {
+    width: 100%;
+    min-width: unset;
+    min-height: 44px;
+    font-size: 15px;
+  }
+  .mp-filters select {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  /* Listing grid — single column */
+  .mp-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-sm);
+  }
+  .mp-skeleton-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Listing card — reduced padding */
+  .mp-card-image {
+    height: 140px;
+  }
+  .mp-card-body {
+    padding: var(--space-sm) var(--space-md);
+  }
+  .mp-card-body h3 {
+    font-size: 13px;
+  }
+  .mp-card-price {
+    font-size: 16px;
+  }
+  .mp-card-meta {
+    gap: var(--space-xs);
+  }
+  .mp-badge-small {
+    font-size: 9px;
+    padding: 2px 6px;
+  }
+  .mp-card-location {
+    font-size: 10px;
+  }
+
+  /* Listing detail — stack vertically */
+  .mp-detail {
+    padding: var(--space-md);
+  }
+  .mp-detail-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+  }
+  .mp-detail-header h2 {
+    font-size: 20px;
+  }
+  .mp-price {
+    font-size: 22px;
+  }
+  .mp-detail-meta {
+    gap: var(--space-xs);
+    font-size: 12px;
+  }
+  .mp-detail-desc {
+    font-size: 13px;
+    margin-bottom: var(--space-md);
+  }
+
+  /* Detail photos — horizontal scroll */
+  .mp-detail-photos {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: var(--space-sm);
+  }
+  .mp-detail-photo {
+    width: 260px;
+    height: 180px;
+  }
+
+  /* Owner actions — stack */
+  .mp-owner-actions {
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+  }
+  .mp-owner-actions .btn-danger {
+    width: 100%;
+    min-height: 44px;
+    text-align: center;
+  }
+
+  /* Contact — full width */
+  .mp-contact {
+    font-size: 13px;
+  }
+
+  /* Create listing form — single column */
+  .mp-form {
+    padding: var(--space-md);
+    max-width: 100%;
+  }
+  .mp-form-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-sm);
+  }
+  .mp-form-item input,
+  .mp-form-item select,
+  .mp-form-item textarea {
+    min-height: 44px;
+  }
+
+  /* Photo preview — wrap */
+  .mp-photo-preview-row {
+    gap: var(--space-xs);
+  }
+  .mp-photo-preview {
+    width: 64px;
+    height: 64px;
+  }
+
+  /* Badges — wrap */
+  .mp-badge {
+    font-size: 11px;
+    padding: 3px 10px;
+  }
+
+  /* Empty state — reduced */
+  .mp-empty-state {
+    padding: var(--space-lg) var(--space-md);
+  }
+  .mp-empty-icon {
+    font-size: 36px;
+  }
+
+  /* Back button — 44px */
+  .mp-back {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* Sold overlay — smaller */
+  .mp-sold-overlay {
+    padding: var(--space-xs) var(--space-md);
+    font-size: 14px;
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   Mobile Responsive — Phone (max-width: 480px)
+   ═══════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  /* Container — minimal padding */
+  .mp-container {
+    padding: var(--space-xs);
+  }
+
+  /* Hero — minimal */
+  .mp-hero {
+    padding: var(--space-md) var(--space-sm);
+  }
+  .mp-hero h2 {
+    font-size: 18px;
+  }
+  .mp-hero p {
+    font-size: 13px;
+  }
+
+  /* Listing card — minimal */
+  .mp-card-image {
+    height: 120px;
+  }
+  .mp-card-body {
+    padding: var(--space-xs) var(--space-sm);
+  }
+  .mp-card-body h3 {
+    font-size: 12px;
+  }
+  .mp-card-price {
+    font-size: 15px;
+  }
+
+  /* Detail — minimal */
+  .mp-detail {
+    padding: var(--space-sm);
+  }
+  .mp-detail-header h2 {
+    font-size: 18px;
+  }
+  .mp-price {
+    font-size: 20px;
+  }
+  .mp-detail-desc {
+    font-size: 12px;
+  }
+  .mp-detail-photo {
+    width: 220px;
+    height: 150px;
+  }
+
+  /* Create form — minimal */
+  .mp-form {
+    padding: var(--space-sm);
+  }
+  .mp-form-item input,
+  .mp-form-item select,
+  .mp-form-item textarea {
+    font-size: 13px;
+  }
+
+  /* Photo preview — smaller */
+  .mp-photo-preview {
+    width: 56px;
+    height: 56px;
+  }
+
+  /* Empty state — minimal */
+  .mp-empty-state {
+    padding: var(--space-md) var(--space-sm);
+  }
+  .mp-empty-icon {
+    font-size: 28px;
+  }
+
+  /* Badges — minimal */
+  .mp-badge {
+    font-size: 10px;
+    padding: 2px 8px;
+  }
+}

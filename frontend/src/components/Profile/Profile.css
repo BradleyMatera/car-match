@@ -1159,3 +1159,361 @@ button:active,
     padding: var(--space-xl);
   }
 }
+
+/* ═══════════════════════════════════════════════
+   Mobile Responsive — Tablet (max-width: 768px) — Enhanced
+   ═══════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Profile container — reduced padding */
+  .profile-container {
+    padding: var(--space-sm) var(--space-xs);
+    margin: var(--space-md) auto;
+  }
+
+  /* Profile header — stack vertically (banner, avatar, info) */
+  .profile-header {
+    flex-direction: column;
+    text-align: center;
+    padding: var(--space-lg) var(--space-sm) var(--space-md);
+    gap: var(--space-md);
+  }
+  .profile-header::before {
+    height: 80px;
+  }
+  .profile-photo {
+    width: 110px;
+    height: 110px;
+    border-width: 3px;
+  }
+  .profile-photo-edit {
+    width: 32px;
+    height: 32px;
+    font-size: 0.85rem;
+  }
+  .profile-info h1 {
+    font-size: 1.5rem;
+  }
+  .profile-info h1::after {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .location {
+    justify-content: center;
+    font-size: 0.875rem;
+  }
+  .car-interests {
+    justify-content: center;
+  }
+  .interest-tag {
+    font-size: 0.78rem;
+    padding: var(--space-xs) var(--space-sm);
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* Premium status — stack */
+  .premium-status-display {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-sm);
+  }
+  .premium-status-display button {
+    width: 100%;
+    min-height: 44px;
+    margin-right: 0;
+  }
+
+  /* Profile sections — reduced padding */
+  .profile-section {
+    padding: var(--space-sm) var(--space-md);
+    margin-bottom: var(--space-md);
+  }
+  .profile-section h2 {
+    font-size: 1.25rem;
+  }
+
+  /* Tabs — horizontal scroll */
+  .message-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    gap: var(--space-xs);
+    border-bottom: 1px solid var(--border);
+  }
+  .message-tabs button {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: var(--space-sm) var(--space-md);
+    min-height: 44px;
+    font-size: 0.875rem;
+  }
+
+  /* Settings form — single column */
+  .settings-form label {
+    margin-bottom: var(--space-sm);
+  }
+  .settings-form input,
+  .settings-form select,
+  .settings-form textarea {
+    min-height: 44px;
+    font-size: 0.9rem;
+  }
+  .settings-actions {
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  .settings-actions button {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  /* Garage cards — single column */
+  .cars-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+  }
+  .car-card img {
+    height: 160px;
+  }
+  .car-card h3 {
+    font-size: 1.05rem;
+    padding: var(--space-sm) var(--space-md);
+  }
+  .car-card p {
+    padding: 0 var(--space-md) var(--space-sm);
+    font-size: 0.875rem;
+  }
+  .vehicle-actions {
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    padding: 0 var(--space-md) var(--space-sm);
+  }
+  .vehicle-actions .btn {
+    min-height: 44px;
+    flex: 1;
+  }
+
+  /* Vehicle edit form — single column */
+  .vehicle-edit-form {
+    gap: var(--space-sm);
+  }
+  .vehicle-edit-form input,
+  .vehicle-edit-form textarea {
+    min-height: 44px;
+  }
+
+  /* Activity feed / message list — full width */
+  .message-filters {
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+  }
+  .message-filters input,
+  .message-filters select {
+    width: 100%;
+    min-width: unset;
+    min-height: 44px;
+  }
+  .message-filters button {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  /* Message list — full width */
+  .message-list {
+    max-height: none;
+    padding: var(--space-sm);
+  }
+  .message-item {
+    padding: var(--space-sm) var(--space-md);
+  }
+  .message-item p {
+    font-size: 0.875rem;
+  }
+
+  /* Message actions — wrap */
+  .message-actions {
+    gap: var(--space-xs);
+  }
+  .message-actions .btn-small {
+    min-height: 36px;
+  }
+
+  /* Send message form — full width */
+  .send-message-form {
+    padding: var(--space-sm) var(--space-md);
+  }
+  .send-message-form input[type="text"],
+  .send-message-form textarea {
+    min-height: 44px;
+    font-size: 0.9rem;
+  }
+  .send-message-form button {
+    align-self: stretch;
+    width: 100%;
+    min-height: 44px;
+  }
+
+  /* Modal — full width, reduced padding */
+  .modal-content {
+    width: 95%;
+    padding: var(--space-lg);
+  }
+  .modal-content h3 {
+    font-size: 1.25rem;
+  }
+  .modal-content button {
+    min-height: 44px;
+  }
+
+  /* Delete confirm dialog — full width */
+  .delete-confirm-dialog {
+    padding: var(--space-md);
+  }
+  .delete-confirm-dialog input {
+    min-height: 44px;
+  }
+
+  /* Buttons — 44px touch targets */
+  button,
+  .btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn-small {
+    min-height: 36px;
+  }
+
+  /* Bio — reduced */
+  .bio {
+    font-size: 0.9rem;
+  }
+  .edit-section {
+    padding: var(--space-sm) var(--space-md);
+  }
+  .edit-section textarea {
+    min-height: 44px;
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   Mobile Responsive — Phone (max-width: 480px)
+   ═══════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  /* Profile container — minimal padding */
+  .profile-container {
+    padding: var(--space-xs);
+    margin: var(--space-sm) auto;
+  }
+
+  /* Profile header — minimal padding */
+  .profile-header {
+    padding: var(--space-md) var(--space-xs) var(--space-sm);
+    gap: var(--space-sm);
+  }
+  .profile-header::before {
+    height: 60px;
+  }
+  .profile-photo {
+    width: 90px;
+    height: 90px;
+    border-width: 2px;
+  }
+  .profile-photo-edit {
+    width: 28px;
+    height: 28px;
+    font-size: 0.75rem;
+  }
+  .profile-info h1 {
+    font-size: 1.25rem;
+  }
+  .profile-info h1::after {
+    width: 48px;
+  }
+  .location {
+    font-size: 0.8rem;
+  }
+  .interest-tag {
+    font-size: 0.72rem;
+    padding: var(--space-xs);
+  }
+
+  /* Profile sections — minimal */
+  .profile-section {
+    padding: var(--space-xs) var(--space-sm);
+    margin-bottom: var(--space-sm);
+  }
+  .profile-section h2 {
+    font-size: 1.1rem;
+    padding-bottom: var(--space-xs);
+  }
+
+  /* Tabs — compact */
+  .message-tabs button {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 0.8rem;
+  }
+
+  /* Garage cards — minimal */
+  .car-card img {
+    height: 130px;
+  }
+  .car-card h3 {
+    font-size: 1rem;
+    padding: var(--space-xs) var(--space-sm);
+  }
+  .car-card p {
+    padding: 0 var(--space-sm) var(--space-xs);
+    font-size: 0.82rem;
+  }
+  .vehicle-actions {
+    padding: 0 var(--space-sm) var(--space-xs);
+  }
+
+  /* Message list — minimal */
+  .message-item {
+    padding: var(--space-xs) var(--space-sm);
+  }
+  .message-item p {
+    font-size: 0.82rem;
+  }
+  .message-item small {
+    font-size: 0.72rem;
+  }
+
+  /* Send message form — minimal */
+  .send-message-form {
+    padding: var(--space-xs) var(--space-sm);
+    gap: var(--space-sm);
+  }
+  .send-message-form textarea {
+    min-height: 80px;
+  }
+
+  /* Modal — minimal */
+  .modal-content {
+    width: 95%;
+    padding: var(--space-md);
+  }
+  .modal-content h3 {
+    font-size: 1.1rem;
+  }
+
+  /* Settings — minimal */
+  .settings-form input,
+  .settings-form select,
+  .settings-form textarea {
+    font-size: 0.85rem;
+  }
+
+  /* Bio — minimal */
+  .bio {
+    font-size: 0.85rem;
+  }
+  .edit-section {
+    padding: var(--space-xs) var(--space-sm);
+  }
+}

@@ -3,25 +3,46 @@
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#0a0a0f" />
     <meta
       name="description"
-      content="CarMatch is a community platform for automotive enthusiasts to plan events, join forums, and connect with drivers who share their passion."
+      content="CarMatch is a community platform for automotive enthusiasts to plan events, join forums, and connect with drivers who share their passion. Browse real car shows, find local auto shops, join discussions, and more."
     />
-    <meta name="keywords" content="car community, car meets, automotive events, car forums, car matchmaking" />
+    <meta name="keywords" content="car community, car shows, car meets, automotive events, car forums, car matchmaking, auto repair shops, car parts marketplace, car enthusiasts, Illinois car shows, Midwest car events" />
     <meta name="author" content="Bradley Matera" />
+    <meta name="robots" content="index, follow" />
+    <meta name="googlebot" content="index, follow" />
+    <meta name="language" content="English" />
+    <meta name="revisit-after" content="1 day" />
     <link rel="canonical" href="https://bradleymatera.github.io/car-match/" />
+
+    <!-- Geo Tags (GEO) -->
+    <meta name="geo.region" content="US-IL" />
+    <meta name="geo.placename" content="Davis, Illinois" />
+    <meta name="geo.position" content="41.8;-89.2" />
+    <meta name="ICBM" content="41.8, -89.2" />
+
+    <!-- Open Graph -->
     <meta property="og:title" content="CarMatch | Find Your Perfect Car Match" />
-    <meta property="og:description" content="Discover car events, participate in forums, and meet drivers who share your style." />
+    <meta property="og:description" content="Discover real car events, join forums, find local auto shops, and connect with car enthusiasts near you." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://bradleymatera.github.io/car-match/" />
     <meta property="og:image" content="%PUBLIC_URL%/logo512.png" />
+    <meta property="og:site_name" content="CarMatch" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter Cards -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="CarMatch | Find Your Perfect Car Match" />
     <meta name="twitter:description" content="Plan drives, join discussions, and grow your automotive network on CarMatch." />
     <meta name="twitter:image" content="%PUBLIC_URL%/logo512.png" />
+
+    <!-- PWA / Mobile -->
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -37,9 +58,65 @@
         "name": "CarMatch",
         "url": "https://bradleymatera.github.io/car-match/",
         "logo": "https://bradleymatera.github.io/car-match/logo512.png",
+        "description": "Community platform for automotive enthusiasts to plan events, join forums, and connect with drivers.",
+        "areaServed": "United States",
         "sameAs": [
           "https://www.instagram.com/",
           "https://www.facebook.com/"
+        ]
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "CarMatch",
+        "url": "https://bradleymatera.github.io/car-match/",
+        "description": "Find car shows, join automotive forums, discover local auto shops, and connect with car enthusiasts.",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://bradleymatera.github.io/car-match/#/events?query={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "What is CarMatch?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "CarMatch is a community platform for automotive enthusiasts to discover car events, join discussion forums, find local auto shops, and connect with other car lovers."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do I find car shows near me?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Visit the Events page on CarMatch to browse real car shows, cars and coffee meets, track days, and other automotive events sourced from across the United States."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can I find auto repair shops on CarMatch?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes, the Shops directory features real automotive businesses including repair shops, parts stores, performance shops, detailing services, and towing companies near Davis, Illinois."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is CarMatch free to use?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes, CarMatch is free to join. Create an account to participate in forums, RSVP to events, list parts in the marketplace, and connect with the community."
+            }
+          }
         ]
       }
     </script>

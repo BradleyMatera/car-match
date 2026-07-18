@@ -358,3 +358,222 @@
   .vl-vehicle-form { grid-template-columns: 1fr; }
   .vl-input-row { flex-direction: column; }
 }
+
+/* ═══════════════════════════════════════════════
+   Mobile Responsive — Tablet (max-width: 768px)
+   ═══════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Container — full width */
+  .vehicle-lookup-container {
+    max-width: 100%;
+  }
+
+  /* Tab bar — horizontal scroll */
+  .vl-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    gap: var(--space-xs);
+    border-bottom: 2px solid var(--border);
+  }
+  .vl-tab {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: var(--space-sm) var(--space-md);
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    font-size: 13px;
+  }
+
+  /* VIN input — full width */
+  .vl-input-row {
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  .vl-vin-input {
+    width: 100%;
+    min-height: 44px;
+    font-size: 14px;
+  }
+  .vl-input-row .btn,
+  .vl-input-row button {
+    width: 100%;
+    min-height: 44px;
+    text-align: center;
+  }
+
+  /* Vehicle form — single column */
+  .vl-vehicle-form {
+    grid-template-columns: 1fr;
+    gap: var(--space-sm);
+  }
+  .vl-vehicle-form input {
+    min-height: 44px;
+    font-size: 14px;
+  }
+
+  /* Result cards — single column */
+  .vl-result-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-sm);
+  }
+  .vl-result-item {
+    padding: var(--space-sm) var(--space-md);
+  }
+  .vl-label {
+    font-size: 10px;
+  }
+  .vl-value {
+    font-size: 13px;
+  }
+
+  /* Recall / complaint cards — reduced padding */
+  .recall-card,
+  .complaint-card {
+    padding: var(--space-sm) var(--space-md);
+    margin-bottom: var(--space-sm);
+  }
+  .recall-header,
+  .complaint-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-xs);
+  }
+  .recall-component,
+  .complaint-component {
+    font-size: 13px;
+  }
+  .recall-summary,
+  .complaint-summary {
+    font-size: 12px;
+  }
+  .recall-consequence,
+  .recall-remedy {
+    font-size: 12px;
+  }
+
+  /* Safety ratings — single column */
+  .ratings-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: var(--space-sm);
+  }
+  .rating-item {
+    padding: var(--space-sm) var(--space-xs);
+  }
+  .rating-label {
+    font-size: 11px;
+  }
+  .stars {
+    font-size: 18px;
+  }
+
+  /* Ratings meta — wrap */
+  .ratings-meta {
+    gap: var(--space-sm);
+    font-size: 12px;
+    padding: var(--space-sm) var(--space-md);
+    flex-direction: column;
+  }
+
+  /* Section — reduced padding */
+  .vl-section {
+    padding: var(--space-md) 0;
+  }
+  .vl-section h3 {
+    font-size: 1.1rem;
+  }
+  .vl-section h4 {
+    font-size: 1rem;
+  }
+  .vl-desc {
+    font-size: 12px;
+  }
+
+  /* Count — smaller */
+  .vl-count {
+    font-size: 14px;
+  }
+
+  /* Complaint flags — wrap */
+  .complaint-flags {
+    gap: var(--space-xs);
+  }
+  .flag {
+    font-size: 10px;
+    padding: 2px 8px;
+  }
+
+  /* Recall campaign — smaller */
+  .recall-campaign {
+    font-size: 10px;
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   Mobile Responsive — Phone (max-width: 480px)
+   ═══════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  /* Tab bar — compact */
+  .vl-tab {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 12px;
+  }
+
+  /* VIN input — minimal */
+  .vl-vin-input {
+    font-size: 13px;
+    letter-spacing: 1px;
+  }
+
+  /* Result cards — minimal */
+  .vl-result-item {
+    padding: var(--space-xs) var(--space-sm);
+  }
+  .vl-label {
+    font-size: 9px;
+  }
+  .vl-value {
+    font-size: 12px;
+  }
+
+  /* Recall / complaint cards — minimal */
+  .recall-card,
+  .complaint-card {
+    padding: var(--space-xs) var(--space-sm);
+  }
+  .recall-component,
+  .complaint-component {
+    font-size: 12px;
+  }
+  .recall-summary,
+  .complaint-summary {
+    font-size: 11px;
+  }
+
+  /* Safety ratings — minimal */
+  .ratings-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-xs);
+  }
+  .rating-item {
+    padding: var(--space-xs);
+  }
+  .stars {
+    font-size: 16px;
+  }
+
+  /* Section — minimal */
+  .vl-section h3 {
+    font-size: 1rem;
+  }
+  .vl-desc {
+    font-size: 11px;
+  }
+
+  /* Empty — minimal */
+  .vl-empty {
+    padding: var(--space-md);
+    font-size: 13px;
+  }
+}

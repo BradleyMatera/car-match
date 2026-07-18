@@ -255,3 +255,170 @@
   .signup-step-actions { flex-direction: column-reverse; }
   .auth-back-btn { width: 100%; }
 }
+
+/* ═══════════════════════════════════════════════
+   Mobile Responsive — Tablet (max-width: 768px)
+   ═══════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Signup card — full width */
+  .signup-card {
+    max-width: 100%;
+  }
+
+  /* Step indicator — smaller */
+  .signup-steps-indicator {
+    margin-bottom: var(--space-md);
+    gap: 0;
+  }
+  .signup-step-dot {
+    width: 28px;
+    height: 28px;
+    font-size: 13px;
+  }
+  .signup-step-line {
+    width: 28px;
+  }
+
+  /* Step content — reduced gap */
+  .signup-step-content {
+    gap: var(--space-sm);
+  }
+
+  /* Step actions — stack */
+  .signup-step-actions {
+    flex-direction: column-reverse;
+    gap: var(--space-sm);
+  }
+  .auth-back-btn {
+    width: 100%;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .auth-submit-btn {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  /* Form inputs — full width, 44px height */
+  .signup-step-content select,
+  .signup-step-content textarea {
+    min-height: 44px;
+    font-size: 14px;
+  }
+
+  /* Field rows — stack */
+  .auth-field-row {
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  /* Photo upload — stack */
+  .signup-photo-upload {
+    flex-direction: column;
+    gap: var(--space-sm);
+    align-items: flex-start;
+  }
+  .signup-photo-preview,
+  .signup-photo-placeholder {
+    width: 64px;
+    height: 64px;
+  }
+  .signup-photo-btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  /* Car interests grid — 2 columns */
+  .signup-interests-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-xs);
+  }
+  .signup-interest-chip {
+    text-align: center;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    padding: var(--space-xs) var(--space-sm);
+  }
+
+  /* Password strength — full width */
+  .pw-strength-bar {
+    width: 100%;
+  }
+  .pw-strength-label {
+    font-size: 11px;
+  }
+
+  /* Hints — smaller */
+  .auth-field-hint {
+    font-size: 11px;
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   Mobile Responsive — Phone (max-width: 480px) — Enhanced
+   ═══════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  /* Signup card — minimal */
+  .signup-card {
+    max-width: 100%;
+  }
+
+  /* Step indicator — minimal */
+  .signup-step-dot {
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
+  }
+  .signup-step-line {
+    width: 20px;
+  }
+
+  /* Step content — minimal gap */
+  .signup-step-content {
+    gap: var(--space-sm);
+  }
+
+  /* Form inputs — minimal */
+  .signup-step-content select,
+  .signup-step-content textarea {
+    font-size: 13px;
+    padding: var(--space-sm);
+  }
+
+  /* Car interests — 2 columns, minimal */
+  .signup-interests-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-xs);
+  }
+  .signup-interest-chip {
+    font-size: 11px;
+    padding: var(--space-xs);
+  }
+
+  /* Photo upload — minimal */
+  .signup-photo-preview,
+  .signup-photo-placeholder {
+    width: 56px;
+    height: 56px;
+    font-size: 22px;
+  }
+
+  /* Password strength — minimal */
+  .pw-strength-label {
+    font-size: 10px;
+  }
+
+  /* Hints — minimal */
+  .auth-field-hint {
+    font-size: 10px;
+  }
+}

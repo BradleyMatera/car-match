@@ -1,13 +1,11 @@
-import React, { useContext, useEffect } from 'react'; // Removed useState, useEffect from here
+import React, { useContext, useEffect, useState } from 'react';
 import { HashRouter as Router, Route, Routes, Navigate, Link, useLocation } from 'react-router-dom';
 import './App.css';
 import Home from './components/Home';
 import Events from './components/Events';
 import Profile from './components/Profile';
-// Settings merged into Profile; route removed
 import Forums from './components/Forums';
-// import EntryModal from './components/EntryModal'; // Replaced by SignUp component for /signup route
-import SignUp from './components/SignUp'; // Import the new SignUp component
+import SignUp from './components/SignUp';
 import Login from './components/Login';
 import VehicleLookup from './components/VehicleLookup';
 import BusinessDirectory from './components/BusinessDirectory';
@@ -16,47 +14,78 @@ import Layout from './components/Layout';
 import AuthContext, { AuthProvider } from './context/AuthContext';
 import { trackPageView } from './utils/analytics';
 
-function AppContent() { 
+function AppContent() {
   const { currentUser, logout, loadingAuth } = useContext(AuthContext);
-  const isLoggedIn = !!currentUser; // Determine login status from currentUser
+  const isLoggedIn = !!currentUser;
   const location = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const hash = window.location.hash || '';
     trackPageView(`${location.pathname}${location.search}${hash}`);
   }, [location]);
 
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location]);
+
   if (loadingAuth) {
-    return <div>Loading application...</div>; // Or a proper spinner
+    return <div className="app-loading">Loading application...</div>;
   }
 
+  const navLinks = isLoggedIn ? (
+    <>
+      <li><Link to="/">Discover</Link></li>
+      <li><Link to="/events">Events</Link></li>
+      <li><Link to="/forums">Forums</Link></li>
+      <li><Link to="/marketplace">Marketplace</Link></li>
+      <li><Link to="/businesses">Shops</Link></li>
+      <li><Link to="/vehicle-lookup">Garage Tools</Link></li>
+      <li><Link to="/profile">Profile</Link></li>
+      <li><button onClick={logout} className="logout-button">Logout</button></li>
+    </>
+  ) : null;
+
   return (
-    <div className={`App ${!isLoggedIn ? 'modal-active' : ''}`}>
+    <div className={`App ${!isLoggedIn ? 'modal-active' : ''} ${mobileMenuOpen ? 'mobile-menu-open' : ''}`}>
       <header className="top-nav">
         <div className="logo">CarMatch</div>
-        {isLoggedIn && ( // Only show nav if logged in, or adjust as per design
-          <nav>
-            <ul>
-              <li><Link to="/">Discover</Link></li>
-              <li><Link to="/events">Events</Link></li>
-              <li><Link to="/forums">Forums</Link></li>
-              <li><Link to="/marketplace">Marketplace</Link></li>
-              <li><Link to="/businesses">Shops</Link></li>
-              <li><Link to="/vehicle-lookup">Garage Tools</Link></li>
-              {/* Messages moved under Profile; remove header link */}
-              <li><Link to="/profile">Profile</Link></li>
-              {/* Settings merged into Profile */}
-              <li><button onClick={logout} className="logout-button">Logout</button></li>
-            </ul>
-          </nav>
+        {isLoggedIn && (
+          <>
+            <nav className="nav-desktop">
+              <ul>
+                {navLinks}
+              </ul>
+            </nav>
+            <button
+              className="hamburger"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle menu"
+              aria-expanded={mobileMenuOpen}
+            >
+              <span className={`hamburger-line ${mobileMenuOpen ? 'open' : ''}`}></span>
+              <span className={`hamburger-line ${mobileMenuOpen ? 'open' : ''}`}></span>
+              <span className={`hamburger-line ${mobileMenuOpen ? 'open' : ''}`}></span>
+            </button>
+          </>
         )}
       </header>
+      {isLoggedIn && mobileMenuOpen && (
+        <>
+          <div className="mobile-nav-overlay" onClick={() => setMobileMenuOpen(false)} />
+          <nav className="nav-mobile">
+            <ul>
+              {navLinks}
+            </ul>
+          </nav>
+        </>
+      )}
       <main>
         <Routes>
           {!isLoggedIn ? (
             <>
-              <Route path="/login" element={<Login />} /> 
-              <Route path="/signup" element={<SignUp />} /> {/* Use SignUp component */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<SignUp />} />
               <Route path="*" element={<Navigate to="/login" />} />
             </>
           ) : (
@@ -67,9 +96,7 @@ function AppContent() {
               <Route path="/vehicle-lookup" element={<Layout><VehicleLookup /></Layout>} />
               <Route path="/businesses" element={<Layout><BusinessDirectory /></Layout>} />
               <Route path="/marketplace" element={<Layout><Marketplace /></Layout>} />
-              {/* Messages page removed; handled within Profile */}
               <Route path="/profile" element={<Layout><Profile /></Layout>} />
-              {/* Settings merged into Profile; route removed */}
               <Route path="*" element={<Navigate to="/" />} />
             </>
           )}

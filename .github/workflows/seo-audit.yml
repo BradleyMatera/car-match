@@ -1,0 +1,32 @@
+name: SEO/GEO/AEO Audit
+
+on:
+  schedule:
+    # Run daily at 8 AM UTC (3 AM CST)
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Lighthouse
+        run: npm install -g lighthouse
+
+      - name: Run SEO/GEO/AEO Audit
+        run: node scripts/seo-audit.js "https://bradleymatera.github.io/car-match/"
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seo-audit-report
+          path: /tmp/seo-audit/seo-report.json

@@ -592,3 +592,302 @@
   .bd-detail { padding: 20px; }
   .bd-form { padding: 20px; }
 }
+
+/* ═══════════════════════════════════════════════
+   Mobile Responsive — Tablet (max-width: 768px)
+   ═══════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Container — reduced padding */
+  .bd-container {
+    padding: var(--space-sm) var(--space-xs);
+  }
+
+  /* Hero — reduced padding */
+  .bd-hero {
+    padding: var(--space-lg) var(--space-md);
+    margin-bottom: var(--space-md);
+  }
+  .bd-hero h2 {
+    font-size: 22px;
+  }
+  .bd-hero p {
+    font-size: 14px;
+  }
+
+  /* Filter form — stack vertically */
+  .bd-filters {
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+  }
+  .bd-search-input {
+    width: 100%;
+    min-width: unset;
+    min-height: 44px;
+    font-size: 15px;
+  }
+  .bd-state-input {
+    width: 100%;
+    min-height: 44px;
+  }
+  .bd-filters select {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  /* Business grid — single column */
+  .bd-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-sm);
+  }
+  .bd-skeleton-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Business card — reduced padding */
+  .bd-card {
+    padding: var(--space-sm) var(--space-md);
+  }
+  .bd-card-header {
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+  }
+  .bd-card-logo,
+  .bd-card-logo-placeholder {
+    width: 40px;
+    height: 40px;
+  }
+  .bd-card-header h3 {
+    font-size: 15px;
+  }
+  .bd-card-desc {
+    font-size: 12px;
+    margin: var(--space-xs) 0 var(--space-sm);
+  }
+  .bd-card-footer {
+    font-size: 11px;
+  }
+
+  /* Business detail — stack vertically */
+  .bd-detail {
+    padding: var(--space-md);
+  }
+  .bd-detail-header {
+    flex-direction: column;
+    gap: var(--space-sm);
+    align-items: flex-start;
+    margin-bottom: var(--space-md);
+  }
+  .bd-detail-logo {
+    width: 56px;
+    height: 56px;
+  }
+  .bd-detail-desc {
+    font-size: 13px;
+    margin-bottom: var(--space-md);
+  }
+
+  /* Contact grid — single column */
+  .bd-contact-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-sm);
+  }
+  .bd-contact-item {
+    padding: var(--space-sm) var(--space-md);
+    min-height: 44px;
+  }
+
+  /* Photos — single column */
+  .bd-photos-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: var(--space-xs);
+  }
+  .bd-photo {
+    height: 100px;
+  }
+
+  /* Reviews — full width */
+  .bd-review-card {
+    padding: var(--space-sm) var(--space-md);
+    margin-bottom: var(--space-sm);
+  }
+  .bd-review-header {
+    flex-direction: column;
+    gap: var(--space-xs);
+    align-items: flex-start;
+  }
+  .bd-reviewer {
+    font-size: 13px;
+  }
+  .bd-review-text {
+    font-size: 12px;
+  }
+
+  /* Review form — full width */
+  .bd-review-form {
+    padding: var(--space-md);
+    margin-top: var(--space-md);
+  }
+  .bd-review-form textarea {
+    min-height: 44px;
+    font-size: 14px;
+  }
+  .bd-rating-select {
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+  .bd-rating-select select {
+    min-height: 44px;
+  }
+
+  /* Create form — single column */
+  .bd-form {
+    padding: var(--space-md);
+    max-width: 100%;
+  }
+  .bd-form-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-sm);
+  }
+  .bd-form-item input,
+  .bd-form-item select,
+  .bd-form-item textarea {
+    min-height: 44px;
+  }
+
+  /* Empty state — reduced */
+  .bd-empty-state {
+    padding: var(--space-lg) var(--space-md);
+  }
+  .bd-empty-icon {
+    font-size: 36px;
+  }
+
+  /* Tags — wrap */
+  .bd-service-tags,
+  .bd-cert-tags {
+    gap: var(--space-xs);
+  }
+  .bd-service-tag,
+  .bd-cert-tag {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+
+  /* Back button — 44px */
+  .bd-back {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   Mobile Responsive — Phone (max-width: 480px)
+   ═══════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  /* Container — minimal padding */
+  .bd-container {
+    padding: var(--space-xs);
+  }
+
+  /* Hero — minimal */
+  .bd-hero {
+    padding: var(--space-md) var(--space-sm);
+  }
+  .bd-hero h2 {
+    font-size: 18px;
+  }
+  .bd-hero p {
+    font-size: 13px;
+  }
+  .bd-hero::before {
+    width: 200px;
+    height: 200px;
+  }
+
+  /* Filters — minimal */
+  .bd-filters {
+    gap: var(--space-xs);
+  }
+
+  /* Business card — minimal */
+  .bd-card {
+    padding: var(--space-xs) var(--space-sm);
+  }
+  .bd-card-logo,
+  .bd-card-logo-placeholder {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+  }
+  .bd-card-header h3 {
+    font-size: 14px;
+  }
+  .bd-card-desc {
+    font-size: 11px;
+  }
+  .bd-card-footer {
+    font-size: 10px;
+  }
+
+  /* Detail — minimal */
+  .bd-detail {
+    padding: var(--space-sm);
+  }
+  .bd-detail-logo {
+    width: 48px;
+    height: 48px;
+  }
+  .bd-detail-title h2 {
+    font-size: 18px;
+  }
+  .bd-detail-desc {
+    font-size: 12px;
+  }
+
+  /* Contact — minimal */
+  .bd-contact-item {
+    padding: var(--space-xs) var(--space-sm);
+  }
+  .bd-contact-label {
+    font-size: 10px;
+  }
+
+  /* Photos — minimal */
+  .bd-photos-grid {
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  }
+  .bd-photo {
+    height: 80px;
+  }
+
+  /* Reviews — minimal */
+  .bd-review-card {
+    padding: var(--space-xs) var(--space-sm);
+  }
+  .bd-review-text {
+    font-size: 11px;
+  }
+
+  /* Review form — minimal */
+  .bd-review-form {
+    padding: var(--space-sm);
+  }
+  .bd-review-form textarea {
+    font-size: 13px;
+  }
+
+  /* Create form — minimal */
+  .bd-form {
+    padding: var(--space-sm);
+  }
+
+  /* Empty state — minimal */
+  .bd-empty-state {
+    padding: var(--space-md) var(--space-sm);
+  }
+  .bd-empty-icon {
+    font-size: 28px;
+  }
+}

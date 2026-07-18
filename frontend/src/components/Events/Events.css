@@ -1022,3 +1022,360 @@
     height: 180px;
   }
 }
+
+/* ═══════════════════════════════════════════════
+   Mobile Responsive — Tablet (max-width: 768px) — Enhanced
+   ═══════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Events container — reduced padding */
+  .events-container {
+    padding: var(--space-sm) var(--space-xs);
+  }
+
+  /* Header — smaller font */
+  .events-header h1 {
+    font-size: 1.75rem;
+  }
+  .page-description {
+    font-size: 0.95rem;
+  }
+
+  /* Section title — smaller */
+  .section-title {
+    font-size: 1.4rem;
+  }
+
+  /* Filters — stack vertically */
+  .events-filters {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-sm);
+  }
+  .events-search-input,
+  .events-date-filter {
+    width: 100%;
+    min-width: unset;
+    min-height: 44px;
+    font-size: 15px;
+  }
+
+  /* Events grid — single column */
+  .event-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Calendar — smaller cells, smaller font */
+  .calendar-wrapper {
+    padding: var(--space-sm);
+  }
+  .react-calendar__navigation button {
+    font-size: 0.85rem;
+    padding: var(--space-xs) var(--space-sm);
+    min-height: 44px;
+  }
+  .react-calendar__month-view__weekdays {
+    font-size: 0.65rem;
+  }
+  .react-calendar__tile {
+    padding: 6px 4px;
+    font-size: 0.8rem;
+  }
+  .react-calendar__tile.has-events::after {
+    width: 4px;
+    height: 4px;
+    bottom: 3px;
+  }
+
+  /* Event detail modal — full width, reduced padding */
+  .modal {
+    width: 95vw;
+    max-width: none;
+  }
+  .modal header {
+    padding: var(--space-sm) var(--space-md);
+    font-size: 1rem;
+  }
+  .modal .content {
+    padding: var(--space-md);
+    gap: var(--space-sm);
+  }
+  .modal input,
+  .modal textarea {
+    font-size: 14px;
+    min-height: 44px;
+  }
+  .modal footer {
+    padding: var(--space-sm) var(--space-md);
+    flex-direction: column-reverse;
+  }
+  .modal footer .btn {
+    width: 100%;
+    min-height: 44px;
+    text-align: center;
+  }
+
+  /* Event cards — reduced padding, smaller images */
+  .carousel-content {
+    padding: var(--space-sm);
+    min-height: 120px;
+  }
+  .carousel-content h3 {
+    font-size: 1.05rem;
+  }
+  .carousel-card img,
+  .carousel-card .card-img {
+    height: 150px;
+  }
+
+  /* Event details — reduced padding */
+  .event-details {
+    padding: var(--space-sm) var(--space-md);
+  }
+  .event-details h2 {
+    font-size: 1.4rem;
+  }
+  .event-hero {
+    height: 160px;
+  }
+  .event-hero-overlay {
+    padding: var(--space-sm);
+  }
+  .event-hero-overlay h2 {
+    font-size: 1.2rem;
+  }
+  .hero-meta {
+    font-size: 12px;
+    gap: 8px;
+  }
+
+  /* Event gallery — smaller */
+  .event-gallery {
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 6px;
+  }
+
+  /* Side cards — full width */
+  .side-card {
+    padding: var(--space-sm) var(--space-md);
+  }
+  .glance-list {
+    font-size: 0.85rem;
+  }
+
+  /* Schedule — stack */
+  .schedule-item {
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  /* Comments — reduced padding */
+  .comments-section h3 {
+    font-size: 1.2rem;
+  }
+  .comment-card {
+    padding: var(--space-sm) var(--space-md);
+  }
+  .comment-input {
+    min-height: 44px;
+    font-size: 14px;
+  }
+  .comment-button {
+    min-height: 44px;
+    width: 100%;
+  }
+
+  /* RSVP button — full width */
+  .rsvp-button {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+    font-size: 0.9rem;
+  }
+  .rsvp-button.small {
+    width: auto;
+    min-height: 36px;
+  }
+
+  /* Event actions — stack */
+  .event-actions {
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  .event-actions .rsvp-button {
+    width: 100%;
+  }
+
+  /* Discovered grid — single column */
+  .discovered-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-sm);
+  }
+  .discovered-card-img,
+  .discovered-card-noimg {
+    height: 120px;
+  }
+
+  /* Badges — wrap */
+  .event-badges {
+    gap: 6px;
+  }
+  .event-owner-chip,
+  .event-status-chip {
+    font-size: 0.65rem;
+    padding: 3px 8px;
+  }
+
+  /* Buttons — 44px touch targets */
+  .btn-small {
+    min-height: 36px;
+  }
+
+  /* Page flash — full width */
+  .page-flash {
+    flex-direction: column;
+    gap: var(--space-xs);
+    text-align: center;
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   Mobile Responsive — Phone (max-width: 480px)
+   ═══════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  /* Events container — minimal padding */
+  .events-container {
+    padding: var(--space-xs);
+  }
+
+  /* Header — smaller */
+  .events-header h1 {
+    font-size: 1.5rem;
+  }
+  .events-header h1::after {
+    width: 48px;
+  }
+  .page-description {
+    font-size: 0.875rem;
+  }
+
+  /* Section title — smaller */
+  .section-title {
+    font-size: 1.2rem;
+  }
+  .upcoming-events h2 {
+    font-size: 1.3rem;
+  }
+
+  /* Calendar — minimal */
+  .calendar-wrapper {
+    padding: var(--space-xs);
+  }
+  .react-calendar__navigation button {
+    font-size: 0.78rem;
+    padding: 4px 6px;
+  }
+  .react-calendar__month-view__weekdays {
+    font-size: 0.58rem;
+  }
+  .react-calendar__tile {
+    padding: 4px 2px;
+    font-size: 0.72rem;
+  }
+
+  /* Event cards — minimal */
+  .carousel-content {
+    padding: var(--space-xs);
+    min-height: 100px;
+  }
+  .carousel-content h3 {
+    font-size: 0.95rem;
+  }
+  .carousel-content .event-date {
+    font-size: 0.8rem;
+  }
+  .carousel-content .event-meta {
+    font-size: 0.75rem;
+  }
+  .carousel-card img,
+  .carousel-card .card-img {
+    height: 120px;
+  }
+
+  /* Event details — minimal padding */
+  .event-details {
+    padding: var(--space-xs) var(--space-sm);
+  }
+  .event-details h2 {
+    font-size: 1.2rem;
+  }
+  .event-hero {
+    height: 130px;
+  }
+  .event-hero-overlay h2 {
+    font-size: 1.05rem;
+  }
+  .hero-meta {
+    font-size: 11px;
+  }
+
+  /* Event gallery — smaller */
+  .event-gallery {
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    gap: 4px;
+  }
+
+  /* Side cards — minimal */
+  .side-card {
+    padding: var(--space-xs) var(--space-sm);
+  }
+  .glance-list {
+    font-size: 0.8rem;
+  }
+
+  /* Comments — minimal */
+  .comments-section h3 {
+    font-size: 1.1rem;
+  }
+  .comment-card {
+    padding: var(--space-xs) var(--space-sm);
+  }
+  .comment-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-xs);
+  }
+
+  /* RSVP — full width */
+  .rsvp-button {
+    font-size: 0.85rem;
+  }
+
+  /* Modal — full width */
+  .modal {
+    width: 100vw;
+    border-radius: 0;
+  }
+  .modal header {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 0.9rem;
+  }
+  .modal .content {
+    padding: var(--space-sm);
+  }
+
+  /* Discovered — minimal */
+  .discovered-card-body {
+    padding: var(--space-xs) var(--space-sm);
+  }
+  .discovered-card-body h3 {
+    font-size: 14px;
+  }
+
+  /* Empty state — reduced */
+  .events-empty-state {
+    padding: var(--space-lg) var(--space-sm);
+  }
+  .events-empty-state h3 {
+    font-size: 1.1rem;
+  }
+}

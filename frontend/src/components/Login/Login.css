@@ -292,3 +292,189 @@
   .auth-card { padding: 28px 20px; border-radius: var(--radius-lg); }
   .auth-options { flex-direction: column; align-items: flex-start; gap: 8px; }
 }
+
+/* ═══════════════════════════════════════════════
+   Mobile Responsive — Tablet (max-width: 768px)
+   ═══════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Auth container — reduced padding */
+  .auth-container {
+    padding: var(--space-sm);
+    align-items: flex-start;
+    min-height: auto;
+    padding-top: var(--space-xl);
+  }
+
+  /* Auth card — full width, reduced padding */
+  .auth-card {
+    max-width: 100%;
+    padding: var(--space-lg) var(--space-md);
+    border-radius: var(--radius-lg);
+  }
+
+  /* Logo — smaller */
+  .auth-logo {
+    font-size: 24px;
+  }
+
+  /* Heading — smaller */
+  .auth-card h2 {
+    font-size: 20px;
+  }
+  .auth-subtitle {
+    font-size: 13px;
+    margin-bottom: var(--space-lg);
+  }
+
+  /* Form inputs — full width, 44px height */
+  .auth-field input,
+  .auth-form input[type="email"],
+  .auth-form input[type="text"],
+  .auth-form input[type="password"] {
+    min-height: 44px;
+    font-size: 15px;
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  /* Password toggle — 44px touch target */
+  .auth-password-toggle {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Options — stack on smaller screens */
+  .auth-options {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+  }
+
+  /* Submit button — full width, 44px */
+  .auth-submit-btn {
+    min-height: 48px;
+    font-size: 15px;
+  }
+
+  /* Divider — full width */
+  .auth-divider {
+    margin: var(--space-md) 0 var(--space-sm);
+  }
+
+  /* Switch link — full width */
+  .auth-switch {
+    margin-bottom: var(--space-md);
+  }
+
+  /* Social proof / features — stack */
+  .auth-features {
+    padding-top: var(--space-md);
+    gap: var(--space-sm);
+  }
+  .auth-feature-item {
+    font-size: 12px;
+  }
+
+  /* Error — full width */
+  .auth-error {
+    font-size: 13px;
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  /* Success banner — reduced */
+  .auth-success-banner {
+    padding: var(--space-md) 0;
+  }
+  .auth-success-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    line-height: 40px;
+  }
+
+  /* Link button — 44px */
+  .auth-link-btn {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Forgot button — 44px touch target */
+  .auth-forgot-btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   Mobile Responsive — Phone (max-width: 480px) — Enhanced
+   ═══════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  /* Auth container — minimal padding */
+  .auth-container {
+    padding: var(--space-xs);
+    padding-top: var(--space-md);
+  }
+
+  /* Auth card — minimal padding, full width */
+  .auth-card {
+    padding: var(--space-md) var(--space-sm);
+    border-radius: var(--radius-md);
+    max-width: 100%;
+  }
+
+  /* Logo — minimal */
+  .auth-logo {
+    font-size: 22px;
+  }
+
+  /* Heading — minimal */
+  .auth-card h2 {
+    font-size: 18px;
+  }
+  .auth-subtitle {
+    font-size: 12px;
+    margin-bottom: var(--space-md);
+  }
+
+  /* Form — minimal gap */
+  .auth-form {
+    gap: var(--space-sm);
+  }
+
+  /* Inputs — minimal */
+  .auth-field input,
+  .auth-form input[type="email"],
+  .auth-form input[type="text"],
+  .auth-form input[type="password"] {
+    font-size: 14px;
+    padding: var(--space-sm);
+  }
+
+  /* Submit button — minimal */
+  .auth-submit-btn {
+    padding: var(--space-sm) var(--space-md);
+    font-size: 14px;
+  }
+
+  /* Social proof / features — hide on very small screens to save space */
+  .auth-features {
+    display: none;
+  }
+
+  /* Divider — minimal */
+  .auth-divider {
+    margin: var(--space-sm) 0 var(--space-xs);
+    font-size: 12px;
+  }
+
+  /* Switch — minimal */
+  .auth-switch {
+    font-size: 13px;
+    margin-bottom: var(--space-sm);
+  }
+}
