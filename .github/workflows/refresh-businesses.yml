@@ -1,0 +1,26 @@
+name: Refresh Discovered Businesses
+
+on:
+  schedule:
+    # Run daily at 6:00 AM UTC (1:00 AM CST)
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger business refresh
+        run: |
+          RESPONSE=$(curl -sS -m 120 -X POST "${{ secrets.CLOUD_RUN_URL }}/businesses/refresh-discovered" \
+            -H "x-refresh-secret: ${{ secrets.REFRESH_SECRET }}" \
+            -H "Content-Type: application/json")
+          echo "Response: $RESPONSE"
+          # Check if the response contains an error
+          if echo "$RESPONSE" | grep -q '"error"'; then
+            echo "::error::Business refresh failed"
+            exit 1
+          fi
+        env:
+          CLOUD_RUN_URL: ${{ secrets.CLOUD_RUN_URL }}
+          REFRESH_SECRET: ${{ secrets.REFRESH_SECRET }}

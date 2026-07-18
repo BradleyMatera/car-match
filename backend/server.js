@@ -423,6 +423,19 @@ if (MONGODB_URI) {
       } catch (se) {
         logger.warn('Event-thread sync warning', { error: se });
       }
+
+      // Delete all fake/seeded businesses — only keep real discovered businesses
+      try {
+        const fakeBusinesses = await BusinessModel.find({ tags: { $nin: ['discovered'] } }).lean();
+        if (fakeBusinesses.length > 0) {
+          const fakeIds = fakeBusinesses.map(b => b._id);
+          await ReviewModel.deleteMany({ businessId: { $in: fakeIds } });
+          await BusinessModel.deleteMany({ tags: { $nin: ['discovered'] } });
+          logger.info('Deleted fake/seeded businesses', { count: fakeBusinesses.length });
+        }
+      } catch (be) {
+        logger.warn('Fake business cleanup warning', { error: be });
+      }
     })
     .catch(err => {
       logger.error('MongoDB connection failed', { error: err });
@@ -2391,6 +2404,7 @@ const normalizeBusiness = (raw) => {
     verified: !!doc.verified,
     rating: doc.rating || 0,
     reviewCount: doc.reviewCount || 0,
+    tags: doc.tags || [],
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   };
@@ -2771,6 +2785,150 @@ app.get('/businesses/:id/reviews', async (req, res) => {
   } catch (error) {
     logger.error('Get business reviews error', { error, requestId: req.requestId, businessId: req.params.id });
     res.status(500).json({ message: 'Error fetching reviews' });
+  }
+});
+
+// POST /businesses/refresh-discovered — auth required (admin JWT OR shared refresh secret).
+// Uses SerpAPI Google Maps engine to find real automotive businesses near Davis, IL (50mi radius).
+const BUSINESS_SEARCH_QUERIES = [
+  { q: 'auto repair shop', category: 'repair-shop' },
+  { q: 'auto parts store', category: 'parts-store' },
+  { q: 'performance auto shop', category: 'performance-shop' },
+  { q: 'car detailing', category: 'detailing' },
+  { q: 'towing service', category: 'towing' },
+  { q: 'tire shop', category: 'general-automotive' },
+  { q: 'car dealership', category: 'general-automotive' },
+  { q: 'auto body repair', category: 'repair-shop' },
+  { q: 'oil change', category: 'general-automotive' },
+  { q: 'transmission repair', category: 'repair-shop' },
+];
+
+app.post('/businesses/refresh-discovered', async (req, res) => {
+  try {
+    const hasRefreshSecret = REFRESH_SECRET && req.headers['x-refresh-secret'] === REFRESH_SECRET;
+    if (!hasRefreshSecret) {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      try {
+        const decoded = jwt.verify(authHeader.split(' ')[1], JWT_SECRET);
+        const isAdmin = decoded.role === 'admin' || decoded.developerOverride === true;
+        if (!isAdmin) {
+          return res.status(403).json({ message: 'Forbidden: admin only' });
+        }
+      } catch (e) {
+        return res.status(401).json({ message: 'Invalid token' });
+      }
+    }
+
+    if (!SERPAPI_KEY) {
+      return res.status(503).json({ message: 'SerpAPI key not configured' });
+    }
+    if (mongoose.connection.readyState !== 1 || !BusinessModel) {
+      return res.status(503).json({ message: 'Database not connected' });
+    }
+
+    // Davis, IL coordinates (Lee County) — 50 mile radius
+    // @41.8,-89.2,12z is roughly the center; we search with broader zoom for 50mi
+    const ll = '@41.8,-89.2,11z';
+    const searchUrl = (q) => `https://serpapi.com/search.json?engine=google_maps&q=${encodeURIComponent(q)}&type=search&ll=${encodeURIComponent(ll)}&api_key=${encodeURIComponent(SERPAPI_KEY)}`;
+
+    const fetchOne = async ({ q, category }) => {
+      const url = searchUrl(q);
+      const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if (!resp.ok) throw new Error(`SerpAPI HTTP ${resp.status} for "${q}"`);
+      const json = await resp.json();
+      return { q, category, json };
+    };
+
+    const settled = await Promise.allSettled(BUSINESS_SEARCH_QUERIES.map(fetchOne));
+
+    // Collect all unique businesses (dedupe by place_id or title+address)
+    const seen = new Set();
+    const allDocs = [];
+    const results = [];
+
+    for (const r of settled) {
+      if (r.status !== 'fulfilled') {
+        const sq = BUSINESS_SEARCH_QUERIES[settled.indexOf(r)];
+        results.push({ query: sq.q, found: 0, error: String(r.reason?.message || r.reason) });
+        continue;
+      }
+      const { q, category, json } = r.value;
+      const places = Array.isArray(json?.local_results) ? json.local_results : [];
+      let count = 0;
+      for (const p of places) {
+        const dedupeKey = p.place_id || `${p.title}|${p.address}`;
+        if (seen.has(dedupeKey)) continue;
+        seen.add(dedupeKey);
+
+        // Parse address to extract city, state, zip
+        const addrParts = (p.address || '').split(',').map(s => s.trim());
+        let city = '', state = '', zip = '', streetAddr = '';
+        if (addrParts.length >= 3) {
+          streetAddr = addrParts[0];
+          city = addrParts[1];
+          const stateZip = addrParts[2].match(/^([A-Z]{2})\s+(\d{5})/);
+          if (stateZip) { state = stateZip[1]; zip = stateZip[2]; }
+        } else if (addrParts.length === 2) {
+          streetAddr = addrParts[0];
+          const stateZip = addrParts[1].match(/^([A-Z]{2})\s+(\d{5})/);
+          if (stateZip) { state = stateZip[1]; zip = stateZip[2]; }
+        }
+
+        allDocs.push({
+          businessName: p.title || 'Unknown',
+          category,
+          description: p.description || `${p.type || q} in ${city || 'the area'}`,
+          services: p.types ? p.types.filter(Boolean) : [p.type || q],
+          address: p.address || '',
+          city,
+          state,
+          zipCode: zip,
+          geoCoordinates: p.gps_coordinates ? { lat: p.gps_coordinates.latitude, lon: p.gps_coordinates.longitude } : { lat: 0, lon: 0 },
+          phone: p.phone || '',
+          website: p.website || '',
+          hours: p.open_state || '',
+          logo: p.thumbnail || p.serpapi_thumbnail || '',
+          photos: p.thumbnail ? [p.thumbnail] : [],
+          rating: p.rating || 0,
+          reviewCount: p.reviews || 0,
+          verified: true,
+          tags: ['discovered', category],
+          ownerId: 'discovered-system',
+          ownerUsername: 'CarMatch_Discovered',
+        });
+        count++;
+      }
+      results.push({ query: q, found: count });
+    }
+
+    // Delete previously discovered businesses and their reviews
+    const oldDiscovered = await BusinessModel.find({ tags: 'discovered' }).lean();
+    const oldIds = oldDiscovered.map(b => b._id);
+    if (oldIds.length > 0) {
+      await ReviewModel.deleteMany({ businessId: { $in: oldIds } });
+      await BusinessModel.deleteMany({ tags: 'discovered' });
+    }
+
+    // Insert new discovered businesses
+    let createdCount = 0;
+    if (allDocs.length > 0) {
+      const inserted = await BusinessModel.insertMany(allDocs, { ordered: false });
+      createdCount = inserted.length;
+    }
+
+    logger.info('Discovered businesses refreshed', { count: createdCount, total: allDocs.length, requestId: req.requestId });
+    return res.json({
+      message: 'Discovered businesses refreshed',
+      count: createdCount,
+      total: allDocs.length,
+      results,
+    });
+  } catch (error) {
+    logger.error('POST /businesses/refresh-discovered error', { error: error?.message || error, requestId: req.requestId });
+    return res.status(500).json({ message: 'Error refreshing discovered businesses' });
   }
 });
 
