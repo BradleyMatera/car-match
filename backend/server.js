@@ -1889,47 +1889,6 @@ app.get('/events', async (req, res) => {
   }
 });
 
-// GET /events/discovered — public, no auth. Returns cached discovered events from SerpAPI.
-// MUST be registered before /events/:eventId to avoid the param route catching "discovered".
-app.get('/events/discovered', async (req, res) => {
-  try {
-    const { q } = req.query;
-    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-    const limit = Math.min(200, Math.max(1, parseInt(req.query.limit, 10) || 50));
-    const skip = (page - 1) * limit;
-
-    if (mongoose.connection.readyState !== 1 || !DiscoveredEventModel) {
-      return res.json({ data: [], total: 0, page, limit });
-    }
-
-    const now = new Date();
-    const filter = {
-      $or: [
-        { dateStart: { $gte: now } },
-        { dateStart: null },
-        { dateStart: { $exists: false } },
-      ],
-    };
-    if (q && String(q).trim()) {
-      filter.title = { $regex: String(q).trim(), $options: 'i' };
-    }
-
-    const [total, docs] = await Promise.all([
-      DiscoveredEventModel.countDocuments(filter),
-      DiscoveredEventModel.find(filter)
-        .sort({ dateStart: 1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-    ]);
-
-    return res.json({ data: docs, total, page, limit });
-  } catch (error) {
-    logger.error('GET /events/discovered error', { error: error?.message || error, requestId: req.requestId });
-    return res.status(500).json({ message: 'Error fetching discovered events' });
-  }
-});
-
 // Get single event (by numeric id or ObjectId)
 app.get('/events/:eventId', async (req, res) => {
   try {
@@ -3204,20 +3163,92 @@ app.post('/events/refresh-discovered', async (req, res) => {
       results.push({ query, found: eventsResults.length });
     }
 
-    // Replace cache: delete all, then insert new ones (only if Mongo is connected)
-    if (mongoose.connection.readyState === 1 && DiscoveredEventModel) {
-      await DiscoveredEventModel.deleteMany({});
-      if (allDocs.length > 0) {
-        await DiscoveredEventModel.insertMany(allDocs, { ordered: false });
+    // Create REAL Event records from SerpAPI data.
+    // These are actual events that show up in the main events list, on the
+    // calendar, and support RSVP — not a separate "discovered" section.
+    // They are tagged with 'discovered' so we can identify and replace them
+    // on each refresh cycle.
+    let createdCount = 0;
+    if (mongoose.connection.readyState === 1 && EventModel) {
+      // Delete previously discovered events (tagged with 'discovered')
+      await EventModel.deleteMany({ tags: 'discovered' });
+      // Also remove from in-memory cache
+      for (let i = events.length - 1; i >= 0; i--) {
+        if (Array.isArray(events[i].tags) && events[i].tags.includes('discovered')) {
+          events.splice(i, 1);
+        }
+      }
+
+      // Find or create a system user to be the "creator" of discovered events
+      let systemUser = await UserModel.findOne({ username: 'CarMatch_Discovered' }).lean();
+      if (!systemUser) {
+        systemUser = await UserModel.create({
+          mockId: '0',
+          username: 'CarMatch_Discovered',
+          email: 'discovered@carmatch.internal',
+          password: await bcrypt.hash(Math.random().toString(36), saltRounds),
+          name: 'CarMatch Events',
+          displayTag: 'CarMatch',
+          gender: 'prefer_not_to_say',
+          location: { city: 'USA', state: 'US', geoCoordinates: { lat: 0, lon: 0 } },
+          role: 'admin',
+          developerOverride: false,
+          premiumStatus: true,
+          biography: 'Automated event discovery via SerpAPI',
+          profileImage: '',
+          carInterests: [],
+        });
+      }
+      const systemUserId = systemUser._id;
+
+      // Create real Event records from SerpAPI data
+      for (const doc of allDocs) {
+        try {
+          const nextId = await computeNextEventId();
+          // Build a readable location string
+          const locParts = [];
+          if (doc.location.name) locParts.push(doc.location.name);
+          if (doc.location.city) locParts.push(doc.location.city);
+          if (doc.location.state) locParts.push(doc.location.state);
+          const locationStr = locParts.join(', ') || 'See event link for details';
+
+          // Build description with link to original source
+          let desc = doc.description || '';
+          if (doc.dateText) desc = (desc ? desc + '\n\n' : '') + `📅 ${doc.dateText}`;
+          if (doc.link) desc = (desc ? desc + '\n' : '') + `🔗 ${doc.link}`;
+
+          const eventDoc = await EventModel.create({
+            id: nextId,
+            name: doc.title,
+            title: doc.title,
+            description: desc,
+            date: doc.dateStart ? doc.dateStart.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            location: locationStr,
+            image: doc.thumbnail || '',
+            thumbnail: doc.thumbnail || '',
+            tags: ['discovered', doc.searchQuery.replace(/\s+/g, '-')],
+            createdByUserId: systemUserId,
+            createdByUsername: 'CarMatch_Discovered',
+            rsvps: [],
+            comments: [],
+          });
+
+          // Also add to in-memory cache
+          events.push(normalizeEventRecord(eventDoc));
+          createdCount++;
+        } catch (e) {
+          logger.warn('Failed to create discovered event', { title: doc.title, error: e?.message });
+        }
       }
     } else {
-      logger.warn('refresh-discovered: MongoDB not connected, results not persisted', { count: allDocs.length });
+      logger.warn('refresh-discovered: MongoDB not connected, events not created', { count: allDocs.length });
     }
 
-    logger.info('Discovered events refreshed', { count: allDocs.length, queries: queries.length, requestId: req.requestId });
+    logger.info('Discovered events created as real events', { count: createdCount, total: allDocs.length, queries: queries.length, requestId: req.requestId });
     return res.json({
       message: 'Discovered events refreshed',
-      count: allDocs.length,
+      count: createdCount,
+      total: allDocs.length,
       queries: queries.length,
       results,
     });
