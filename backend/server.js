@@ -13,6 +13,24 @@ const { logger, securityEvent } = require('./logger');
 const { createRateLimits } = require('./middleware/rateLimits');
 const { ForumThread, ForumPost, ForumCategory, ForumReport } = require('./models/forum');
 let UserModel, EventModel, MessageModel; // loaded only when Mongo is configured
+
+// Geocode a city+state into lat/lon using OpenStreetMap Nominatim (free, no API key).
+// Returns { lat, lon } or null on failure. Rate-limited to 1 req/sec by Nominatim fair-use policy.
+const geocodeLocation = async (city, state) => {
+  try {
+    const query = encodeURIComponent(`${city}, ${state}`);
+    const url = `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=us`;
+    const resp = await fetch(url, { headers: { 'User-Agent': 'CarMatch/1.0 (car-match-community)' } });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    if (data && data[0]) {
+      return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+    }
+  } catch (e) {
+    logger.warn('Geocoding failed', { error: e, city, state });
+  }
+  return null;
+};
 const app = express();
 app.set('trust proxy', true);
 app.disable('x-powered-by');
@@ -241,7 +259,11 @@ const seedDemoData = () => {
         name: u.name,
         displayTag: u.displayTag,
         gender: u.gender,
-        location: { city: u.city, state: u.state, geoCoordinates: { lat: (Math.random()*180-90), lon: (Math.random()*360-180) } },
+        location: { city: u.city, state: u.state, geoCoordinates: {
+          'Los Angeles': { lat: 34.0522, lon: -118.2437 },
+          'San Francisco': { lat: 37.7749, lon: -122.4194 },
+          'San Diego': { lat: 32.7157, lon: -117.1611 },
+        }[u.city] || { lat: 0, lon: 0 } },
         interests: [], biography: '', profileImage: '', lastLoginTimestamp: null,
         premiumStatus: u.username === 'jane',
         developerOverride: u.username === 'demo',
@@ -778,7 +800,7 @@ app.post('/register', authLimiterMiddleware, async (req, res) => {
       location: {
         city,
         state,
-        geoCoordinates: { lat: (Math.random() * 180 - 90), lon: (Math.random() * 360 - 180) },
+        geoCoordinates: await geocodeLocation(city, state) || { lat: 0, lon: 0 },
       },
       interests: [],
       biography: "",
