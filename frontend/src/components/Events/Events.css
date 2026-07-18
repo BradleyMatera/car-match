@@ -585,7 +585,7 @@
 
 /* Discovered Events (real car events from SerpAPI) */
 .discovered-source-note {
-  color: #888;
+  color: #6b6b6b;
   font-size: 12px;
   margin: 0 0 16px;
 }
@@ -639,7 +639,7 @@
 }
 .discovered-card-addr {
   font-size: 11px;
-  color: #999;
+  color: #767676;
   margin: 2px 0;
 }
 .discovered-show-more {

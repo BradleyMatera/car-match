@@ -51,7 +51,7 @@
 
 .auth-subtitle {
   text-align: center;
-  color: #888;
+  color: #6b6b6b;
   font-size: 14px;
   margin: 0 0 28px;
 }
@@ -219,7 +219,7 @@
   align-items: center;
   gap: 12px;
   margin: 24px 0 16px;
-  color: #aaa;
+  color: #767676;
   font-size: 13px;
 }
 .auth-divider::before,
@@ -267,7 +267,7 @@
 
 .auth-feature-item {
   font-size: 13px;
-  color: #888;
+  color: #6b6b6b;
   text-align: center;
 }
 

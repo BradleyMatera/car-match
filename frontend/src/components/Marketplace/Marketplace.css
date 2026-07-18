@@ -9,7 +9,7 @@
   color: #fff;
 }
 .mp-hero h2 { margin: 0 0 8px; font-size: 28px; }
-.mp-hero p { color: #aaa; margin: 0 0 16px; }
+.mp-hero p { color: #767676; margin: 0 0 16px; }
 
 .mp-filters { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
 .mp-search-input { flex: 1; min-width: 200px; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
@@ -38,7 +38,7 @@
 .mp-card-price { font-size: 16px; font-weight: 700; color: #e10600; }
 .mp-card-meta { display: flex; gap: 4px; margin: 6px 0; flex-wrap: wrap; }
 .mp-badge-small { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: #f0f0f0; color: #666; text-transform: capitalize; }
-.mp-card-location { font-size: 11px; color: #888; margin: 0; }
+.mp-card-location { font-size: 11px; color: #6b6b6b; margin: 0; }
 
 .mp-skeleton-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
 .mp-skeleton-card { background: #f8f8f8; border-radius: 10px; padding: 0; overflow: hidden; }
@@ -48,7 +48,7 @@
 .mp-empty-state { text-align: center; padding: 48px 16px; }
 .mp-empty-icon { font-size: 48px; margin-bottom: 12px; }
 .mp-empty-state h3 { margin: 0 0 8px; }
-.mp-empty-state p { color: #888; }
+.mp-empty-state p { color: #6b6b6b; }
 .mp-error { color: #c00; padding: 16px; text-align: center; background: #fee; border-radius: 8px; }
 
 /* Detail view */
@@ -66,7 +66,7 @@
 .mp-cond-badge { background: #fff3e0; color: #e65100; }
 .mp-sold-badge { background: #dc2626; color: #fff; }
 .mp-seller { color: #666; }
-.mp-location { color: #888; }
+.mp-location { color: #6b6b6b; }
 
 .mp-detail-desc { font-size: 14px; line-height: 1.6; color: #444; margin-bottom: 16px; }
 .mp-contact { font-size: 14px; margin: 4px 0; }

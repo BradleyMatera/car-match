@@ -456,7 +456,7 @@ button:active, .btn:active {
 .message-item.locked-message .message-text {
   filter: blur(4px); 
   font-style: italic;
-  color: #aaa;
+  color: #767676;
   cursor: not-allowed;
   -webkit-user-select: none; /* Safari */
   user-select: none;
