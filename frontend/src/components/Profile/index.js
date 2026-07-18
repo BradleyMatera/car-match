@@ -7,6 +7,7 @@ import Section from '../Section';
 import Grid from '../Grid';
 import Spacing from '../Spacing';
 import { applySEO } from '../../utils/seo';
+import { toast } from '../../utils/toast';
 
 const UpgradeModal = ({ show, onClose, onUpgrade }) => {
   if (!show) return null;
@@ -138,7 +139,7 @@ const Profile = () => {
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!currentUser || !token || !recipientUsername || !newMessageText) {
-      alert("Recipient and message text are required.");
+      toast.info("Recipient and message text are required.");
       return;
     }
     setLoadingMessages(true);
@@ -151,11 +152,11 @@ const Profile = () => {
         setNewMessageText('');
         setRecipientUsername('');
         // setReplyingTo(null); // replyingTo was unused
-        alert('Message sent!');
+        toast.success('Message sent!');
         fetchMessagesForTab(activeMessageTab, messageFilters);
       }
     } catch (err) {
-      alert(`Failed to send message: ${err.message}`);
+      toast.error(`Failed to send message: ${err.message}`);
     } finally {
       setLoadingMessages(false);
     }
@@ -211,9 +212,9 @@ const Profile = () => {
       const resp = await api.updateUser(token, currentUser.id, dataToSave);
       updateCurrentUser(resp.user || dataToSave);
       setEditing(false);
-      alert('Profile updated.');
+      toast.success('Profile updated.');
     } catch (err) {
-      alert(`Failed to save changes: ${err.message}`);
+      toast.error(`Failed to save changes: ${err.message}`);
     }
   };
 
@@ -223,14 +224,14 @@ const Profile = () => {
       const updatedUserData = await api.upgradeToPremium(token, currentUser.id);
       updateCurrentUser(updatedUserData.user);
       setShowUpgradeModal(false);
-      alert('Successfully upgraded to premium!');
+      toast.success('Successfully upgraded to premium!');
     } catch (error) {
-      alert(`Failed to upgrade: ${error.message}`);
+      toast.error(`Failed to upgrade: ${error.message}`);
     }
   };
 
   const toggleRsvp = async (eventId) => {
-    if (!token) { alert('Please log in.'); return; }
+    if (!token) { toast.info('Please log in.'); return; }
     try {
       const eid = String(eventId);
       const currentlyGoing = myRsvpMap instanceof Map && myRsvpMap.get(eid) === true;
@@ -252,7 +253,7 @@ const Profile = () => {
       // Refresh user events after RSVP change
       try { const events = await api.getUserEvents(currentUser.id); setUserEvents(events); } catch {}
     } catch (e) {
-      alert(e.message || 'Failed to toggle RSVP');
+      toast.error(e.message || 'Failed to toggle RSVP');
     }
   };
 
@@ -261,7 +262,7 @@ const Profile = () => {
   const handleAddVehicle = async () => {
     if (!currentUser || !token) return;
     if (!newVehicle.name || !newVehicle.make) {
-      alert('Vehicle name and make are required.');
+      toast.info('Vehicle name and make are required.');
       return;
     }
     try {
@@ -272,7 +273,7 @@ const Profile = () => {
       setNewVehicle({ name: '', make: '', model: '', year: '', description: '' });
       setShowAddVehicle(false);
     } catch (err) {
-      alert('Failed to add vehicle: ' + (err.message || 'Unknown error'));
+      toast.error('Failed to add vehicle: ' + (err.message || 'Unknown error'));
     }
   };
 
@@ -355,7 +356,7 @@ const Profile = () => {
                   const resp = await api.updateUser(token, currentUser.id, { profileImage: reader.result });
                   updateCurrentUser(resp.user || { ...currentUser, profileImage: reader.result });
                 } catch (err) {
-                  alert('Failed to update profile photo: ' + (err.message || 'Unknown error'));
+                  toast.error('Failed to update profile photo: ' + (err.message || 'Unknown error'));
                 }
               };
               reader.readAsDataURL(file);
@@ -556,9 +557,9 @@ const Profile = () => {
         <h2>Danger Zone</h2>
         <p>Delete your account and all associated data. This action cannot be undone.</p>
         <button className="btn btn-danger" onClick={async ()=>{
-          if (!token) { alert('Please log in.'); return; }
+          if (!token) { toast.info('Please log in.'); return; }
           if (!window.confirm('Are you sure you want to delete your account? This cannot be undone.')) return;
-          try { await api.deleteUser(token, currentUser.id); alert('Account deleted.'); window.location.href = '#/login'; } catch(e){ alert(e.message||'Failed to delete account'); }
+          try { await api.deleteUser(token, currentUser.id); toast.success('Account deleted.'); window.location.href = '#/login'; } catch(e){ toast.error(e.message||'Failed to delete account'); }
         }}>Delete Account</button>
       </Section>
       )}

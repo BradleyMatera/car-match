@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useState, useCallback } from 'react';
 import './messages.css';
 import api from '../../api/client';
 import AuthContext from '../../context/AuthContext';
+import { toast } from '../../utils/toast';
 
 const MessagesPage = () => {
   const { currentUser, token } = useContext(AuthContext);
@@ -33,7 +34,7 @@ const MessagesPage = () => {
 
   useEffect(()=>{ if (token) loadMessages(); }, [loadMessages, token]);
 
-  const applyFilters = () => { if (!isEffectivelyPremium && (filters.gender || filters.radius || filters.sortBy==='proximity')) return alert('Upgrade to apply filters.'); loadMessages(); };
+  const applyFilters = () => { if (!isEffectivelyPremium && (filters.gender || filters.radius || filters.sortBy==='proximity')) return toast.info('Upgrade to apply filters.'); loadMessages(); };
 
   const send = async (e) => {
     e.preventDefault();
@@ -43,7 +44,7 @@ const MessagesPage = () => {
       setRecipient(''); setText('');
       loadMessages();
     } catch (e) {
-      alert(e.message || 'Failed to send');
+      toast.error(e.message || 'Failed to send');
     }
   };
 

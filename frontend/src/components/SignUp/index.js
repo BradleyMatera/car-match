@@ -4,6 +4,7 @@ import api from '../../api/client';
 import AuthContext from '../../context/AuthContext';
 import './SignUp.css';
 import { applySEO } from '../../utils/seo';
+import { toast } from '../../utils/toast';
 
 const SignUp = () => {
   const [formData, setFormData] = useState({
@@ -138,7 +139,7 @@ const SignUp = () => {
     try {
       const response = await api.registerUser(registrationData);
       console.log('Registration successful:', response);
-      alert('Registration successful! Please log in.');
+      toast.success('Registration successful! Please log in.');
       navigate('/login'); // Navigate to login page after successful registration
     } catch (err) {
       setError(err.message || 'Failed to register. Please try again.');

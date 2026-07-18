@@ -10,7 +10,6 @@ import Forums from './components/Forums';
 import SignUp from './components/SignUp'; // Import the new SignUp component
 import Login from './components/Login'; 
 import Layout from './components/Layout';
-import LayoutExample from './components/LayoutExample';
 import AuthContext, { AuthProvider } from './context/AuthContext';
 import { trackPageView } from './utils/analytics';
 
@@ -62,7 +61,6 @@ function AppContent() {
               {/* Messages page removed; handled within Profile */}
               <Route path="/profile" element={<Layout><Profile /></Layout>} />
               {/* Settings merged into Profile; route removed */}
-              <Route path="/layout-example" element={<Layout><LayoutExample /></Layout>} />
               <Route path="*" element={<Navigate to="/" />} />
             </>
           )}

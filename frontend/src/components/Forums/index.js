@@ -4,6 +4,7 @@ import './Forums.css';
 import api from '../../api/client';
 import AuthContext from '../../context/AuthContext';
 import { applySEO } from '../../utils/seo';
+import { toast } from '../../utils/toast';
 
 const Forums = () => {
   const { currentUser, token } = useContext(AuthContext);
@@ -154,11 +155,11 @@ const Forums = () => {
 
   const handleCreateThread = async (e) => {
     e.preventDefault();
-    if (!currentUser) { alert('Please log in to create a thread.'); return; }
+    if (!currentUser) { toast.info('Please log in to create a thread.'); return; }
     if (!selectedCategory || !newThreadTitle.trim()) return;
     let newThread;
     try {
-      if (!token) { alert('Please log in.'); return; }
+      if (!token) { toast.info('Please log in.'); return; }
       newThread = await api.createThread(token, { categoryId: selectedCategory.id, title: newThreadTitle.trim() });
       // Optionally create first post body if provided
       if (newThreadBody.trim()) {
@@ -170,29 +171,29 @@ const Forums = () => {
       await loadThreads(selectedCategory, { page: 1 });
       openThread(newThread);
     } catch (err) {
-      alert(err.message || 'Failed to create thread');
+      toast.error(err.message || 'Failed to create thread');
     }
   };
 
   const handleAddPost = async (e) => {
     e.preventDefault();
-    if (!currentUser) { alert('Please log in to reply.'); return; }
+    if (!currentUser) { toast.info('Please log in to reply.'); return; }
     if (!activeThread || !newPostBody.trim()) return;
     try {
-      if (!token) { alert('Please log in.'); return; }
+      if (!token) { toast.info('Please log in.'); return; }
       await api.addPostToThread(token, { threadId: getThreadId(activeThread), body: newPostBody.trim() });
       setNewPostBody('');
       const data = await api.getThreadById(getThreadId(activeThread));
       setActiveThread(data.thread);
       setThreadPosts(data.posts);
     } catch (err) {
-      alert(err.message || 'Failed to post');
+      toast.error(err.message || 'Failed to post');
     }
   };
 
   const pinToggle = async (thread, pinned) => {
     try {
-      if (!token) { alert('Please log in.'); return; }
+      if (!token) { toast.info('Please log in.'); return; }
       const response = await api.pinThread(token, getThreadId(thread), pinned);
       const updatedThread = response?.thread || null;
       if (updatedThread) {
@@ -204,12 +205,12 @@ const Forums = () => {
       } else {
         await loadThreads(selectedCategory, { page });
       }
-    } catch (e) { alert(e.message || 'Failed to pin'); }
+    } catch (e) { toast.error(e.message || 'Failed to pin'); }
   };
 
   const lockToggle = async (thread, locked) => {
     try {
-      if (!token) { alert('Please log in.'); return; }
+      if (!token) { toast.info('Please log in.'); return; }
       const response = await api.lockThread(token, getThreadId(thread), locked);
       const updatedThread = response?.thread || null;
       if (updatedThread) {
@@ -222,25 +223,25 @@ const Forums = () => {
       const data = await api.getThreadById(getThreadId(thread));
       setActiveThread(data.thread);
       setThreadPosts(data.posts);
-    } catch (e) { alert(e.message || 'Failed to lock'); }
+    } catch (e) { toast.error(e.message || 'Failed to lock'); }
   };
 
   const deleteThread = async (thread) => {
     if (!window.confirm('Delete this thread?')) return;
     try {
-      if (!token) { alert('Please log in.'); return; }
+      if (!token) { toast.info('Please log in.'); return; }
       await api.deleteThread(token, getThreadId(thread));
       setActiveThread(null);
       await loadThreads(selectedCategory, { page: 1 });
-    } catch (e) { alert(e.message || 'Failed to delete'); }
+    } catch (e) { toast.error(e.message || 'Failed to delete'); }
   };
 
   const reportPost = async (post) => {
     try {
-      if (!token) { alert('Please log in.'); return; }
+      if (!token) { toast.info('Please log in.'); return; }
       await api.reportPost(token, post.id, 'inappropriate');
-      alert('Reported');
-    } catch (e) { alert(e.message || 'Failed to report'); }
+      toast.success('Reported. A moderator will review it.');
+    } catch (e) { toast.error(e.message || 'Failed to report'); }
   };
 
   // --- Helpers for forum-like presentation ---
