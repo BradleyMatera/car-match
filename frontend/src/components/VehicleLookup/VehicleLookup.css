@@ -1,0 +1,231 @@
+.vehicle-lookup-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.vl-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-bottom: 2px solid #e0e0e0;
+  flex-wrap: wrap;
+}
+
+.vl-tab {
+  padding: 10px 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s;
+}
+
+.vl-tab:hover { color: #333; }
+.vl-tab.active { color: #e10600; border-bottom-color: #e10600; }
+
+.vl-section {
+  padding: 16px 0;
+}
+
+.vl-desc {
+  color: #666;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.vl-input-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.vl-vin-input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 15px;
+  font-family: monospace;
+  letter-spacing: 1px;
+}
+
+.vl-vehicle-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr 100px;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.vl-vehicle-form input {
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.vl-action-area { margin-top: 8px; }
+
+.vl-results {
+  margin-top: 20px;
+}
+
+.vl-result-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.vl-result-item {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+  background: #f8f8f8;
+  border-radius: 6px;
+  border-left: 3px solid #e10600;
+}
+
+.vl-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+.vl-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: #222;
+}
+
+.vl-count {
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #333;
+}
+
+.vl-empty {
+  color: #666;
+  font-style: italic;
+  padding: 16px;
+  text-align: center;
+  background: #f8f8f8;
+  border-radius: 6px;
+}
+
+.recall-card, .complaint-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+.recall-header, .complaint-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.recall-component, .complaint-component {
+  font-weight: 600;
+  color: #e10600;
+  font-size: 14px;
+}
+
+.recall-date, .complaint-date {
+  font-size: 12px;
+  color: #888;
+}
+
+.recall-summary, .complaint-summary {
+  font-size: 13px;
+  color: #444;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+.recall-consequence, .recall-remedy {
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+.recall-campaign {
+  font-size: 11px;
+  color: #999;
+  font-family: monospace;
+}
+
+.ratings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.rating-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px;
+  background: #f8f8f8;
+  border-radius: 8px;
+}
+
+.rating-label {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.stars {
+  font-size: 18px;
+  color: #f5a623;
+  letter-spacing: 2px;
+}
+
+.rating-na {
+  color: #ccc;
+  font-size: 16px;
+}
+
+.ratings-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: #666;
+  padding: 12px;
+  background: #f8f8f8;
+  border-radius: 6px;
+}
+
+.complaint-flags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.flag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.flag-crash { background: #fee; color: #c00; }
+.flag-fire { background: #fff3e0; color: #e65100; }
+.flag-injury { background: #fce4ec; color: #c62828; }
+.flag-death { background: #ffebee; color: #b71c1c; }
+
+@media (max-width: 600px) {
+  .vl-vehicle-form { grid-template-columns: 1fr; }
+  .vl-input-row { flex-direction: column; }
+}

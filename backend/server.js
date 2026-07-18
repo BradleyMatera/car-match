@@ -2125,6 +2125,188 @@ app.put('/events/:eventId', authenticateToken, async (req, res) => {
   }
 });
 
+// =============================================================
+// NHTSA Vehicle Data Proxy Routes
+// These are FREE, no-API-key endpoints provided by the US
+// government (National Highway Traffic Safety Administration).
+// The backend proxies them so the frontend can call our own API
+// without running into browser CORS restrictions. No auth is
+// required for these routes because the underlying data is public.
+// =============================================================
+
+// Simple in-memory cache (Map with 10-minute TTL) to avoid hammering NHTSA
+// for repeated identical queries. Entries expire automatically on read.
+const nhtsaCache = new Map();
+const NHTSA_CACHE_TTL_MS = 10 * 60 * 1000;
+const nhtsaCacheGet = (key) => {
+  const entry = nhtsaCache.get(key);
+  if (!entry) return undefined;
+  if (Date.now() - entry.ts > NHTSA_CACHE_TTL_MS) {
+    nhtsaCache.delete(key);
+    return undefined;
+  }
+  return entry.value;
+};
+const nhtsaCacheSet = (key, value) => {
+  nhtsaCache.set(key, { ts: Date.now(), value });
+};
+
+// Dedicated rate limiter for vehicle data lookups (public, but external-bound).
+const vehicleLimiter = useLimiter(
+  createSensitiveLimiter({
+    windowMs: 10 * 60 * 1000,
+    max: 120,
+    message: 'Too many vehicle data requests. Please slow down.',
+  })
+);
+
+// Helper: fetch JSON from NHTSA with caching. Returns { ok, status, data }.
+const nhtsaFetch = async (url) => {
+  const cached = nhtsaCacheGet(url);
+  if (cached !== undefined) return { ok: true, status: 200, data: cached, cached: true };
+  try {
+    const resp = await fetch(url, { headers: { 'User-Agent': 'CarMatch/1.0 (car-match-community)' } });
+    if (!resp.ok) return { ok: false, status: resp.status };
+    const data = await resp.json();
+    nhtsaCacheSet(url, data);
+    return { ok: true, status: resp.status, data };
+  } catch (e) {
+    logger.warn('NHTSA fetch failed', { error: e, url });
+    return { ok: false, status: 502 };
+  }
+};
+
+// Route 1: GET /vehicle/decode-vin/:vin
+// Proxy to vpic.nhtsa.dot.gov DecodeVin and flatten the Results array
+// (which is a list of { Variable, Value } pairs) into a clean object.
+app.get('/vehicle/decode-vin/:vin', vehicleLimiter, async (req, res) => {
+  const vin = String(req.params.vin || '').trim().toUpperCase();
+  if (!vin || vin.length !== 17) {
+    return res.status(400).json({ message: 'Invalid VIN. A VIN must be exactly 17 characters.' });
+  }
+  const url = `https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVin/${encodeURIComponent(vin)}?format=json`;
+  const result = await nhtsaFetch(url);
+  if (!result.ok) {
+    return res.status(502).json({ message: 'NHTSA vehicle data service is unavailable. Please try again later.' });
+  }
+  const data = result.data || {};
+  const results = Array.isArray(data.Results) ? data.Results : [];
+  const byVariable = {};
+  for (const row of results) {
+    if (row && typeof row.Variable === 'string') {
+      byVariable[row.Variable] = row.Value != null ? String(row.Value).trim() : '';
+    }
+  }
+  const pick = (...names) => {
+    for (const n of names) {
+      const v = byVariable[n];
+      if (v && v.length && !/error|not available|null/i.test(v)) return v;
+    }
+    return '';
+  };
+  const decoded = {
+    make: pick('Make'),
+    model: pick('Model'),
+    modelYear: pick('Model Year', 'ModelYear'),
+    bodyClass: pick('Body Class'),
+    engineModel: pick('Engine Model', 'EngineModel'),
+    displacementL: pick('Displacement (L)', 'DisplacementL'),
+    fuelType: pick('Fuel Type - Primary', 'Fuel Type Primary', 'Fuel Type'),
+    transmissionStyle: pick('Transmission Style', 'TransmissionStyle'),
+    drivetrain: pick('Drive Type', 'DriveType', 'Drivetrain'),
+    manufacturer: pick('Manufacturer Name', 'ManufacturerName', 'Manufacturer'),
+    plant: pick('Plant City', 'Plant Company Name', 'PlantCompanyName', 'Plant'),
+    vehicleType: pick('Vehicle Type', 'VehicleType'),
+  };
+  res.json({ vin, decoded });
+});
+
+// Route 2: GET /vehicle/recalls?make=&model=&year=
+// Proxy to api.nhtsa.gov recallsByVehicle. NHTSA already returns clean JSON.
+app.get('/vehicle/recalls', vehicleLimiter, async (req, res) => {
+  const make = String(req.query.make || '').trim();
+  const model = String(req.query.model || '').trim();
+  const year = String(req.query.year || '').trim();
+  if (!make || !model || !year) {
+    return res.status(400).json({ message: 'make, model, and year query parameters are required.' });
+  }
+  const url = `https://api.nhtsa.gov/recalls/recallsByVehicle?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&modelYear=${encodeURIComponent(year)}`;
+  const result = await nhtsaFetch(url);
+  if (!result.ok) {
+    return res.status(502).json({ message: 'NHTSA recalls service is unavailable. Please try again later.' });
+  }
+  res.json(result.data);
+});
+
+// Route 3: GET /vehicle/safety-ratings?make=&model=&year=
+// Two-step: resolve VehicleId from model/make/year, then fetch the ratings.
+app.get('/vehicle/safety-ratings', vehicleLimiter, async (req, res) => {
+  const make = String(req.query.make || '').trim();
+  const model = String(req.query.model || '').trim();
+  const year = String(req.query.year || '').trim();
+  if (!make || !model || !year) {
+    return res.status(400).json({ message: 'make, model, and year query parameters are required.' });
+  }
+  const listUrl = `https://api.nhtsa.gov/SafetyRatings/modelyear/${encodeURIComponent(year)}/make/${encodeURIComponent(make)}/model/${encodeURIComponent(model)}`;
+  const listResult = await nhtsaFetch(listUrl);
+  if (!listResult.ok) {
+    return res.status(502).json({ message: 'NHTSA safety ratings service is unavailable. Please try again later.' });
+  }
+  const listData = listResult.data || {};
+  const results = Array.isArray(listData.Results) ? listData.Results : [];
+  const vehicleId = results.length > 0 ? results[0].VehicleId : null;
+  if (!vehicleId) {
+    return res.status(404).json({ message: 'No safety ratings found for this vehicle.' });
+  }
+  const detailUrl = `https://api.nhtsa.gov/SafetyRatings/VehicleId/${encodeURIComponent(vehicleId)}`;
+  const detailResult = await nhtsaFetch(detailUrl);
+  if (!detailResult.ok) {
+    return res.status(502).json({ message: 'NHTSA safety ratings service is unavailable. Please try again later.' });
+  }
+  const detailData = detailResult.data || {};
+  const detailResults = Array.isArray(detailData.Results) ? detailData.Results : [];
+  const r = detailResults.length > 0 ? detailResults[0] : {};
+  res.json({
+    vehicleDescription: r.VehicleDescription || '',
+    overallRating: r.OverallRating || '',
+    overallFrontCrashRating: r.OverallFrontCrashRating || '',
+    overallSideCrashRating: r.OverallSideCrashRating || '',
+    rolloverRating: r.RolloverRating || '',
+    recallsCount: r.RecallsCount != null ? r.RecallsCount : '',
+    complaintsCount: r.ComplaintsCount != null ? r.ComplaintsCount : '',
+    investigationCount: r.InvestigationCount != null ? r.InvestigationCount : '',
+  });
+});
+
+// Route 4: GET /vehicle/complaints?make=&model=&year=
+// Proxy to api.nhtsa.gov complaintsByVehicle, simplified + capped at 20.
+app.get('/vehicle/complaints', vehicleLimiter, async (req, res) => {
+  const make = String(req.query.make || '').trim();
+  const model = String(req.query.model || '').trim();
+  const year = String(req.query.year || '').trim();
+  if (!make || !model || !year) {
+    return res.status(400).json({ message: 'make, model, and year query parameters are required.' });
+  }
+  const url = `https://api.nhtsa.gov/complaints/complaintsByVehicle?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&modelYear=${encodeURIComponent(year)}`;
+  const result = await nhtsaFetch(url);
+  if (!result.ok) {
+    return res.status(502).json({ message: 'NHTSA complaints service is unavailable. Please try again later.' });
+  }
+  const data = result.data || {};
+  const rawResults = Array.isArray(data.results) ? data.results : [];
+  const simplified = rawResults.slice(0, 20).map((c) => ({
+    odiNumber: c.odiNumber != null ? c.odiNumber : (c.ODINumber != null ? c.ODINumber : ''),
+    components: c.components != null ? c.components : (c.Components != null ? c.Components : ''),
+    summary: c.summary != null ? c.summary : (c.Summary != null ? c.Summary : ''),
+    dateOfIncident: c.dateOfIncident != null ? c.dateOfIncident : (c.DateOfIncident != null ? c.DateOfIncident : ''),
+    crash: c.crash != null ? c.crash : (c.Crash != null ? c.Crash : false),
+    fire: c.fire != null ? c.fire : (c.Fire != null ? c.Fire : false),
+    numberOfInjuries: c.numberOfInjuries != null ? c.numberOfInjuries : (c.NumberOfInjuries != null ? c.NumberOfInjuries : 0),
+    numberOfDeaths: c.numberOfDeaths != null ? c.numberOfDeaths : (c.NumberOfDeaths != null ? c.NumberOfDeaths : 0),
+  }));
+  res.json({ count: simplified.length, results: simplified });
+});
+
 const httpServer = http.createServer(app);
 httpServer.listen(port, () => {
   logger.info('HTTP server listening', { port });

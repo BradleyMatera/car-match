@@ -289,6 +289,16 @@ const api = {
     if (typeof localStorage !== 'undefined') localStorage.setItem('currentUser', JSON.stringify(next));
     return next;
   },
+
+  // --- NHTSA Vehicle Data (free, no API key — proxied through backend) ---
+  decodeVin: async (vin) =>
+    ok(await fetch(`${API_BASE_URL}/vehicle/decode-vin/${encodeURIComponent(vin)}`)).then(json),
+  getRecalls: async (make, model, year) =>
+    ok(await fetch(`${API_BASE_URL}/vehicle/recalls?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&year=${encodeURIComponent(year)}`)).then(json),
+  getSafetyRatings: async (make, model, year) =>
+    ok(await fetch(`${API_BASE_URL}/vehicle/safety-ratings?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&year=${encodeURIComponent(year)}`)).then(json),
+  getComplaints: async (make, model, year) =>
+    ok(await fetch(`${API_BASE_URL}/vehicle/complaints?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&year=${encodeURIComponent(year)}`)).then(json),
 };
 
 export default api;
