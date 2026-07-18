@@ -69,6 +69,7 @@ const UserSchema = new mongoose.Schema({
   cars: [CarSchema],
   role: { type: String, enum: ['user', 'moderator', 'admin'], default: 'user' },
   createdAt: { type: Date, default: Date.now },
+  lastLoginTimestamp: { type: String, default: null },
   preferences: { type: PreferencesSchema, default: () => ({}) },
 });
 

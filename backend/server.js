@@ -1149,6 +1149,14 @@ app.post('/register', authLimiterMiddleware, async (req, res) => {
         biography: baseUser.biography,
         profileImage: baseUser.profileImage,
         carInterests: baseUser.interests,
+        cars: [],
+        lastLoginTimestamp: null,
+        preferences: {
+          notifications: { messagesEmail: true, forumRepliesEmail: true, eventRemindersEmail: true },
+          privacy: { showProfile: true, showEmail: false, searchable: true },
+          display: { theme: 'system', textSize: 'normal' },
+          connections: { instagram: '', twitter: '', website: '' },
+        },
       });
       persistentId = created._id.toString();
     }
@@ -1213,6 +1221,13 @@ app.post('/login', authLimiterMiddleware, async (req, res) => {
           createdAt: (dbUser.createdAt instanceof Date ? dbUser.createdAt : new Date()).toISOString(),
         };
 
+        // Persist lastLoginTimestamp to MongoDB
+        try {
+          await UserModel.updateOne({ _id: dbUser._id }, { $set: { lastLoginTimestamp: authenticatedUser.lastLoginTimestamp } });
+        } catch (loginMetaErr) {
+          logger.error('Failed to persist lastLoginTimestamp on DB login', { error: loginMetaErr, requestId: req.requestId });
+        }
+
         const idx = users.findIndex(u => u.username === dbUser.username);
         const cachePayload = {
           id: authenticatedUser.id,
@@ -1258,6 +1273,14 @@ app.post('/login', authLimiterMiddleware, async (req, res) => {
       const canonicalId = mongoose.Types.ObjectId.isValid(cachedUser.id) ? cachedUser.id : String(cachedUser.id);
       cachedUser.id = canonicalId;
       cachedUser.lastLoginTimestamp = new Date().toISOString();
+      // Persist lastLoginTimestamp to MongoDB so it survives restarts
+      if (mongoose.connection.readyState === 1 && UserModel) {
+        try {
+          await UserModel.updateOne({ _id: canonicalId }, { $set: { lastLoginTimestamp: cachedUser.lastLoginTimestamp } });
+        } catch (loginMetaErr) {
+          logger.error('Failed to persist lastLoginTimestamp', { error: loginMetaErr, requestId: req.requestId });
+        }
+      }
       authenticatedUser = {
         id: canonicalId,
         username: cachedUser.username,
@@ -1366,7 +1389,7 @@ async function authenticateToken(req, res, next) {
           cars: dbUser.cars || [],
           preferences: dbUser.preferences || {},
           email: dbUser.email || '',
-          lastLoginTimestamp: new Date().toISOString(),
+          lastLoginTimestamp: dbUser.lastLoginTimestamp || null,
           premiumStatus: !!dbUser.premiumStatus,
           developerOverride: !!dbUser.developerOverride,
           role: dbUser.role || 'user',
@@ -1668,6 +1691,20 @@ app.post('/messages', messageWriteLimiter, authenticateToken, async (req, res) =
 
     if (!isSenderEffectivelyPremium) {
       senderUser.activityMetadata.messageCountToday += 1;
+      // Persist activity metadata to MongoDB so daily limits survive restarts
+      if (mongoose.connection.readyState === 1 && UserModel) {
+        try {
+          await UserModel.updateOne(
+            { _id: senderUser.id },
+            { $set: {
+              'activityMetadata.messageCountToday': senderUser.activityMetadata.messageCountToday,
+              'activityMetadata.lastMessageDate': senderUser.activityMetadata.lastMessageDate,
+            } }
+          );
+        } catch (metaErr) {
+          logger.error('Failed to persist activityMetadata', { error: metaErr, requestId: req.requestId });
+        }
+      }
     }
 
     securityEvent('Direct message sent', {
