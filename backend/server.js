@@ -190,6 +190,16 @@ const forumCategories = [
 
 const isForumModerator = (user = {}) => Boolean(user.developerOverride || user.role === 'admin' || user.role === 'moderator');
 
+// Strip sensitive fields (password hash, etc.) from a user object before returning it to clients.
+// Handles both Mongoose lean() docs and plain in-memory user objects.
+const SENSITIVE_USER_KEYS = ['password'];
+const sanitizeUser = (user) => {
+  if (!user || typeof user !== 'object') return user;
+  const cleaned = { ...user };
+  for (const key of SENSITIVE_USER_KEYS) delete cleaned[key];
+  return cleaned;
+};
+
 app.get('/', (req, res) => {
   res.send('Hello from the Car Match backend!');
 });
@@ -1100,7 +1110,7 @@ app.get('/users/me', authenticateToken, async (req, res) => {
       const dbUser = await UserModel.findOne({ _id: req.user.id }).lean();
       if (dbUser) user = { ...user, ...dbUser, id: dbUser._id.toString() };
     }
-    res.json({ user });
+    res.json({ user: sanitizeUser(user) });
   } catch (e) {
     res.status(500).json({ message: 'Error fetching user' });
   }
@@ -1143,7 +1153,7 @@ app.patch('/users/:userId', authenticateToken, async (req, res) => {
     }
     const responseUser = updated ? { ...updated, id: updated._id.toString() } : users[memIdx] || { id: userId, ...set };
     securityEvent('User profile updated', { requestId: req.requestId, userId, actingUserId: acting });
-    res.json({ ok: true, user: responseUser });
+    res.json({ ok: true, user: sanitizeUser(responseUser) });
   } catch (e) {
     logger.error('Update user error', { error: e, requestId: req.requestId, params: { userId } });
     res.status(500).json({ message: 'Error updating user' });
