@@ -6,6 +6,7 @@ Utility scripts that support local development, automation, and security scans.
 graph LR
   Root[scripts/] --> HTTPS[setup-dev-https.sh]
   Root --> Roadmap[update_roadmap.sh]
+  Root --> Package[package-handoff.sh]
   Root --> ZAPDir[zap/]
   ZAPDir --> Baseline[zap-baseline.sh]
   ZAPDir --> Doc[README.md]
@@ -28,3 +29,13 @@ collect HTML/JSON/XML reports under `zap-reports/`. Invoke with
 `ZAP_IMAGE`, `ZAP_CONTEXT_FILE`, `ZAP_CONFIG_ARGS`.
 
 The `zap/` subdirectory contains tooling specific to the security testing flow.
+
+## package-handoff.sh
+Creates a clean archive of the repository (excluding `.git/`, `dist/`, and `node_modules/`) for LMS submission or archival.
+
+```bash
+./scripts/package-handoff.sh --format tar.gz   # default
+./scripts/package-handoff.sh --format zip
+```
+
+Archives are written to `dist/` with the branch name and timestamp encoded in the filename.
